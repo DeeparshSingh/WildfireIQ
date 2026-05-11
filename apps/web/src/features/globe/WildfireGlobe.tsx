@@ -12,36 +12,46 @@ import type { CesiumComponentRef } from "resium";
 import type { Viewer as CesiumViewer } from "cesium";
 
 import { getCesiumIonToken } from "@/lib/cesium-helpers/init";
-import { CameraPresetBar } from "./CameraPresets";
-import { CoordinateReadout } from "./CoordinateReadout";
-import { LocationSearch } from "./LocationSearch";
+import { useGlobeStore } from "@/stores/globe";
+import {
+  ActiveFiresLayer,
+  EvacLayer,
+  FIRMSHotspotsLayer,
+  FWIStationsLayer,
+  SmokeLayer,
+} from "./layers";
 
 // Apply Ion token once at module load.
 const _ionToken = getCesiumIonToken();
 if (_ionToken) Ion.defaultAccessToken = _ionToken;
 
 // Cesium Ion asset IDs:
-//   2 = Bing Maps Aerial
 //   3 = Bing Maps Aerial with Labels (countries, cities, roads)
 const BING_AERIAL_WITH_LABELS_ASSET_ID = 3;
 
 export function WildfireGlobe() {
-  const [viewer, setViewer] = useState<CesiumViewer | null>(null);
+  const [viewer, setViewerLocal] = useState<CesiumViewer | null>(null);
+  const { introPlayed, lastCamera, markIntroPlayed, setLastCamera, setViewer } =
+    useGlobeStore();
 
-  // Stable terrain reference — without useMemo a new Terrain instance per
-  // render forces Resium to destroy+recreate the entire Viewer.
   const terrain = useMemo(() => Terrain.fromWorldTerrain({ requestVertexNormals: true }), []);
 
-  const setViewerRef = useCallback((node: CesiumComponentRef<CesiumViewer> | null) => {
-    const v = node?.cesiumElement ?? null;
-    if (v) setViewer(v);
-  }, []);
+  const setViewerRef = useCallback(
+    (node: CesiumComponentRef<CesiumViewer> | null) => {
+      const v = node?.cesiumElement ?? null;
+      if (v) {
+        setViewerLocal(v);
+        setViewer(v);
+      }
+    },
+    [setViewer],
+  );
 
+  // ── Configure the viewer once it's attached. ──────────────────────
   useEffect(() => {
     if (!viewer) return;
     let cancelled = false;
 
-    // ── Swap default imagery → Bing Aerial WITH labels ──────────────
     (async () => {
       try {
         const labeled = await IonImageryProvider.fromAssetId(
@@ -67,21 +77,50 @@ export function WildfireGlobe() {
     viewer.scene.globe.baseColor = Color.fromCssColorString("hsl(220, 30%, 4%)");
     if (viewer.scene.sun) viewer.scene.sun.show = false;
     if (viewer.scene.moon) viewer.scene.moon.show = false;
-    if (viewer.scene.skyBox) viewer.scene.skyBox.show = false;
-    viewer.scene.backgroundColor = Color.TRANSPARENT;
+    // Keep the Cesium-built-in skyBox ON — it ships with the Tycho-2 star
+    // catalog, which gives a subtle but real "space" feel when zoomed out.
+    if (viewer.scene.skyBox) viewer.scene.skyBox.show = true;
+    viewer.scene.backgroundColor = Color.fromCssColorString("hsl(220, 30%, 2%)");
     viewer.scene.postProcessStages.fxaa.enabled = true;
 
-    // Camera controller — sensible limits, full Earth visible at max zoom-out.
+    // ── Camera controller — sensible limits ────────────────────────
     const cc = viewer.scene.screenSpaceCameraController;
-    cc.minimumZoomDistance = 500;             // 500 m — closest the camera can get
-    cc.maximumZoomDistance = 50_000_000;      // 50,000 km — well past full-Earth view
+    cc.minimumZoomDistance = 500;
+    cc.maximumZoomDistance = 50_000_000;
     cc.enableTilt = true;
     cc.enableLook = false;
 
-    // requestRenderMode OFF during flight; will turn on when it completes.
-    viewer.scene.requestRenderMode = false;
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer]);
 
-    // ── Start from full Earth in space view ─────────────────────────
+  // ── Intro vs. restore: only one runs, depending on whether intro
+  //    has already been played in this browser session. ─────────────
+  useEffect(() => {
+    if (!viewer) return;
+
+    if (lastCamera && introPlayed) {
+      // Restore the user's last position — no flight, no fanfare.
+      viewer.camera.setView({
+        destination: Cartesian3.fromDegrees(
+          lastCamera.lon,
+          lastCamera.lat,
+          lastCamera.height,
+        ),
+        orientation: {
+          heading: lastCamera.heading,
+          pitch: lastCamera.pitch,
+          roll: lastCamera.roll,
+        },
+      });
+      viewer.scene.requestRenderMode = true;
+      viewer.scene.maximumRenderTimeChange = Infinity;
+      return;
+    }
+
+    // First time this session — play the cinematic intro.
+    viewer.scene.requestRenderMode = false;
     viewer.camera.setView({
       destination: Cartesian3.fromDegrees(-120.3273, 50.6745, 25_000_000),
       orientation: {
@@ -91,9 +130,7 @@ export function WildfireGlobe() {
       },
     });
 
-    // ── Cinematic flyTo → top-down over Kamloops ────────────────────
     const flyTimeout = window.setTimeout(() => {
-      if (cancelled) return;
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(-120.3273, 50.6745, 250_000),
         orientation: {
@@ -105,15 +142,33 @@ export function WildfireGlobe() {
         complete: () => {
           viewer.scene.requestRenderMode = true;
           viewer.scene.maximumRenderTimeChange = Infinity;
+          markIntroPlayed();
         },
       });
     }, 400);
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(flyTimeout);
+    return () => window.clearTimeout(flyTimeout);
+  }, [viewer, introPlayed, lastCamera, markIntroPlayed]);
+
+  // ── Persist camera position on every move, throttled by Cesium's
+  //    `percentageChanged` so we don't write on every frame. ─────────
+  useEffect(() => {
+    if (!viewer) return;
+    viewer.camera.percentageChanged = 0.01;
+    const onMove = () => {
+      const c = viewer.camera.positionCartographic;
+      setLastCamera({
+        lon: CesiumMath.toDegrees(c.longitude),
+        lat: CesiumMath.toDegrees(c.latitude),
+        height: c.height,
+        heading: viewer.camera.heading,
+        pitch: viewer.camera.pitch,
+        roll: viewer.camera.roll,
+      });
     };
-  }, [viewer]);
+    const remove = viewer.camera.changed.addEventListener(onMove);
+    return () => remove();
+  }, [viewer, setLastCamera]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
@@ -133,6 +188,11 @@ export function WildfireGlobe() {
         timeline={false}
         scene3DOnly
       />
+      <ActiveFiresLayer />
+      <FIRMSHotspotsLayer />
+      <EvacLayer />
+      <SmokeLayer />
+      <FWIStationsLayer />
       <div
         aria-hidden
         style={{
@@ -143,9 +203,6 @@ export function WildfireGlobe() {
             "radial-gradient(ellipse at center, transparent 50%, hsl(220 30% 2% / 0.55) 100%)",
         }}
       />
-      <LocationSearch viewer={viewer} />
-      <CameraPresetBar viewer={viewer} />
-      <CoordinateReadout viewer={viewer} />
     </div>
   );
 }

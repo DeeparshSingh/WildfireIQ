@@ -1,44 +1,33 @@
-import { Suspense, lazy } from "react";
-
-import { ErrorBoundary } from "@/shell/ErrorBoundary";
+/**
+ * GlobeView — the home route. The actual <WildfireGlobe> mounts in AppShell
+ * so it stays alive across route changes. This component only renders the
+ * globe-specific UI overlays, which read the shared viewer reference from
+ * the Zustand store.
+ */
 import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
+import { useGlobeStore } from "@/stores/globe";
+import { CameraPresetBar } from "./CameraPresets";
+import { CoordinateReadout } from "./CoordinateReadout";
+import { FeatureInfoPanel } from "./FeatureInfoPanel";
 import { GlobeSetupNotice } from "./GlobeSetupNotice";
-
-const WildfireGlobe = lazy(() =>
-  import("./WildfireGlobe").then((m) => ({ default: m.WildfireGlobe })),
-);
+import { LayerToggleBar, useLayerKeyboardShortcuts } from "./LayerToggleBar";
+import { LocationSearch } from "./LocationSearch";
 
 export function GlobeView() {
+  const viewer = useGlobeStore((s) => s.viewer);
+  useLayerKeyboardShortcuts();
+
   if (!hasCesiumIonToken()) {
     return <GlobeSetupNotice />;
   }
-  return (
-    <ErrorBoundary label="WildfireGlobe">
-      <Suspense fallback={<GlobeLoading />}>
-        <WildfireGlobe />
-      </Suspense>
-    </ErrorBoundary>
-  );
-}
 
-function GlobeLoading() {
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "grid",
-        placeItems: "center",
-        background:
-          "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 70%)",
-        fontFamily: "var(--font-data)",
-        fontSize: 12,
-        letterSpacing: "0.32em",
-        textTransform: "uppercase",
-        color: "var(--color-text-low)",
-      }}
-    >
-      <div>Initializing Globe…</div>
-    </div>
+    <>
+      <LocationSearch viewer={viewer} />
+      <LayerToggleBar />
+      <CameraPresetBar viewer={viewer} />
+      <CoordinateReadout viewer={viewer} />
+      <FeatureInfoPanel />
+    </>
   );
 }

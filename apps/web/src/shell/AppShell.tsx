@@ -1,10 +1,20 @@
-import { type ReactNode } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { motion } from "motion/react";
 
+import { ErrorBoundary } from "./ErrorBoundary";
 import { LeftRail } from "./LeftRail";
 import { TopBar } from "./TopBar";
+import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
+
+// Globe is lazy-loaded so the initial JS bundle stays slim. It mounts once
+// at the AppShell level and lives on across route changes.
+const WildfireGlobe = lazy(() =>
+  import("@/features/globe/WildfireGlobe").then((m) => ({ default: m.WildfireGlobe })),
+);
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const showGlobe = hasCesiumIonToken();
+
   return (
     <div
       style={{
@@ -42,7 +52,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           background: "var(--color-bg-0)",
         }}
       >
-        {children}
+        {/* The Cesium viewer lives here, always mounted, behind everything. */}
+        {showGlobe && (
+          <ErrorBoundary label="WildfireGlobe">
+            <Suspense fallback={null}>
+              <WildfireGlobe />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+
+        {/* Route content overlays. */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {/* The "none" container lets clicks pass through to the globe by
+              default; each overlay re-enables pointer events on itself. */}
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -19,10 +19,15 @@ export function PlaceholderCard({
         display: "grid",
         placeItems: "center",
         padding: 24,
+        // The shell's overlay container has pointer-events: none so clicks
+        // pass to the globe by default. Each route surface enables its own.
+        pointerEvents: "auto",
+        background: "hsl(220 30% 3% / 0.65)",
+        backdropFilter: "blur(8px) saturate(1.1)",
       }}
     >
       <div
-        className="glass"
+        className="glass-strong"
         style={{
           maxWidth: 640,
           width: "100%",

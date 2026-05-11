@@ -18,6 +18,16 @@ export type CameraPreset = {
 
 export const PRESETS: CameraPreset[] = [
   {
+    id: "canada",
+    label: "Globe",
+    subtitle: "Canada in view",
+    lon: -104.1181,
+    lat: 46.2553,
+    height: 22_200_000,
+    pitch: -90,
+    heading: 0,
+  },
+  {
     id: "region",
     label: "Region",
     subtitle: "Thompson-Okanagan",
@@ -65,7 +75,7 @@ export function CameraPresetBar({ viewer }: { viewer: CesiumViewer | null }) {
     <div
       style={{
         position: "absolute",
-        top: 16,
+        bottom: 56, // leaves room above the bottom-left CoordinateReadout
         right: 16,
         display: "flex",
         flexDirection: "column",
