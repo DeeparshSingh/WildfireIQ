@@ -23,6 +23,10 @@ dependencies = [
     "structlog>=24.4",
     "tenacity>=9.0",
     "orjson>=3.10",
+    # Phase 1 — geo + parsing
+    "shapely>=2.0",
+    "pyarrow>=17.0",
+    "h3>=4.1",
 ]
 
 [dependency-groups]

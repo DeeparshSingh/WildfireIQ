@@ -164,7 +164,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Current AQHI for Kamloops */
+        /** Current AQHI + pollutant breakdown */
         get: operations["current_api_aq_current_get"];
         put?: never;
         post?: never;
@@ -181,7 +181,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 48-hour AQ forecast (PM2.5 with q10/q50/q90) */
+        /** 48-hour AQ forecast (PM2.5 with q10/q50/q90) — Phase 3 */
         get: operations["forecast_api_aq_forecast_get"];
         put?: never;
         post?: never;
@@ -200,6 +200,23 @@ export interface paths {
         };
         /** Past N days of AQHI readings */
         get: operations["history_api_aq_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/aq/smoke-forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ECCC FireWork smoke plume forecast WMS URLs */
+        get: operations["smoke_forecast_api_aq_smoke_forecast_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -285,6 +302,57 @@ export interface paths {
         };
         /** Climate projection for a SSP scenario + variable */
         get: operations["projection_api_climate_projection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all ingest jobs and their cadences */
+        get: operations["list_jobs_api_admin_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jobs/{name}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trigger one ingest job immediately */
+        post: operations["trigger_job_api_admin_jobs__name__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Last N ingest_runs entries */
+        get: operations["list_runs_api_admin_runs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -404,7 +472,7 @@ export interface operations {
     historical_api_fires_historical_get: {
         parameters: {
             query?: {
-                year?: number;
+                year?: number | null;
             };
             header?: never;
             path?: never;
@@ -665,6 +733,28 @@ export interface operations {
             };
         };
     };
+    smoke_forecast_api_aq_smoke_forecast_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     active_api_evac_active_get: {
         parameters: {
             query?: never;
@@ -794,6 +884,95 @@ export interface operations {
             query?: {
                 ssp?: string;
                 var?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_admin_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    trigger_job_api_admin_jobs__name__run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_admin_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                job?: string | null;
             };
             header?: never;
             path?: never;

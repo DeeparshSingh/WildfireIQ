@@ -12,7 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from . import __version__
-from .routers import aq, climate, evac, fires, firesmart, fwi, risk, weather
+from .db import init_db
+from .routers import admin, aq, climate, evac, fires, firesmart, fwi, risk, weather
+from .scheduler import start_scheduler, stop_scheduler
 from .settings import get_settings
 
 
@@ -32,8 +34,14 @@ async def lifespan(app: FastAPI):
     _configure_logging()
     log = structlog.get_logger()
     log.info("startup", version=__version__)
-    # Phase 1 will wire APScheduler here.
+    await init_db()
+    settings = get_settings()
+    if settings.scheduler_enabled:
+        start_scheduler()
+    else:
+        log.info("scheduler.disabled_via_settings")
     yield
+    stop_scheduler()
     log.info("shutdown")
 
 
@@ -58,6 +66,7 @@ def create_app() -> FastAPI:
             {"name": "evac", "description": "Active evacuation orders and alerts."},
             {"name": "firesmart", "description": "Personalized FireSmart checklist (Phase 5)."},
             {"name": "climate", "description": "Historical climate + projections (Phase 6)."},
+            {"name": "admin", "description": "Trigger ingest jobs + inspect runs."},
         ],
     )
 
@@ -74,7 +83,7 @@ def create_app() -> FastAPI:
         return {
             "ok": True,
             "version": __version__,
-            "phase": "0",
+            "phase": "1",
             "bbox": [
                 settings.bbox_west,
                 settings.bbox_south,
@@ -91,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(evac.router, prefix="/api/evac", tags=["evac"])
     app.include_router(firesmart.router, prefix="/api/firesmart", tags=["firesmart"])
     app.include_router(climate.router, prefix="/api/climate", tags=["climate"])
+    app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
     return app
 

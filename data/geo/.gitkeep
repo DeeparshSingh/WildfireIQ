@@ -1,0 +1,2 @@
+# Kamloops city + Fire Centre boundaries are downloaded by
+# `uv run python scripts/ingest/fetch_static_geo.py` at bootstrap time.
