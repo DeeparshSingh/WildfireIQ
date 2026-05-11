@@ -18,6 +18,7 @@ import {
   EvacLayer,
   FIRMSHotspotsLayer,
   FWIStationsLayer,
+  RiskGridLayer,
   SmokeLayer,
 } from "./layers";
 
@@ -205,6 +206,8 @@ export function WildfireGlobe() {
         timeline={false}
         scene3DOnly
       />
+      {/* Risk grid renders first (underneath) so points/icons paint above it. */}
+      <RiskGridLayer />
       <ActiveFiresLayer />
       <FIRMSHotspotsLayer />
       <EvacLayer />

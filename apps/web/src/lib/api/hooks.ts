@@ -73,6 +73,23 @@ export type SmokeTimestep = {
   fetched_at_utc: string;
 };
 
+export type RiskCell = {
+  h3_cell: string;
+  centroid_lat: number;
+  centroid_lon: number;
+  hist_fire_count: number;
+  p_region: number;
+  p_cell: number;
+  risk_class: "Low" | "Moderate" | "High" | "Extreme";
+};
+
+export type RiskGrid = {
+  observation_day: string;
+  p_region: number;
+  p_region_raw: number;
+  cells: RiskCell[];
+};
+
 // ─── Hooks ────────────────────────────────────────────────────────────
 
 export function useFiresCurrent() {
@@ -120,5 +137,15 @@ export function useSmokeForecast() {
     queryFn: () => apiGet<SmokeTimestep[]>("/api/aq/smoke-forecast"),
     refetchInterval: 30 * 60_000,
     select: (env: Envelope<SmokeTimestep[]>) => env.data,
+  });
+}
+
+export function useRiskGrid() {
+  return useQuery({
+    queryKey: ["risk", "grid"],
+    queryFn: () => apiGet<RiskGrid>("/api/risk/grid"),
+    // Grid changes daily — don't hammer the inference call.
+    refetchInterval: 30 * 60_000,
+    select: (env: Envelope<RiskGrid>) => env.data,
   });
 }

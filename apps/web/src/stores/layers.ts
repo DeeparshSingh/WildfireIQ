@@ -5,13 +5,14 @@
  */
 import { create } from "zustand";
 
-export type LayerId = "fires" | "hotspots" | "evac" | "smoke" | "fwi";
+export type LayerId = "fires" | "hotspots" | "evac" | "smoke" | "fwi" | "risk";
 
 export type SelectedFeature =
   | { kind: "fire"; id: string }
   | { kind: "hotspot"; id: string }
   | { kind: "evac"; id: string }
-  | { kind: "fwi"; id: string };
+  | { kind: "fwi"; id: string }
+  | { kind: "risk"; id: string };
 
 type LayersState = {
   visible: Record<LayerId, boolean>;
@@ -32,6 +33,7 @@ export const useLayersStore = create<LayersState>((set) => ({
     evac: true,
     smoke: false,
     fwi: false,
+    risk: false,
   },
   toggle: (id) =>
     set((state) => ({

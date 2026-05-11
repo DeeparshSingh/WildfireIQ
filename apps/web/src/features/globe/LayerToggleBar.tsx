@@ -6,6 +6,7 @@ import {
   useFiresCurrent,
   useFirmsHotspots,
   useFwiToday,
+  useRiskGrid,
   useSmokeForecast,
 } from "@/lib/api/hooks";
 import { useFiltersStore } from "@/stores/filters";
@@ -30,6 +31,7 @@ function useLayerCounts(): LayerDef[] {
   const fwiFilter = useFiltersStore((s) => s.fwi);
   const fwi = useFwiToday();
   const smoke = useSmokeForecast();
+  const risk = useRiskGrid();
 
   // Apply each layer's filter so the badge matches the modal's "N matches"
   // and the actual entities rendered on the map.
@@ -56,7 +58,20 @@ function useLayerCounts(): LayerDef[] {
 
   const fwiCount = fwi.data?.filter((s) => (s.fwi ?? 0) >= fwiFilter.minFwi).length;
 
+  // Count the highest-severity bucket (Extreme + High) as the headline for the
+  // Risk Grid badge — that's the "useful" subset of the 185 cells.
+  const riskCount = risk.data?.cells.filter(
+    (c) => c.risk_class === "Extreme" || c.risk_class === "High",
+  ).length;
+
   return [
+    {
+      id: "risk",
+      label: "AI Risk Grid",
+      glyph: "◆",
+      accent: "var(--risk-high)",
+      count: riskCount,
+    },
     {
       id: "fires",
       label: "Active Fires",

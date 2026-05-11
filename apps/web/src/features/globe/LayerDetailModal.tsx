@@ -8,6 +8,7 @@ import {
   useFiresCurrent,
   useFirmsHotspots,
   useFwiToday,
+  useRiskGrid,
 } from "@/lib/api/hooks";
 import { cinematicFlyTo } from "@/lib/cesium-helpers/cinematicFlyTo";
 import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
@@ -21,6 +22,7 @@ const LAYER_META: Record<LayerId, { label: string; accent: string }> = {
   evac: { label: "Evacuation Zones", accent: "var(--risk-extreme)" },
   fwi: { label: "Fire Weather Index", accent: "var(--risk-moderate)" },
   smoke: { label: "Smoke Forecast", accent: "var(--color-cyan-glow)" },
+  risk: { label: "AI Risk Grid", accent: "var(--risk-high)" },
 };
 
 export function LayerDetailModal() {
@@ -158,6 +160,7 @@ function ModalContent({
       {layer === "evac" && <EvacBrowser />}
       {layer === "fwi" && <FwiBrowser />}
       {layer === "smoke" && <SmokeBrowser />}
+      {layer === "risk" && <RiskBrowser />}
     </>
   );
 }
@@ -644,6 +647,73 @@ function FwiBrowser() {
               primary={s.station_name}
               secondary={`FFMC ${s.ffmc ?? "—"} · DMC ${s.dmc ?? "—"} · DC ${s.dc ?? "—"} · ${s.observation_date_local ?? "—"}`}
               badge={`FWI ${s.fwi ?? "—"}`}
+              badgeColor={color}
+            />
+          );
+        }}
+      />
+    </>
+  );
+}
+
+function RiskBrowser() {
+  const { data, isLoading } = useRiskGrid();
+  const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState<string | null>("Extreme");
+
+  if (isLoading || !data) {
+    return (
+      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+        Loading risk grid…
+      </div>
+    );
+  }
+
+  const items = data.cells.filter((c) => {
+    if (classFilter && c.risk_class !== classFilter) return false;
+    if (search && !c.h3_cell.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const counts: Record<string, number> = { Low: 0, Moderate: 0, High: 0, Extreme: 0 };
+  for (const c of data.cells) counts[c.risk_class] += 1;
+
+  return (
+    <>
+      <Toolbar>
+        <SearchInput value={search} onChange={setSearch} placeholder="Search cell id…" />
+        {(["Extreme", "High", "Moderate", "Low"] as const).map((k) => (
+          <FilterChip
+            key={k}
+            active={classFilter === k}
+            onClick={() => setClassFilter(classFilter === k ? null : k)}
+          >
+            {k} · {counts[k]}
+          </FilterChip>
+        ))}
+        <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
+          P(fire today) · region {(data.p_region * 100).toFixed(0)}%
+        </span>
+      </Toolbar>
+      <ResultsList
+        items={items}
+        empty="No cells match the current filter."
+        render={(c) => {
+          const color =
+            c.risk_class === "Extreme"
+              ? "var(--risk-extreme)"
+              : c.risk_class === "High"
+              ? "var(--risk-high)"
+              : c.risk_class === "Moderate"
+              ? "var(--risk-moderate)"
+              : "var(--risk-low)";
+          return (
+            <Row
+              key={c.h3_cell}
+              onClick={() => flyAndClose(c.centroid_lon, c.centroid_lat, 35_000)}
+              primary={`${c.h3_cell.slice(0, 8)}… · ${c.centroid_lat.toFixed(3)}, ${c.centroid_lon.toFixed(3)}`}
+              secondary={`P(cell) ${(c.p_cell * 100).toFixed(1)}% · historical fires ${c.hist_fire_count}`}
+              badge={c.risk_class}
               badgeColor={color}
             />
           );

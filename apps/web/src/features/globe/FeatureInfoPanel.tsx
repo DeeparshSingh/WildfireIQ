@@ -6,10 +6,12 @@ import {
   type Fire,
   type FwiStation,
   type Hotspot,
+  type RiskCell,
   useEvacActive,
   useFiresCurrent,
   useFirmsHotspots,
   useFwiToday,
+  useRiskGrid,
 } from "@/lib/api/hooks";
 import { type SelectedFeature, useLayersStore } from "@/stores/layers";
 
@@ -103,6 +105,8 @@ function kindLabel(kind: SelectedFeature["kind"]): string {
       return "Evacuation zone";
     case "fwi":
       return "FWI station";
+    case "risk":
+      return "Risk cell";
   }
 }
 
@@ -116,7 +120,51 @@ function PanelBody({ selected }: { selected: SelectedFeature }) {
       return <EvacDetail id={selected.id} />;
     case "fwi":
       return <FwiDetail id={selected.id} />;
+    case "risk":
+      return <RiskDetail id={selected.id} />;
   }
+}
+
+function RiskDetail({ id }: { id: string }) {
+  const { data } = useRiskGrid();
+  const cell = useMemo<RiskCell | undefined>(
+    () => data?.cells.find((c) => c.h3_cell === id),
+    [data, id],
+  );
+  if (!cell) return <Empty label="Cell not in current risk grid" />;
+
+  const color =
+    cell.risk_class === "Extreme"
+      ? "var(--risk-extreme)"
+      : cell.risk_class === "High"
+      ? "var(--risk-high)"
+      : cell.risk_class === "Moderate"
+      ? "var(--risk-moderate)"
+      : "var(--risk-low)";
+
+  return (
+    <div>
+      <Title>{cell.risk_class} risk</Title>
+      <Subtitle style={{ color, textShadow: `0 0 12px ${color}55` }}>
+        Cell {cell.h3_cell.slice(0, 10)}…
+      </Subtitle>
+      <Stats
+        rows={[
+          ["P(cell)", `${(cell.p_cell * 100).toFixed(1)}%`],
+          ["P(region today)", `${(cell.p_region * 100).toFixed(1)}%`],
+          ["Historical fires", String(cell.hist_fire_count)],
+          [
+            "Centroid",
+            `${cell.centroid_lat.toFixed(4)}, ${cell.centroid_lon.toFixed(4)}`,
+          ],
+          ["Observation day", fmtDate(data?.observation_day)],
+        ]}
+      />
+      <Attribution>
+        LightGBM trained on BC Wildfire Service 1999-2021 + ERA5 weather · validated against 2022-2023 · PR-AUC 0.66 (FWI baseline 0.52)
+      </Attribution>
+    </div>
+  );
 }
 
 // ─── Fire ────────────────────────────────────────────────────────────
