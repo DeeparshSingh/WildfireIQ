@@ -8,6 +8,7 @@ import {
   useFwiToday,
   useSmokeForecast,
 } from "@/lib/api/hooks";
+import { useFiltersStore } from "@/stores/filters";
 import { type LayerId, useLayersStore } from "@/stores/layers";
 
 type LayerDef = {
@@ -21,10 +22,39 @@ type LayerDef = {
 
 function useLayerCounts(): LayerDef[] {
   const fires = useFiresCurrent();
-  const hotspots = useFirmsHotspots(24);
+  const firesFilter = useFiltersStore((s) => s.fires);
+  const hotspotsFilter = useFiltersStore((s) => s.hotspots);
+  const hotspots = useFirmsHotspots(hotspotsFilter.sinceHours);
+  const evacFilter = useFiltersStore((s) => s.evac);
   const evac = useEvacActive();
+  const fwiFilter = useFiltersStore((s) => s.fwi);
   const fwi = useFwiToday();
   const smoke = useSmokeForecast();
+
+  // Apply each layer's filter so the badge matches the modal's "N matches"
+  // and the actual entities rendered on the map.
+  const firesCount = fires.data?.filter((f) => {
+    const s = (f.status ?? "").toLowerCase();
+    const isOut = s === "out" || s === "extinguished";
+    if (isOut && !firesFilter.includeExtinguished) return false;
+    if (firesFilter.statuses.length && !firesFilter.statuses.some((q) => s.includes(q.toLowerCase()))) return false;
+    if ((f.hectares ?? 0) < firesFilter.minHectares) return false;
+    return true;
+  }).length;
+
+  const hotspotsCount = hotspots.data?.filter((h) => {
+    if ((h.confidence ?? 100) < hotspotsFilter.minConfidence) return false;
+    if (hotspotsFilter.sources.length && !hotspotsFilter.sources.includes(h.source)) return false;
+    return true;
+  }).length;
+
+  const evacCount = evac.data?.filter((z) => {
+    if (!evacFilter.statuses.length) return true;
+    const s = (z.status ?? "").toLowerCase();
+    return evacFilter.statuses.some((q) => s.includes(q.toLowerCase()));
+  }).length;
+
+  const fwiCount = fwi.data?.filter((s) => (s.fwi ?? 0) >= fwiFilter.minFwi).length;
 
   return [
     {
@@ -32,28 +62,28 @@ function useLayerCounts(): LayerDef[] {
       label: "Active Fires",
       glyph: "▲",
       accent: "var(--color-ember-500)",
-      count: fires.data?.length,
+      count: firesCount,
     },
     {
       id: "hotspots",
       label: "Satellite Hotspots",
       glyph: "·",
       accent: "var(--color-ember-400)",
-      count: hotspots.data?.length,
+      count: hotspotsCount,
     },
     {
       id: "evac",
       label: "Evacuation",
       glyph: "◇",
       accent: "var(--risk-extreme)",
-      count: evac.data?.length,
+      count: evacCount,
     },
     {
       id: "fwi",
       label: "Fire Weather Index",
       glyph: "⚡",
       accent: "var(--risk-moderate)",
-      count: fwi.data?.length,
+      count: fwiCount,
     },
     {
       id: "smoke",

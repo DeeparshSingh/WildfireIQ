@@ -1,10 +1,13 @@
 import { useEffect, useRef } from "react";
 import {
   Cartesian3,
+  NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   type Entity,
 } from "cesium";
+
+const BILLBOARD_SCALE = new NearFarScalar(1_000, 1.0, 3_000_000, 0.55);
 
 import { useFwiToday, type FwiStation } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
@@ -81,7 +84,13 @@ export function FWIStationsLayer() {
     for (const s of data) {
       const ent = viewer.entities.add({
         position: Cartesian3.fromDegrees(s.longitude, s.latitude),
-        billboard: { image: svgFor(s.fwi), width: 32, height: 32 },
+        billboard: {
+          image: svgFor(s.fwi),
+          width: 36,
+          height: 36,
+          scaleByDistance: BILLBOARD_SCALE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
         description: descriptionFor(s),
       });
       idMapRef.current.set(ent.id, s.station_id);

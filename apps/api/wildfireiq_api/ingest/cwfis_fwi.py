@@ -8,7 +8,12 @@ from datetime import datetime, timezone
 import httpx
 import pandas as pd
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import (
+    BC_BBOX_EAST as BBOX_EAST,
+    BC_BBOX_NORTH as BBOX_NORTH,
+    BC_BBOX_SOUTH as BBOX_SOUTH,
+    BC_BBOX_WEST as BBOX_WEST,
+)
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs
 
@@ -33,6 +38,8 @@ def _in_bbox(lat: float | None, lon: float | None) -> bool:
     if lat is None or lon is None:
         return False
     return BBOX_SOUTH <= lat <= BBOX_NORTH and BBOX_WEST <= lon <= BBOX_EAST
+
+
 
 
 class CWFISFWIDailyJob(IngestJob):
@@ -63,11 +70,15 @@ class CWFISFWIDailyJob(IngestJob):
                 fc = None
                 continue
 
+        # NRCan's CWFIS GeoServer goes down with 502 errors regularly. Their
+        # flat-file datamart at /data/fwi/ now returns HTML wrappers instead
+        # of CSVs. Phase 3 will replace this dependency entirely by computing
+        # FWI from Open-Meteo weather data with the cffdrs-py port.
         if fc is None:
             return IngestReport(
                 job_name=self.name,
                 status="fail",
-                error="cwfis WFS unreachable",
+                error="CWFIS GeoServer unreachable (HTTP 502). Will retry on next cron; Phase 3 replaces with derived FWI from Open-Meteo.",
             )
 
         features = fc.get("features", []) or []

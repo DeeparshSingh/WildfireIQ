@@ -12,6 +12,17 @@ BBOX_NORTH: Final[float] = 51.5
 # (west, south, east, north) — standard order
 BBOX: Final[tuple[float, float, float, float]] = (BBOX_WEST, BBOX_SOUTH, BBOX_EAST, BBOX_NORTH)
 
+# Province-wide BC bbox for "show me everything BC Wildfire shows" queries
+# (active fires, FIRMS hotspots, FWI stations). Risk modelling stays scoped
+# to the Thompson-Okanagan BBOX above.
+BC_BBOX_WEST: Final[float] = -139.0
+BC_BBOX_SOUTH: Final[float] = 48.3
+BC_BBOX_EAST: Final[float] = -114.0
+BC_BBOX_NORTH: Final[float] = 60.0
+BC_BBOX: Final[tuple[float, float, float, float]] = (
+    BC_BBOX_WEST, BC_BBOX_SOUTH, BC_BBOX_EAST, BC_BBOX_NORTH,
+)
+
 # Kamloops downtown centroid
 KAMLOOPS_LAT: Final[float] = 50.6745
 KAMLOOPS_LON: Final[float] = -120.3273

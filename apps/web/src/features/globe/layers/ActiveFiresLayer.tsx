@@ -19,7 +19,7 @@ import { useLayersStore } from "@/stores/layers";
 const EMBER_500 = "hsl(18 95% 54%)";
 const EMBER_700 = "hsl(8 88% 42%)";
 
-// 20×20 flame SVG — smaller than before so dense clusters stay legible.
+// 28×28 flame SVG, scaled down with camera distance via NearFarScalar.
 const FIRE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <defs><radialGradient id="g" cx="50%" cy="65%" r="55%">
     <stop offset="0%" stop-color="#FFD18A"/>
@@ -33,7 +33,8 @@ const FIRE_ICON_URL = "data:image/svg+xml;utf8," + encodeURIComponent(FIRE_SVG);
 
 // Scale icons by camera distance so they shrink when zoomed out (avoid clutter)
 // and stay readable when zoomed in. (near distance, near scale, far distance, far scale)
-const BILLBOARD_SCALE = new NearFarScalar(1_000, 1.0, 2_000_000, 0.35);
+const BILLBOARD_SCALE = new NearFarScalar(1_000, 1.0, 3_000_000, 0.5);
+const ICON_PX = 28;
 
 function passesFilter(
   f: Fire,
@@ -142,8 +143,8 @@ export function ActiveFiresLayer() {
               position: Cartesian3.fromDegrees(c[0], c[1]),
               billboard: {
                 image: FIRE_ICON_URL,
-                width: 20,
-                height: 20,
+                width: ICON_PX,
+                height: ICON_PX,
                 scaleByDistance: BILLBOARD_SCALE,
                 disableDepthTestDistance: Number.POSITIVE_INFINITY,
                 pixelOffset: new Cartesian2(0, -2),
@@ -159,8 +160,8 @@ export function ActiveFiresLayer() {
           position: Cartesian3.fromDegrees(f.longitude, f.latitude),
           billboard: {
             image: FIRE_ICON_URL,
-            width: 20,
-            height: 20,
+            width: ICON_PX,
+            height: ICON_PX,
             scaleByDistance: BILLBOARD_SCALE,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
             pixelOffset: new Cartesian2(0, -2),

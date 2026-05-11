@@ -8,7 +8,12 @@ from datetime import datetime, timezone
 import pandas as pd
 from shapely.geometry import shape
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import (
+    BC_BBOX_EAST,
+    BC_BBOX_NORTH,
+    BC_BBOX_SOUTH,
+    BC_BBOX_WEST,
+)
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
 
@@ -26,7 +31,9 @@ def _wfs_params(type_name: str) -> dict[str, str]:
         "typeName": type_name,
         "outputFormat": "application/json",
         "srsName": "EPSG:4326",
-        "BBOX": f"{BBOX_WEST},{BBOX_SOUTH},{BBOX_EAST},{BBOX_NORTH},EPSG:4326",
+        # Province-wide query so the layer shows the same ~13 active fires
+        # BC Wildfire Service displays, not just the Thompson-Okanagan subset.
+        "BBOX": f"{BC_BBOX_WEST},{BC_BBOX_SOUTH},{BC_BBOX_EAST},{BC_BBOX_NORTH},EPSG:4326",
     }
 
 

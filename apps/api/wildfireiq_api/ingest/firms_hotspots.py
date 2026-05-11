@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import (
+    BC_BBOX_EAST as BBOX_EAST,
+    BC_BBOX_NORTH as BBOX_NORTH,
+    BC_BBOX_SOUTH as BBOX_SOUTH,
+    BC_BBOX_WEST as BBOX_WEST,
+)
 from ..paths import PROCESSED_ROOT
 from ..settings import get_settings
 from .base import IngestContext, IngestJob, IngestReport
