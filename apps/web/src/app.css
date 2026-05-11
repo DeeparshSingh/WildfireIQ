@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@import "@wildfireiq/design-tokens/tokens.css";
+@import "@wildfireiq/design-tokens/fonts.css";
+@import "@wildfireiq/design-tokens/reset.css";
+
+@theme {
+  --color-bg-0: var(--color-bg-0);
+  --color-bg-1: var(--color-bg-1);
+  --color-bg-2: var(--color-bg-2);
+  --color-bg-3: var(--color-bg-3);
+  --color-stroke: var(--color-stroke);
+  --color-stroke-strong: var(--color-stroke-strong);
+
+  --color-text-hi: var(--color-text-hi);
+  --color-text-mid: var(--color-text-mid);
+  --color-text-low: var(--color-text-low);
+
+  --color-ember-50: var(--color-ember-50);
+  --color-ember-100: var(--color-ember-100);
+  --color-ember-200: var(--color-ember-200);
+  --color-ember-300: var(--color-ember-300);
+  --color-ember-400: var(--color-ember-400);
+  --color-ember-500: var(--color-ember-500);
+  --color-ember-600: var(--color-ember-600);
+  --color-ember-700: var(--color-ember-700);
+  --color-ember-800: var(--color-ember-800);
+  --color-ember-900: var(--color-ember-900);
+
+  --color-cyan: var(--color-cyan-glow);
+  --color-violet: var(--color-violet);
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
+  --font-display: var(--font-display);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+/* Cesium widgets — strip Cesium's default chrome we don't want. */
+.cesium-viewer-toolbar,
+.cesium-viewer-fullscreenContainer,
+.cesium-viewer-vrContainer,
+.cesium-viewer-geocoderContainer,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-viewer-bottom {
+  display: none !important;
+}
+
+.cesium-credit-textContainer,
+.cesium-credit-imageContainer {
+  font-family: var(--font-data) !important;
+  font-size: 10px !important;
+  opacity: 0.5;
+}
+
+/* Glassmorphic surface utility */
+@utility glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-stroke);
+}
+
+@utility glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-stroke);
+}
+
+/* Keyframes */
+@keyframes ember-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(18 95% 54% / 0.5); }
+  50%      { box-shadow: 0 0 0 12px hsl(18 95% 54% / 0); }
+}
+
+@keyframes cyan-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@keyframes scan-line {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Live-data dot — used in top status bar */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-cyan-glow);
+  box-shadow: var(--glow-cyan);
+  animation: cyan-blink 2.4s ease-in-out infinite;
+}

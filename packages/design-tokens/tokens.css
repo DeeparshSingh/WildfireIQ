@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * WildfireIQ — Design Tokens (locked)
+ * Aesthetic direction: tactical / intelligence-grade dark.
+ * Modify here ONLY. Every Tailwind utility derives from these variables.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Base — deep tactical night ──────────────────────────────────────── */
+  --color-bg-0: hsl(220 25% 4%);          /* page background */
+  --color-bg-1: hsl(220 22% 7%);          /* card surfaces */
+  --color-bg-2: hsl(220 20% 10%);         /* elevated surfaces, modals */
+  --color-bg-3: hsl(220 18% 14%);         /* hover state */
+  --color-stroke: hsl(220 15% 22%);       /* hairline borders */
+  --color-stroke-strong: hsl(220 15% 32%);
+
+  /* ── Text ────────────────────────────────────────────────────────────── */
+  --color-text-hi: hsl(40 30% 96%);       /* primary text, warm off-white */
+  --color-text-mid: hsl(40 12% 72%);      /* secondary */
+  --color-text-low: hsl(40 8% 50%);       /* tertiary, captions */
+
+  /* ── Brand — ember spectrum (fire intensity) ────────────────────────── */
+  --color-ember-50:  hsl(28 100% 95%);
+  --color-ember-100: hsl(28 100% 88%);
+  --color-ember-200: hsl(28 100% 78%);
+  --color-ember-300: hsl(25 100% 68%);
+  --color-ember-400: hsl(22 100% 60%);    /* fire accent */
+  --color-ember-500: hsl(18 95% 54%);     /* primary CTA */
+  --color-ember-600: hsl(14 92% 48%);
+  --color-ember-700: hsl(8 88% 42%);      /* extreme risk */
+  --color-ember-800: hsl(4 85% 36%);
+  --color-ember-900: hsl(0 80% 30%);
+
+  /* ── Semantic risk scale (these go on the map) ──────────────────────── */
+  --risk-low:        hsl(140 55% 50%);    /* sage green */
+  --risk-moderate:   hsl(45 95% 58%);     /* amber */
+  --risk-high:       hsl(22 100% 56%);    /* fire orange */
+  --risk-extreme:    hsl(0 88% 52%);      /* deep red */
+
+  /* ── AQHI scale (Health Canada 1–10+) ───────────────────────────────── */
+  --aq-1:    hsl(195 75% 55%);
+  --aq-2:    hsl(180 65% 48%);
+  --aq-3:    hsl(140 55% 50%);
+  --aq-4:    hsl(60 80% 55%);
+  --aq-5:    hsl(40 90% 55%);
+  --aq-6:    hsl(28 95% 55%);
+  --aq-7:    hsl(15 90% 55%);
+  --aq-8:    hsl(0 80% 55%);
+  --aq-9:    hsl(340 70% 50%);
+  --aq-10:   hsl(320 60% 40%);
+  --aq-plus: hsl(280 50% 30%);
+
+  /* ── Cool counterpoint — used SPARINGLY ─────────────────────────────── */
+  --color-cyan-glow: hsl(185 90% 55%);    /* live data signals only */
+  --color-violet:    hsl(265 60% 60%);    /* climate projections only */
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --font-display: 'Bricolage Grotesque', 'PP Neue Machina', system-ui, sans-serif;
+  --font-body:    'Geist', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-data:    'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* ── Spacing (4px base) ─────────────────────────────────────────────── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --space-9: 96px; --space-10: 128px;
+
+  /* ── Radii ──────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ── Shadows + glow ─────────────────────────────────────────────────── */
+  --shadow-card: 0 1px 0 hsl(220 30% 15% / 0.6) inset, 0 12px 32px -16px hsl(0 0% 0% / 0.6);
+  --shadow-elevated: 0 1px 0 hsl(220 30% 18% / 0.6) inset, 0 24px 64px -16px hsl(0 0% 0% / 0.8);
+  --glow-ember: 0 0 24px hsl(18 95% 54% / 0.45), 0 0 4px hsl(18 95% 54% / 0.9);
+  --glow-ember-soft: 0 0 36px hsl(18 95% 54% / 0.25);
+  --glow-cyan: 0 0 18px hsl(185 90% 55% / 0.4);
+  --glow-extreme: 0 0 32px hsl(0 88% 52% / 0.55);
+
+  /* ── Glassmorphism presets ──────────────────────────────────────────── */
+  --glass-blur: blur(28px) saturate(1.6);
+  --glass-bg: hsl(220 22% 7% / 0.72);
+  --glass-bg-strong: hsl(220 22% 5% / 0.82);
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-out-quint:  cubic-bezier(0.22, 1, 0.36, 1);
+
+  --dur-fast:   180ms;
+  --dur-base:   320ms;
+  --dur-slow:   640ms;
+  --dur-cinema: 1400ms;
+
+  /* ── Layering (z-index ladder) ──────────────────────────────────────── */
+  --z-globe:    1;
+  --z-grain:    2;
+  --z-shell:   10;
+  --z-panel:   20;
+  --z-modal:   50;
+  --z-toast:  100;
+  --z-splash: 200;
+}
+
+/* ─── Reduced-motion respect ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast:   1ms;
+    --dur-base:   1ms;
+    --dur-slow:   1ms;
+    --dur-cinema: 1ms;
+  }
+}

@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+apps/web/public/cesium/
+
+# Local data (large, regenerable)
+data/raw/
+data/processed/
+data/models/*.pkl
+data/models/*.onnx
+data/models/*.joblib
+data/logs/
+data/wildfireiq.db
+data/analytics.duckdb
+data/*.duckdb-wal
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code (local, machine-specific permission preferences)
+.claude/
+
+# Coverage / reports
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+*.lcov
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Misc
+*.log
+.turbo/

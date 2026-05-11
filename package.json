@@ -1,0 +1,27 @@
+{
+  "name": "wildfireiq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered wildfire risk, air quality, and community preparedness platform for the Thompson-Okanagan region.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "concurrently -n web,api -c magenta,cyan \"pnpm --filter @wildfireiq/web dev\" \"pnpm api:dev\"",
+    "dev:web": "pnpm --filter @wildfireiq/web dev",
+    "api:dev": "cd apps/api && uv run uvicorn wildfireiq_api.main:app --reload --host 0.0.0.0 --port 8000",
+    "api:install": "cd apps/api && uv sync",
+    "build": "pnpm --filter @wildfireiq/web build",
+    "lint": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run lint",
+    "format": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run format",
+    "test": "pnpm --filter \"./apps/web\" run test",
+    "test:api": "cd apps/api && uv run pytest",
+    "gen:types": "cd packages/shared-types && pnpm gen"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

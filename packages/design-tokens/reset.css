@@ -1,0 +1,71 @@
+/* Modern minimal reset — augments Tailwind's preflight without fighting it. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg-0);
+  color: var(--color-text-hi);
+  font-family: var(--font-body);
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "ss01" 1;
+  overscroll-behavior: none;
+}
+
+/* Numbers ALWAYS in mono with tabular figures */
+.tabular,
+[data-numeric="true"] {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Atmospheric grain — non-optional design element */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-grain);
+  background-image: url('/textures/grain.png');
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* Selection */
+::selection {
+  background: hsl(18 95% 54% / 0.35);
+  color: var(--color-text-hi);
+}
+
+/* Focus rings — frontend-design skill requires distinctive focus */
+:focus-visible {
+  outline: 2px solid var(--color-ember-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar — slim and dark */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-bg-1); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-stroke-strong);
+  border-radius: 8px;
+  border: 2px solid var(--color-bg-1);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-ember-700); }

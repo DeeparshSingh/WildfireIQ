@@ -1,0 +1,280 @@
+\documentclass[12pt,letterpaper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{makecell}
+
+% --- Colors ---
+\definecolor{PrimaryOrange}{HTML}{F05A28}
+\definecolor{DarkSlate}{HTML}{1A202C}
+\definecolor{LightGray}{HTML}{F7FAFC}
+\definecolor{BorderGray}{HTML}{E2E8F0}
+\definecolor{AccentTeal}{HTML}{319795}
+
+% --- Setup Hyperref ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=PrimaryOrange,
+    filecolor=magenta,      
+    urlcolor=PrimaryOrange,
+    pdftitle={WildfireIQ Kamloops - Project Timeline},
+    pdfauthor={Deeparsh Singh Dang}
+}
+
+% --- Typography & Formatting ---
+\setstretch{1.15}
+\titleformat{\section}{\Large\bfseries\color{DarkSlate}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{DarkSlate}}{\thesubsection.}{0.5em}{}
+
+% --- Custom Boxes ---
+\newtcolorbox{goalbox}[1][]{
+    colback=PrimaryOrange!5!white,
+    colframe=PrimaryOrange,
+    fonttitle=\bfseries,
+    title=Goal / Objective,
+    boxrule=1pt,
+    arc=4pt,
+    left=10pt, right=10pt, top=6pt, bottom=6pt,
+    #1
+}
+
+% --- Header & Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{DarkSlate}{\textbf{WildfireIQ Kamloops}}}
+\fancyhead[R]{\textcolor{DarkSlate}{Project Timeline \& Implementation Plan}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% --- Title Page Info ---
+\title{
+    \vspace*{2cm}
+    \Huge \textbf{WildfireIQ Kamloops}\\
+    \vspace{0.5cm}
+    \Large Project Implementation Plan \& Timeline\\
+    \vspace{0.5cm}
+    \large May 15, 2026 -- July 15, 2026
+    \vspace{2cm}
+}
+\author{
+    \textbf{Prepared by:} Deeparsh Singh Dang \\
+    \textit{TRU Sustainability Research Grant 2025-2026}
+}
+\date{\vspace{1cm}\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Project Overview \& Vision}
+\textbf{WildfireIQ} is an AI-powered wildfire risk, air quality, and community preparedness platform built specifically for the Thompson-Okanagan region of British Columbia. The project serves as an open-source, public-good tool designed to contextualise the increasing threat of wildfires through machine learning, rich data visualisation, and 3D geospatial mapping.
+
+\subsection*{Core Non-Negotiables}
+To ensure the project remains accessible, secure, and performant, the development is constrained by the following principles:
+\begin{itemize}
+    \item \textbf{Free/Zero-Cost APIs:} Every external dependency uses a free tier with documented quotas. The platform incurs zero cloud costs.
+    \item \textbf{Privacy-First (No PII):} User data (e.g., evacuation profiles, preparedness checklists) is stored entirely in \texttt{localStorage} and IndexedDB. No server-side persistence of personal data.
+    \item \textbf{Rigorous Machine Learning:} Predictive models are trained on over 25 years of historical data and validated against held-out seasons (2022--2023). 
+    \item \textbf{Open Source:} All code and models will be released under MIT/Apache-2.0 licenses at the end of the grant.
+\end{itemize}
+
+\section{High-Level Timeline (May 15 -- July 15)}
+The project is divided into 8 sequential phases (Phase 0 to Phase 7), executing over a 2-month period. Each phase is self-contained and must pass a verification checklist before proceeding to the next.
+
+\vspace{0.5cm}
+\noindent
+\begin{tabularx}{\textwidth}{@{} >{\bfseries}l X l @{}}
+\toprule
+\textbf{Phase} & \textbf{Title / Focus Area} & \textbf{Target Dates} \\
+\midrule
+Phase 0 & Foundation, Design System \& Monorepo Scaffold & May 15 -- May 18 \\
+Phase 1 & Data Ingestion \& ETL Pipeline & May 19 -- May 28 \\
+Phase 2 & 3D Cesium Globe \& Wildfire Risk Map & May 29 -- Jun 09 \\
+Phase 3 & Machine Learning Models (Risk \& AQ) & Jun 10 -- Jun 18 \\
+Phase 4 & Air Quality Monitor & Jun 19 -- Jun 25 \\
+Phase 5 & Community Preparedness Hub & Jun 26 -- Jul 02 \\
+Phase 6 & Climate Trend Module & Jul 03 -- Jul 07 \\
+Phase 7 & Polish, Performance Optimization \& Demo & Jul 08 -- Jul 15 \\
+\bottomrule
+\end{tabularx}
+\vspace{0.5cm}
+
+\newpage
+\section{Detailed Phase Execution Plan}
+The following sections detail the specific tasks, objectives, and deliverables for each phase of the implementation.
+
+% --- Phase 0 ---
+\subsection*{Phase 0: Foundation, Design System, Monorepo Scaffold}
+\textbf{Dates:} May 15 -- May 18 \hfill \textbf{Duration:} 4 days
+
+\begin{goalbox}
+Stand up a beautiful, empty application shell. By the end of this phase, the frontend should render a dark, tactical theme with design tokens loaded, alongside an operational FastAPI backend.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Repository Setup:} Initialize a monorepo structure using \texttt{pnpm} for the frontend (React + Vite) and \texttt{uv} for the backend (FastAPI, Python).
+    \item \textbf{Design System:} Implement locked CSS design tokens (typography, colour system based on ember/fire scales).
+    \item \textbf{3D Engine Bootstrap:} Initialize the CesiumJS 3D globe over the Thompson-Okanagan region with Sentinel-2 imagery and terrain data.
+    \item \textbf{Deliverable:} A running local environment where the frontend AppShell connects successfully to the backend API, rendering an empty but styled 3D globe.
+\end{itemize}
+
+% --- Phase 1 ---
+\subsection*{Phase 1: Data Ingestion \& ETL Pipeline}
+\textbf{Dates:} May 19 -- May 28 \hfill \textbf{Duration:} 10 days
+
+\begin{goalbox}
+Automate the downloading, cleaning, and joining of every dataset the application requires. Serve this data over JSON via the FastAPI backend.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Spatial Filtering:} Define bounding boxes for Kamloops and the broader Thompson-Okanagan area.
+    \item \textbf{Job Scheduling:} Implement 11 scheduled ingestion jobs using \texttt{APScheduler}.
+    \item \textbf{Data Sources Configured:}
+    \begin{itemize}
+        \item BC Wildfire Service (active and historical fires).
+        \item NASA FIRMS (satellite thermal hotspots).
+        \item Environment Canada (real-time and 48-hour Air Quality forecasts).
+        \item BC Emergency Management (evacuation orders).
+        \item Open-Meteo (current weather and historical reanalysis).
+    \end{itemize}
+    \item \textbf{Analytical Storage:} Use DuckDB to process and join historical fire data (1999--Present) into analytical formats (Parquet) for model training.
+    \item \textbf{Deliverable:} A robust ETL pipeline actively fetching live data, and a backend exposing all necessary \texttt{/api/*} REST endpoints.
+\end{itemize}
+
+% --- Phase 2 ---
+\subsection*{Phase 2: 3D Cesium Globe + Wildfire Risk Map (Feature 1)}
+\textbf{Dates:} May 29 -- June 09 \hfill \textbf{Duration:} 12 days
+
+\begin{goalbox}
+Develop the core visual centrepiece: an interactive 3D globe layered with active fires, thermal hotspots, evacuation zones, and an animated timeline scrubber.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Globe Configuration:} Implement custom lighting, atmospheric fog, and cinematic camera fly-in sequences using GSAP and Resium.
+    \item \textbf{Data Layers:} Map the live JSON endpoints to visual layers:
+    \begin{itemize}
+        \item Active fire perimeters and points.
+        \item Satellite hotspots sized by Fire Radiative Power (FRP).
+        \item Evacuation alerts/orders represented by dynamic hazard polygons.
+    \end{itemize}
+    \item \textbf{UI Components:} Build glassmorphic side-panels for data inspection (e.g., clicking a fire reveals its status, hectares burned, and source links).
+    \item \textbf{Deliverable:} A 60fps-capable 3D map of the region, populated with real-time incident data.
+\end{itemize}
+
+% --- Phase 3 ---
+\subsection*{Phase 3: Machine Learning Models (Risk \& AQ)}
+\textbf{Dates:} June 10 -- June 18 \hfill \textbf{Duration:} 9 days
+
+\begin{goalbox}
+Train, validate, and serve two predictive machine learning models based on the historical data ingested in Phase 1.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Model 1: Wildfire Risk Classifier:}
+    \begin{itemize}
+        \item \textit{Task:} Predict probability of ignition within ~0.7 km\textsuperscript{2} H3 cells over the next 24 hours.
+        \item \textit{Tech:} LightGBM using lagged weather, drought indices, and Fire Weather Index (FWI).
+    \end{itemize}
+    \item \textbf{Model 2: 48-Hour Air Quality Forecaster:}
+    \begin{itemize}
+        \item \textit{Task:} Predict hourly PM2.5 concentrations for the next 48 hours in Kamloops.
+        \item \textit{Tech:} Temporal gradient-boosted regression outputting confidence intervals (q10, q50, q90).
+    \end{itemize}
+    \item \textbf{Validation:} Strict temporal holdout strategy testing exclusively against the 2022 and 2023 fire seasons.
+    \item \textbf{Deliverable:} Two trained models exported via ONNX, integrated into the FastAPI backend, complete with comprehensive model cards documenting performance metrics.
+\end{itemize}
+
+% --- Phase 4 ---
+\subsection*{Phase 4: Air Quality Monitor (Feature 2)}
+\textbf{Dates:} June 19 -- June 25 \hfill \textbf{Duration:} 7 days
+
+\begin{goalbox}
+Construct a dedicated Air Quality dashboard visualising live data, the ML-driven 48-hour forecast, and historical trends.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{AQHI Dial:} Build an animated, interactive Air Quality Health Index dial.
+    \item \textbf{Forecast Chart:} Use Airbnb's \texttt{Visx} library to render the 48-hour PM2.5 forecast, explicitly displaying uncertainty bands.
+    \item \textbf{Smoke Event Calendar:} Develop a 365-day GitHub-style contribution heatmap showing historical AQHI density and smoke events.
+    \item \textbf{Health Guidance:} Integrate Health Canada guidelines tailored to the current risk level.
+    \item \textbf{Deliverable:} A highly polished, actionable air quality tracking dashboard.
+\end{itemize}
+
+% --- Phase 5 ---
+\subsection*{Phase 5: Community Preparedness Hub (Feature 3)}
+\textbf{Dates:} June 26 -- July 02 \hfill \textbf{Duration:} 7 days
+
+\begin{goalbox}
+Create a personalised FireSmart checklist and evacuation warning hub operating entirely client-side without collecting Personal Identifiable Information (PII).
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Onboarding Wizard:} Allow users to select their neighbourhood and living situation to filter relevant safety tasks.
+    \item \textbf{Dynamic Checklist:} Provide contextual FireSmart tasks (e.g., clearing gutters, preparing a go-bag).
+    \item \textbf{Live Evacuation Widget:} Intersect the user's neighbourhood polygon with live BC Emergency evacuation alerts to display immediate warnings.
+    \item \textbf{Gamification:} Store completed tasks, achievements, and uploaded photo documentation entirely locally using \texttt{IndexedDB}.
+    \item \textbf{Deliverable:} A private, highly tailored emergency readiness hub.
+\end{itemize}
+
+% --- Phase 6 ---
+\subsection*{Phase 6: Climate Trend Module (Feature 4)}
+\textbf{Dates:} July 03 -- July 07 \hfill \textbf{Duration:} 5 days
+
+\begin{goalbox}
+Develop a data-journalism style "scrollytelling" page contextualising long-term regional climate shifts and future projections.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Historical Narrative:} Visualise the increase in burned area and fire frequency over the last 30 years.
+    \item \textbf{CMIP6 Projections:} Display temperature and precipitation projections up to the year 2050 using SSP scenarios (SSP1-2.6, SSP2-4.5, SSP5-8.5).
+    \item \textbf{Deliverable:} An academic-grade narrative module allowing users to download source CSVs for their own research.
+\end{itemize}
+
+% --- Phase 7 ---
+\subsection*{Phase 7: Polish, Performance Optimization \& Demo}
+\textbf{Dates:} July 08 -- July 15 \hfill \textbf{Duration:} 8 days
+
+\begin{goalbox}
+Elevate the platform from a functional prototype to a production-grade, highly optimized software product.
+\end{goalbox}
+
+\begin{itemize}
+    \item \textbf{Performance Audit:} Optimize bundles, lazy-load routes, configure Service Workers for offline caching, and ensure the Cesium globe runs at $\geq$ 50 fps on mobile devices (e.g., iPad).
+    \item \textbf{Aesthetic Final Pass:} Ensure strict adherence to typography and colour tokens. Eradicate generic UI patterns.
+    \item \textbf{Testing:} Conduct end-to-end tests, unit tests, and accessibility (Lighthouse) audits.
+    \item \textbf{Documentation \& Demo:} Write comprehensive \texttt{README.md}, Data Dictionary, and record a 90-second cinematic demo video for the final presentation.
+    \item \textbf{Deliverable:} WildfireIQ v1.0.0. A complete, documented, open-source repository ready for handover and showcase.
+\end{itemize}
+
+\section{Summary of Technologies Used}
+To reassure the evaluation committee of the project's technical rigor, the following stack has been selected to ensure maximum performance and maintainability:
+\begin{itemize}
+    \item \textbf{Frontend:} React 18, TypeScript, Vite, Tailwind CSS v4, Zustand.
+    \item \textbf{Geospatial \& Visuals:} CesiumJS 1.120+ (3D), MapLibre GL (2D), Visx / D3 (Charts), Framer Motion.
+    \item \textbf{Backend \& APIs:} Python 3.11, FastAPI, DuckDB (OLAP), SQLite (OLTP), APScheduler.
+    \item \textbf{Machine Learning:} LightGBM, Scikit-Learn, ONNX Runtime.
+\end{itemize}
+
+\section{Conclusion \& Evaluation Criteria}
+By July 15, 2026, the project will yield a comprehensive, fully functional application demonstrating applied machine learning, real-time data ingestion, and advanced 3D geospatial rendering. The final deliverables submitted for evaluation will include the complete source code, ML validation reports, a live local application instance, and a demonstration video highlighting the platform's capabilities in aiding the Thompson-Okanagan region.
+
+\end{document}

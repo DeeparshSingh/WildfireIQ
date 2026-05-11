@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0d12" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="WildfireIQ Kamloops — AI wildfire risk, air quality, and community preparedness for the Thompson-Okanagan region."
+    />
+    <link rel="preload" href="/fonts/BricolageGrotesque-VariableFont.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/Geist-VariableFont.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/JetBrainsMono-VariableFont.ttf" as="font" type="font/ttf" crossorigin />
+    <title>WildfireIQ Kamloops</title>
+    <script>
+      // MUST run before any module load so Cesium's internal init can resolve
+      // its Workers / Assets / Widgets URLs against /cesium/.
+      window.CESIUM_BASE_URL = "/cesium/";
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
