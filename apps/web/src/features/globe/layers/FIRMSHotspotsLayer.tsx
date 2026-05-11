@@ -48,7 +48,7 @@ export function FIRMSHotspotsLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
   const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.hotspots);
-  const { data } = useFirmsHotspots(24);
+  const { data } = useFirmsHotspots(72); // last 3 days (FIRMS NRT cap)
 
   const addedRef = useRef<Entity[]>([]);
   const handlerRef = useRef<ScreenSpaceEventHandler | null>(null);

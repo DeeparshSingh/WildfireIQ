@@ -46,6 +46,8 @@ class FIRMSHotspotsJob(IngestJob):
         rows_in_total = 0
 
         for source in SOURCES:
+            # 3-day window — FIRMS NRT USFS endpoint caps at 3 days per request.
+            # Phase 4 will stitch multiple days for a longer historical view.
             url = f"{FIRMS_BASE}/{key}/{source}/{bbox}/3"
             ctx.log.info("firms.fetch", source=source)
             r = await ctx.client.get(url)

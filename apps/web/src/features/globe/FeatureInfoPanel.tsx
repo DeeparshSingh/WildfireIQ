@@ -155,7 +155,7 @@ function FireDetail({ id }: { id: string }) {
 // ─── Hotspot ────────────────────────────────────────────────────────
 
 function HotspotDetail({ id }: { id: string }) {
-  const { data } = useFirmsHotspots(24);
+  const { data } = useFirmsHotspots(72);
   const h = useMemo<Hotspot | undefined>(
     () =>
       data?.find(

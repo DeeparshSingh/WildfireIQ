@@ -19,6 +19,10 @@ type LayersState = {
   set: (id: LayerId, on: boolean) => void;
   selected: SelectedFeature | null;
   select: (s: SelectedFeature | null) => void;
+  /** Which layer's detail modal is open, if any. */
+  modalOpen: LayerId | null;
+  openModal: (id: LayerId) => void;
+  closeModal: () => void;
 };
 
 export const useLayersStore = create<LayersState>((set) => ({
@@ -39,4 +43,7 @@ export const useLayersStore = create<LayersState>((set) => ({
     })),
   selected: null,
   select: (s) => set({ selected: s }),
+  modalOpen: null,
+  openModal: (id) => set({ modalOpen: id }),
+  closeModal: () => set({ modalOpen: null }),
 }));

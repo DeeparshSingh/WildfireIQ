@@ -77,14 +77,17 @@ export type SmokeTimestep = {
 
 export function useFiresCurrent() {
   return useQuery({
-    queryKey: ["fires", "current"],
-    queryFn: () => apiGet<Fire[]>("/api/fires/current"),
-    refetchInterval: 60_000, // poll every minute
+    queryKey: ["fires", "current", "all"],
+    // Always fetch all (incl. extinguished) — the filter store decides what
+    // to render. Lets the LayerDetailModal "Include extinguished" toggle
+    // work without re-fetching.
+    queryFn: () => apiGet<Fire[]>("/api/fires/current?include_extinguished=true"),
+    refetchInterval: 60_000,
     select: (env: Envelope<Fire[]>) => env.data,
   });
 }
 
-export function useFirmsHotspots(sinceHours = 24) {
+export function useFirmsHotspots(sinceHours = 72) {
   return useQuery({
     queryKey: ["fires", "hotspots", sinceHours],
     queryFn: () => apiGet<Hotspot[]>(`/api/fires/hotspots?since=${sinceHours}h`),

@@ -107,6 +107,7 @@ export function LayerToggleBar() {
           on={visible[layer.id]}
           dim={spotlight !== null && spotlight !== layer.id}
           onToggle={() => toggle(layer.id)}
+          onOpenModal={() => useLayersStore.getState().openModal(layer.id)}
           onHoverStart={() => setSpotlight(layer.id)}
           onHoverEnd={() => setSpotlight(null)}
         />
@@ -120,6 +121,7 @@ function LayerToggle({
   on,
   dim,
   onToggle,
+  onOpenModal,
   onHoverStart,
   onHoverEnd,
 }: {
@@ -127,13 +129,12 @@ function LayerToggle({
   on: boolean;
   dim: boolean;
   onToggle: () => void;
+  onOpenModal: () => void;
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
+    <div
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
       className="glass"
@@ -143,7 +144,6 @@ function LayerToggle({
         gap: 12,
         padding: "10px 14px",
         borderRadius: "var(--radius-md)",
-        cursor: "pointer",
         minWidth: 240,
         opacity: dim ? 0.35 : 1,
         transition:
@@ -151,35 +151,72 @@ function LayerToggle({
         color: "var(--color-text-hi)",
       }}
     >
-      <span
-        aria-hidden
+      <button
+        type="button"
+        onClick={onOpenModal}
+        aria-label={`Browse ${layer.label}`}
+        title="Click to browse all items in this layer"
         style={{
-          width: 22,
-          height: 22,
-          display: "grid",
-          placeItems: "center",
-          color: on ? layer.accent : "var(--color-text-low)",
-          fontFamily: "var(--font-data)",
-          fontSize: 14,
-          transition: "color var(--dur-fast)",
-        }}
-      >
-        {layer.glyph}
-      </span>
-      <span
-        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
           flex: 1,
+          minWidth: 0,
+          padding: 0,
+          background: "transparent",
+          border: "none",
+          color: "inherit",
+          cursor: "pointer",
           textAlign: "left",
-          fontFamily: "var(--font-body)",
-          fontSize: 13,
-          color: on ? "var(--color-text-hi)" : "var(--color-text-mid)",
         }}
       >
-        {layer.label}
-      </span>
+        <span
+          aria-hidden
+          style={{
+            width: 22,
+            height: 22,
+            display: "grid",
+            placeItems: "center",
+            color: on ? layer.accent : "var(--color-text-low)",
+            fontFamily: "var(--font-data)",
+            fontSize: 14,
+            transition: "color var(--dur-fast)",
+            flexShrink: 0,
+          }}
+        >
+          {layer.glyph}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            color: on ? "var(--color-text-hi)" : "var(--color-text-mid)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {layer.label}
+        </span>
+      </button>
       <Badge count={layer.count} on={on} accent={layer.accent} />
-      <Switch on={on} accent={layer.accent} />
-    </button>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={`${on ? "Hide" : "Show"} ${layer.label}`}
+        title={on ? "Hide layer" : "Show layer"}
+        style={{
+          padding: 0,
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <Switch on={on} accent={layer.accent} />
+      </button>
+    </div>
   );
 }
 

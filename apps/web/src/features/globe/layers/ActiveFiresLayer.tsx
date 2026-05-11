@@ -12,6 +12,7 @@ import {
 import { useFiresCurrent, type Fire } from "@/lib/api/hooks";
 import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
 import { requestRender } from "@/lib/cesium-helpers/render";
+import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -34,11 +35,20 @@ const FIRE_ICON_URL = "data:image/svg+xml;utf8," + encodeURIComponent(FIRE_SVG);
 // and stay readable when zoomed in. (near distance, near scale, far distance, far scale)
 const BILLBOARD_SCALE = new NearFarScalar(1_000, 1.0, 2_000_000, 0.35);
 
-/** Only render fires that are still actively burning. */
-function isStillBurning(f: Fire): boolean {
+function passesFilter(
+  f: Fire,
+  filter: { includeExtinguished: boolean; statuses: string[]; minHectares: number },
+): boolean {
   const s = (f.status ?? "").toLowerCase();
-  if (s === "out" || s === "extinguished") return false;
-  // "Out of Control", "Being Held", "Under Control", "New", "Active" → keep
+  const isOut = s === "out" || s === "extinguished";
+  if (isOut && !filter.includeExtinguished) return false;
+  if (
+    filter.statuses.length > 0 &&
+    !filter.statuses.some((q) => s.includes(q.toLowerCase()))
+  ) {
+    return false;
+  }
+  if ((f.hectares ?? 0) < filter.minHectares) return false;
   return true;
 }
 
@@ -56,6 +66,7 @@ export function ActiveFiresLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
   const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.fires);
+  const filter = useFiltersStore((s) => s.fires);
   const { data } = useFiresCurrent();
 
   const addedRef = useRef<Entity[]>([]);
@@ -81,7 +92,7 @@ export function ActiveFiresLayer() {
       return cleanup;
     }
 
-    const fires = data.filter(isStillBurning);
+    const fires = data.filter((f) => passesFilter(f, filter));
     const fillColor = Color.fromCssColorString(EMBER_500).withAlpha(0.35);
     const outlineColor = Color.fromCssColorString(EMBER_700);
 
@@ -177,7 +188,7 @@ export function ActiveFiresLayer() {
     requestRender(viewer);
 
     return cleanup;
-  }, [viewer, gate, visible, data]);
+  }, [viewer, gate, visible, data, filter]);
 
   return null;
 }

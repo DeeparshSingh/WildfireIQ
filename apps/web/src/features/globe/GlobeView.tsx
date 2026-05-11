@@ -10,6 +10,7 @@ import { CameraPresetBar } from "./CameraPresets";
 import { CoordinateReadout } from "./CoordinateReadout";
 import { FeatureInfoPanel } from "./FeatureInfoPanel";
 import { GlobeSetupNotice } from "./GlobeSetupNotice";
+import { LayerDetailModal } from "./LayerDetailModal";
 import { LayerToggleBar, useLayerKeyboardShortcuts } from "./LayerToggleBar";
 import { LocationSearch } from "./LocationSearch";
 
@@ -28,6 +29,7 @@ export function GlobeView() {
       <CameraPresetBar viewer={viewer} />
       <CoordinateReadout viewer={viewer} />
       <FeatureInfoPanel />
+      <LayerDetailModal />
     </>
   );
 }

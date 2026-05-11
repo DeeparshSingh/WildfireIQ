@@ -6,6 +6,7 @@ import {
   IonImageryProvider,
   Math as CesiumMath,
   Terrain,
+  UrlTemplateImageryProvider,
 } from "cesium";
 import { Viewer } from "resium";
 import type { CesiumComponentRef } from "resium";
@@ -26,8 +27,17 @@ const _ionToken = getCesiumIonToken();
 if (_ionToken) Ion.defaultAccessToken = _ionToken;
 
 // Cesium Ion asset IDs:
-//   3 = Bing Maps Aerial with Labels (countries, cities, roads)
-const BING_AERIAL_WITH_LABELS_ASSET_ID = 3;
+//   2 = Bing Maps Aerial (no labels — labels come from Esri overlay below)
+const BING_AERIAL_ASSET_ID = 2;
+
+// Esri's free "Reference Overlay" — vector-rendered place names, country/state
+// boundaries, road labels. Rendered at native zoom levels so labels stay
+// crisp at every distance instead of getting upscaled-blurry like baked-in
+// raster labels do.
+const ESRI_REFERENCE_LABELS_URL =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
+const ESRI_TRANSPORT_URL =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}";
 
 export function WildfireGlobe() {
   const [viewer, setViewerLocal] = useState<CesiumViewer | null>(null);
@@ -58,14 +68,32 @@ export function WildfireGlobe() {
 
     (async () => {
       try {
-        const labeled = await IonImageryProvider.fromAssetId(
-          BING_AERIAL_WITH_LABELS_ASSET_ID,
-        );
+        const aerial = await IonImageryProvider.fromAssetId(BING_AERIAL_ASSET_ID);
         if (cancelled) return;
         viewer.imageryLayers.removeAll();
-        viewer.imageryLayers.addImageryProvider(labeled);
+        // Base imagery (no labels) — gives us clean satellite without baked-in
+        // raster labels that blur when scaled.
+        viewer.imageryLayers.addImageryProvider(aerial);
+
+        // Vector-style label + boundary overlay from Esri. Free, no key.
+        // Stays crisp at every zoom because it's tiled per-level rather than
+        // a single fixed-resolution raster.
+        const transport = new UrlTemplateImageryProvider({
+          url: ESRI_TRANSPORT_URL,
+          maximumLevel: 19,
+          credit: "Roads © Esri",
+        });
+        const labels = new UrlTemplateImageryProvider({
+          url: ESRI_REFERENCE_LABELS_URL,
+          maximumLevel: 19,
+          credit: "Place labels © Esri · GEBCO · NOAA",
+        });
+        const transportLayer = viewer.imageryLayers.addImageryProvider(transport);
+        transportLayer.alpha = 0.85;
+        const labelsLayer = viewer.imageryLayers.addImageryProvider(labels);
+        labelsLayer.alpha = 1.0;
       } catch (err) {
-        console.warn("[WildfireGlobe] could not load labeled imagery", err);
+        console.warn("[WildfireGlobe] could not load imagery", err);
       }
     })();
 
@@ -86,6 +114,18 @@ export function WildfireGlobe() {
     if (viewer.scene.skyBox) viewer.scene.skyBox.show = true;
     viewer.scene.backgroundColor = Color.fromCssColorString("hsl(220, 30%, 2%)");
     viewer.scene.postProcessStages.fxaa.enabled = true;
+
+    // ── Render at native device pixel density ───────────────────────
+    // Cesium defaults to CSS pixels, which on a Retina display means
+    // everything (especially text in imagery tiles) is scaled up 2× → blur.
+    // Setting resolutionScale to devicePixelRatio renders at native pixels.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    viewer.resolutionScale = dpr;
+    // Use anisotropic filtering on globe tiles so labels stay crisp when
+    // viewed at oblique angles.
+    viewer.scene.globe.maximumScreenSpaceError = 1.5; // default 2; lower = sharper
+    viewer.scene.globe.preloadSiblings = true;
+    viewer.scene.globe.tileCacheSize = 1000;
 
     // ── Camera controller — sensible limits ────────────────────────
     const cc = viewer.scene.screenSpaceCameraController;
