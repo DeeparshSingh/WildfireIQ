@@ -31,8 +31,12 @@ const BING_AERIAL_WITH_LABELS_ASSET_ID = 3;
 
 export function WildfireGlobe() {
   const [viewer, setViewerLocal] = useState<CesiumViewer | null>(null);
-  const { introPlayed, lastCamera, markIntroPlayed, setLastCamera, setViewer } =
-    useGlobeStore();
+  const introPlayed = useGlobeStore((s) => s.introPlayed);
+  const lastCamera = useGlobeStore((s) => s.lastCamera);
+  const markIntroPlayed = useGlobeStore((s) => s.markIntroPlayed);
+  const openDataGate = useGlobeStore((s) => s.openDataGate);
+  const setLastCamera = useGlobeStore((s) => s.setLastCamera);
+  const setViewer = useGlobeStore((s) => s.setViewer);
 
   const terrain = useMemo(() => Terrain.fromWorldTerrain({ requestVertexNormals: true }), []);
 
@@ -116,6 +120,7 @@ export function WildfireGlobe() {
       });
       viewer.scene.requestRenderMode = true;
       viewer.scene.maximumRenderTimeChange = Infinity;
+      openDataGate(); // layers can render immediately on revisits
       return;
     }
 
@@ -148,7 +153,7 @@ export function WildfireGlobe() {
     }, 400);
 
     return () => window.clearTimeout(flyTimeout);
-  }, [viewer, introPlayed, lastCamera, markIntroPlayed]);
+  }, [viewer, introPlayed, lastCamera, markIntroPlayed, openDataGate]);
 
   // ── Persist camera position on every move, throttled by Cesium's
   //    `percentageChanged` so we don't write on every frame. ─────────

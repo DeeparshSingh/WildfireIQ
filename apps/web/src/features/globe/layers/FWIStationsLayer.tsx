@@ -7,6 +7,7 @@ import {
 } from "cesium";
 
 import { useFwiToday, type FwiStation } from "@/lib/api/hooks";
+import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -50,6 +51,7 @@ function descriptionFor(s: FwiStation): string {
 
 export function FWIStationsLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
+  const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.fwi);
   const { data } = useFwiToday();
 
@@ -59,13 +61,21 @@ export function FWIStationsLayer() {
 
   useEffect(() => {
     if (!viewer || viewer.isDestroyed()) return;
-    if (!visible || !data) {
-      for (const e of addedRef.current) viewer.entities.remove(e);
+
+    const cleanup = () => {
+      for (const e of addedRef.current) {
+        if (!viewer.isDestroyed()) viewer.entities.remove(e);
+      }
       addedRef.current = [];
       idMapRef.current.clear();
       handlerRef.current?.destroy();
       handlerRef.current = null;
-      return;
+      requestRender(viewer);
+    };
+
+    if (!gate || !visible || !data) {
+      cleanup();
+      return cleanup;
     }
 
     for (const s of data) {
@@ -87,17 +97,10 @@ export function FWIStationsLayer() {
       if (id) useLayersStore.getState().select({ kind: "fwi", id });
     }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
+    requestRender(viewer);
 
-    return () => {
-      for (const e of addedRef.current) {
-        if (!viewer.isDestroyed()) viewer.entities.remove(e);
-      }
-      addedRef.current = [];
-      idMapRef.current.clear();
-      handler.destroy();
-      if (handlerRef.current === handler) handlerRef.current = null;
-    };
-  }, [viewer, visible, data]);
+    return cleanup;
+  }, [viewer, gate, visible, data]);
 
   return null;
 }

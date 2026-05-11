@@ -86,6 +86,15 @@ Five glassmorphic toggle buttons, each with:
 - **FIRMS hotspots** are sparse outside fire season (1 hotspot mid-May; will scale to hundreds in summer)
 - **Smoke layer** uses the first available WMS timestep; Phase 4 will add a time scrubber for hourly playback
 
+## Post-launch fixes (same day)
+
+User testing surfaced four issues, all addressed:
+
+1. **Layer toggles didn't visually disable layers.** Root cause: `requestRenderMode = true` after intro means Cesium only paints when explicitly asked. Entity removal alone didn't always trigger a frame. Fix: every layer now calls `viewer.scene.requestRender()` after add/remove, and the cleanup path is always installed as the effect's return value (not just inline). `apps/web/src/lib/cesium-helpers/render.ts` is the shared helper.
+2. **53 fires looked excessive.** Most were `status="Out"` (extinguished but still in DataBC's current layer). Backend `/api/fires/current` now filters them out by default; passing `?include_extinguished=true` brings back the full set. **53 → 2** actually-burning fires.
+3. **Layers appeared during the cinematic intro.** New `dataGateOpen` flag in `useGlobeStore` opens only after the flyTo lands (or immediately on revisits with a restored camera). All 5 layers gate on it.
+4. **Fire icons crowded the viewport.** Reduced from 28→20 px and added Cesium `NearFarScalar` so they scale to 35% at 2,000 km altitude. Same `disableDepthTestDistance` so they're always visible above terrain.
+
 ## What's next — Phase 3
 
 Phase 3 trains the two real ML models:

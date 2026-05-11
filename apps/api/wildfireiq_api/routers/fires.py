@@ -11,8 +11,8 @@ router = APIRouter()
 
 
 @router.get("/current", summary="Current active BC fires within bbox")
-async def current() -> dict[str, Any]:
-    rows = _data.fires_current()
+async def current(include_extinguished: bool = False) -> dict[str, Any]:
+    rows = _data.fires_current(include_extinguished=include_extinguished)
     return Envelope[list](
         data=rows,
         meta=Meta(

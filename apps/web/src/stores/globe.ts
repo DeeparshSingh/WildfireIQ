@@ -20,17 +20,23 @@ export type CameraSnapshot = {
 type GlobeState = {
   viewer: CesiumViewer | null;
   introPlayed: boolean;
+  /** True once intro flyTo has landed OR when intro was skipped because a
+   *  prior camera state was restored. Data layers wait for this. */
+  dataGateOpen: boolean;
   lastCamera: CameraSnapshot | null;
   setViewer: (v: CesiumViewer | null) => void;
   markIntroPlayed: () => void;
+  openDataGate: () => void;
   setLastCamera: (c: CameraSnapshot) => void;
 };
 
 export const useGlobeStore = create<GlobeState>((set) => ({
   viewer: null,
   introPlayed: false,
+  dataGateOpen: false,
   lastCamera: null,
   setViewer: (v) => set({ viewer: v }),
-  markIntroPlayed: () => set({ introPlayed: true }),
+  markIntroPlayed: () => set({ introPlayed: true, dataGateOpen: true }),
+  openDataGate: () => set({ dataGateOpen: true }),
   setLastCamera: (c) => set({ lastCamera: c }),
 }));

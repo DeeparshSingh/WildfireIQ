@@ -37,8 +37,14 @@ def _records(df: pd.DataFrame | None) -> list[dict[str, Any]]:
 # ─── Public read helpers ─────────────────────────────────────────────
 
 
-def fires_current() -> list[dict[str, Any]]:
-    return _records(_read_parquet_safe(PROCESSED_ROOT / "fires_current.parquet"))
+def fires_current(include_extinguished: bool = False) -> list[dict[str, Any]]:
+    df = _read_parquet_safe(PROCESSED_ROOT / "fires_current.parquet")
+    if df is None:
+        return []
+    if not include_extinguished and "status" in df.columns:
+        # Drop fires with an explicit "Out" status — they are no longer burning.
+        df = df[~df["status"].fillna("").str.strip().str.lower().isin({"out", "extinguished"})]
+    return _records(df)
 
 
 def fires_historical(year: int | None = None, limit: int = 5000) -> list[dict[str, Any]]:

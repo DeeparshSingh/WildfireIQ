@@ -6,6 +6,7 @@ import {
 } from "cesium";
 
 import { useSmokeForecast } from "@/lib/api/hooks";
+import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -14,6 +15,7 @@ const SMOKE_RECT = Rectangle.fromDegrees(-121.5, 50.0, -118.5, 51.5);
 
 export function SmokeLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
+  const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.smoke);
   const { data } = useSmokeForecast();
 
@@ -27,11 +29,12 @@ export function SmokeLayer() {
         viewer.imageryLayers.remove(layerRef.current, true);
       }
       layerRef.current = null;
+      requestRender(viewer);
     };
 
-    if (!visible || !data || data.length === 0) {
+    if (!gate || !visible || !data || data.length === 0) {
       removeExisting();
-      return;
+      return removeExisting;
     }
 
     const first = data[0];
@@ -49,6 +52,7 @@ export function SmokeLayer() {
         lyr.dayAlpha = 0.55;
         lyr.nightAlpha = 0.55;
         layerRef.current = lyr;
+        requestRender(viewer);
       } catch (err) {
         console.warn("[SmokeLayer] failed to load smoke imagery", err);
       }
@@ -58,7 +62,7 @@ export function SmokeLayer() {
       cancelled = true;
       removeExisting();
     };
-  }, [viewer, visible, data]);
+  }, [viewer, gate, visible, data]);
 
   return null;
 }

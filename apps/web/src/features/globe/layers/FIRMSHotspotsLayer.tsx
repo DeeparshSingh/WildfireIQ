@@ -2,12 +2,14 @@ import { useEffect, useRef } from "react";
 import {
   Cartesian3,
   Color,
+  NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   type Entity,
 } from "cesium";
 
 import { useFirmsHotspots, type Hotspot } from "@/lib/api/hooks";
+import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -15,6 +17,8 @@ const LOW = Color.fromCssColorString("hsl(28 100% 78%)");
 const MID = Color.fromCssColorString("hsl(18 95% 54%)");
 const HIGH = Color.fromCssColorString("hsl(8 88% 42%)");
 const OUTLINE = Color.fromCssColorString("hsl(220 25% 4%)");
+
+const POINT_SCALE = new NearFarScalar(1_000, 1.0, 4_000_000, 0.4);
 
 function colorForFrp(frp: number | null | undefined): Color {
   const v = frp ?? 0;
@@ -42,6 +46,7 @@ function descriptionFor(h: Hotspot): string {
 
 export function FIRMSHotspotsLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
+  const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.hotspots);
   const { data } = useFirmsHotspots(24);
 
@@ -51,13 +56,21 @@ export function FIRMSHotspotsLayer() {
 
   useEffect(() => {
     if (!viewer || viewer.isDestroyed()) return;
-    if (!visible || !data) {
-      for (const e of addedRef.current) viewer.entities.remove(e);
+
+    const cleanup = () => {
+      for (const e of addedRef.current) {
+        if (!viewer.isDestroyed()) viewer.entities.remove(e);
+      }
       addedRef.current = [];
       idMapRef.current.clear();
       handlerRef.current?.destroy();
       handlerRef.current = null;
-      return;
+      requestRender(viewer);
+    };
+
+    if (!gate || !visible || !data) {
+      cleanup();
+      return cleanup;
     }
 
     for (const h of data) {
@@ -69,6 +82,8 @@ export function FIRMSHotspotsLayer() {
           color: colorForFrp(h.frp),
           outlineColor: OUTLINE,
           outlineWidth: 1,
+          scaleByDistance: POINT_SCALE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         description: descriptionFor(h),
       });
@@ -77,25 +92,21 @@ export function FIRMSHotspotsLayer() {
     }
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction((click: ScreenSpaceEventHandler.PositionedEvent) => {
-      const picked = viewer.scene.pick(click.position);
-      const ent = picked?.id as Entity | undefined;
-      if (!ent || !ent.id) return;
-      const id = idMapRef.current.get(ent.id);
-      if (id) useLayersStore.getState().select({ kind: "hotspot", id });
-    }, ScreenSpaceEventType.LEFT_CLICK);
+    handler.setInputAction(
+      (click: ScreenSpaceEventHandler.PositionedEvent) => {
+        const picked = viewer.scene.pick(click.position);
+        const ent = picked?.id as Entity | undefined;
+        if (!ent || !ent.id) return;
+        const id = idMapRef.current.get(ent.id);
+        if (id) useLayersStore.getState().select({ kind: "hotspot", id });
+      },
+      ScreenSpaceEventType.LEFT_CLICK,
+    );
     handlerRef.current = handler;
 
-    return () => {
-      for (const e of addedRef.current) {
-        if (!viewer.isDestroyed()) viewer.entities.remove(e);
-      }
-      addedRef.current = [];
-      idMapRef.current.clear();
-      handler.destroy();
-      if (handlerRef.current === handler) handlerRef.current = null;
-    };
-  }, [viewer, visible, data]);
+    requestRender(viewer);
+    return cleanup;
+  }, [viewer, gate, visible, data]);
 
   return null;
 }

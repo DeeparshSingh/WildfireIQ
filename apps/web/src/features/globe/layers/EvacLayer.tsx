@@ -11,6 +11,7 @@ import {
 
 import { useEvacActive, type EvacZone } from "@/lib/api/hooks";
 import { parseWkt } from "@/lib/cesium-helpers/wkt";
+import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -63,6 +64,7 @@ function descriptionFor(z: EvacZone): string {
 
 export function EvacLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
+  const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.evac);
   const { data } = useEvacActive();
 
@@ -72,13 +74,21 @@ export function EvacLayer() {
 
   useEffect(() => {
     if (!viewer || viewer.isDestroyed()) return;
-    if (!visible || !data) {
-      for (const e of addedRef.current) viewer.entities.remove(e);
+
+    const cleanup = () => {
+      for (const e of addedRef.current) {
+        if (!viewer.isDestroyed()) viewer.entities.remove(e);
+      }
       addedRef.current = [];
       idMapRef.current.clear();
       handlerRef.current?.destroy();
       handlerRef.current = null;
-      return;
+      requestRender(viewer);
+    };
+
+    if (!gate || !visible || !data) {
+      cleanup();
+      return cleanup;
     }
 
     for (const z of data) {
@@ -130,17 +140,10 @@ export function EvacLayer() {
       if (id) useLayersStore.getState().select({ kind: "evac", id });
     }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
+    requestRender(viewer);
 
-    return () => {
-      for (const e of addedRef.current) {
-        if (!viewer.isDestroyed()) viewer.entities.remove(e);
-      }
-      addedRef.current = [];
-      idMapRef.current.clear();
-      handler.destroy();
-      if (handlerRef.current === handler) handlerRef.current = null;
-    };
-  }, [viewer, visible, data]);
+    return cleanup;
+  }, [viewer, gate, visible, data]);
 
   return null;
 }
