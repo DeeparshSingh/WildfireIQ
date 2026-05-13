@@ -87,6 +87,8 @@ export type RiskGrid = {
   observation_day: string;
   p_region: number;
   p_region_raw: number;
+  fwi_today?: number;
+  cffdrs_class?: "Low" | "Moderate" | "High" | "Very High" | "Extreme" | "Unknown";
   cells: RiskCell[];
 };
 

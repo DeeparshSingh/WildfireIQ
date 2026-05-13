@@ -157,11 +157,20 @@ function RiskDetail({ id }: { id: string }) {
             "Centroid",
             `${cell.centroid_lat.toFixed(4)}, ${cell.centroid_lon.toFixed(4)}`,
           ],
+          ["—", ""],
+          [
+            "CFFDRS",
+            data?.cffdrs_class
+              ? `${data.cffdrs_class}${data.fwi_today != null ? ` (FWI ${data.fwi_today.toFixed(1)})` : ""}`
+              : "—",
+          ],
           ["Observation day", fmtDate(data?.observation_day)],
         ]}
       />
       <Attribution>
-        LightGBM trained on BC Wildfire Service 1999-2021 + ERA5 weather · validated against 2022-2023 · PR-AUC 0.66 (FWI baseline 0.52)
+        LightGBM trained on BC Wildfire Service 1999-2021 + ERA5 weather · validated against 2022-2023 · PR-AUC 0.66 (FWI baseline 0.52).
+        CFFDRS row shows the canonical BCWS Fire Danger class from today's FWI for comparison.
+        Informational only — not a substitute for BC Wildfire Service guidance.
       </Attribution>
     </div>
   );

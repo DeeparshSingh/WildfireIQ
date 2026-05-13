@@ -59,6 +59,30 @@ def _bucket(prob: float) -> str:
     return "Extreme"
 
 
+def cffdrs_class_for(fwi: float | None) -> str:
+    """Canonical CFFDRS Fire Danger class from today's FWI value.
+
+    Standard CFFDRS thresholds (Van Wagner 1987; BC Wildfire Service public
+    Fire Danger Rating uses the same boundaries):
+        FWI ≤ 1     → Low
+        FWI 2-4     → Moderate
+        FWI 5-12    → High
+        FWI 13-20   → Very High
+        FWI ≥ 21    → Extreme
+    """
+    if fwi is None or (isinstance(fwi, float) and fwi != fwi):  # NaN
+        return "Unknown"
+    if fwi <= 1:
+        return "Low"
+    if fwi <= 4:
+        return "Moderate"
+    if fwi <= 12:
+        return "High"
+    if fwi <= 20:
+        return "Very High"
+    return "Extreme"
+
+
 def _today_features() -> pd.DataFrame | None:
     """Enrich the archive weather and return the latest observed day (which
     drives the daily risk score). Forecast-fed risk for future days will
@@ -92,6 +116,11 @@ def predict_grid() -> dict | None:
     p_raw = float(booster.predict(X)[0])
     p_cal = float(calibrator.predict([p_raw])[0])
 
+    # Canonical CFFDRS class from today's FWI (Kamloops, derived via
+    # Van Wagner). This is what BCWS publishes as the official Fire Danger.
+    today_fwi = float(today_row.iloc[0].get("fwi", float("nan")))
+    cffdrs = cffdrs_class_for(today_fwi)
+
     cells: list[dict] = []
     for _, c in density.iterrows():
         cell_risk = p_cal * float(c["weight"])
@@ -116,6 +145,8 @@ def predict_grid() -> dict | None:
         "observation_day": obs_day,
         "p_region": p_cal,
         "p_region_raw": p_raw,
+        "fwi_today": today_fwi,
+        "cffdrs_class": cffdrs,
         "cells": cells,
     }
 

@@ -15,6 +15,7 @@ import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
 import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { type LayerId, useLayersStore } from "@/stores/layers";
+import { LAYER_INFO } from "./layerInfo";
 
 const LAYER_META: Record<LayerId, { label: string; accent: string }> = {
   fires: { label: "Active Fires", accent: "var(--color-ember-500)" },
@@ -97,6 +98,7 @@ function ModalContent({
   onClose: () => void;
 }) {
   const meta = LAYER_META[layer];
+  const info = LAYER_INFO[layer];
 
   return (
     <>
@@ -154,6 +156,68 @@ function ModalContent({
           ×
         </button>
       </header>
+
+      <div
+        style={{
+          padding: "14px 24px 18px 24px",
+          borderBottom: "1px solid var(--color-stroke)",
+          background: "var(--color-bg-1)",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-data)",
+            fontSize: 9,
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: meta.accent,
+            marginBottom: 8,
+          }}
+        >
+          How this layer works
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-body)",
+            fontSize: 12.5,
+            lineHeight: 1.55,
+            color: "var(--color-text-mid)",
+          }}
+        >
+          <span style={{ color: "var(--color-text-hi)" }}>{info.what}</span>{" "}
+          {info.pipeline}
+        </p>
+        {info.caveat && (
+          <p
+            style={{
+              margin: "8px 0 0 0",
+              fontFamily: "var(--font-body)",
+              fontSize: 11,
+              lineHeight: 1.5,
+              color: "var(--color-text-low)",
+              fontStyle: "italic",
+            }}
+          >
+            {info.caveat}
+          </p>
+        )}
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: "var(--font-data)",
+            fontSize: 10,
+            letterSpacing: "0.06em",
+            color: "var(--color-text-low)",
+          }}
+        >
+          <span style={{ color: "var(--color-text-low)" }}>Source: </span>
+          <span style={{ color: "var(--color-text-mid)" }}>{info.source}</span>
+          <span style={{ color: "var(--color-stroke-strong)" }}> · </span>
+          <span style={{ color: "var(--color-text-low)" }}>Refresh: </span>
+          <span style={{ color: "var(--color-text-mid)" }}>{info.refresh}</span>
+        </div>
+      </div>
 
       {layer === "fires" && <FiresBrowser />}
       {layer === "hotspots" && <HotspotsBrowser />}
@@ -693,6 +757,20 @@ function RiskBrowser() {
         ))}
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
           P(fire today) · region {(data.p_region * 100).toFixed(0)}%
+          {data.cffdrs_class && (
+            <>
+              <span style={{ color: "var(--color-stroke-strong)" }}> · </span>
+              CFFDRS{" "}
+              <span style={{ color: "var(--color-text-hi)" }}>
+                {data.cffdrs_class}
+              </span>
+              {data.fwi_today != null && (
+                <span style={{ color: "var(--color-text-low)" }}>
+                  {" "}(FWI {data.fwi_today.toFixed(1)})
+                </span>
+              )}
+            </>
+          )}
         </span>
       </Toolbar>
       <ResultsList
