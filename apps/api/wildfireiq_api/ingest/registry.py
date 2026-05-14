@@ -6,6 +6,7 @@ from .base import IngestJob
 from .bcem_evac import BCEMEvacuationJob
 from .climatedata_projections import ClimateDataProjectionsJob
 from .cwfis_fwi import CWFISFWIDailyJob
+from .derived_fires_unified import DerivedFiresUnifiedJob
 from .derived_fwi import DerivedFWIStationsJob
 from .derived_seasonal_metrics import DerivedSeasonalMetricsJob
 from .databc_fires_current import DataBCFiresCurrentJob
@@ -37,6 +38,7 @@ def all_jobs() -> dict[str, IngestJob]:
         FireWorkSmokeForecastJob(),
         BCEMEvacuationJob(),
         ClimateDataProjectionsJob(),
+        DerivedFiresUnifiedJob(),
         DerivedSeasonalMetricsJob(),
     ]
     return {j.name: j for j in instances}
