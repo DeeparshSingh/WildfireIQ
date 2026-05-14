@@ -355,6 +355,126 @@ export type SeasonContext = {
   peak_basis: string;
 };
 
+// ─── Climate Trend (Phase 6) ──────────────────────────────────────────
+
+export type SeasonalRow = {
+  year: number;
+  area_burned_ha: number | null;
+  fire_count: number | null;
+  largest_fire_ha: number | null;
+  season_start_doy: number | null;
+  season_end_doy: number | null;
+  season_length_days: number | null;
+  mean_jul_temp_c: number | null;
+  julaug_precip_mm: number | null;
+  mean_julaug_vpd_kpa: number | null;
+  max_julaug_fwi: number | null;
+  days_fwi_ge_19: number | null;
+};
+
+export function useSeasonalMetrics() {
+  return useQuery({
+    queryKey: ["climate", "seasonal"],
+    queryFn: () => apiGet<SeasonalRow[]>("/api/climate/seasonal"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<SeasonalRow[]>) => env.data,
+  });
+}
+
+export type TrendMetric = {
+  slope_per_year: number;
+  intercept: number;
+  slope_ci_lo: number;
+  slope_ci_hi: number;
+  n_years: number;
+  delta_over_span: number;
+};
+
+export type Trends = {
+  year_min: number;
+  year_max: number;
+  metrics: Record<string, TrendMetric>;
+};
+
+export function useClimateTrends() {
+  return useQuery({
+    queryKey: ["climate", "trends"],
+    queryFn: () => apiGet<Trends>("/api/climate/trends"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<Trends>) => env.data,
+  });
+}
+
+export type RibbonRow = {
+  year: number;
+  start_doy: number;
+  end_doy: number;
+  length_days: number;
+  area_burned_ha: number;
+};
+
+export function useClimateRibbon() {
+  return useQuery({
+    queryKey: ["climate", "ribbon"],
+    queryFn: () => apiGet<RibbonRow[]>("/api/climate/ribbon"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<RibbonRow[]>) => env.data,
+  });
+}
+
+export type ProjectionRow = {
+  year: number;
+  ssp: string;
+  variable: string;
+  value: number;
+  q10: number;
+  q50: number;
+  q90: number;
+};
+
+export type ProjectionsAll = {
+  variable: string;
+  scenarios: { observed: ProjectionRow[]; ssp126: ProjectionRow[]; ssp245: ProjectionRow[]; ssp585: ProjectionRow[] };
+};
+
+export function useProjectionsAll(variable: string) {
+  return useQuery({
+    queryKey: ["climate", "projections-all", variable],
+    queryFn: () =>
+      apiGet<ProjectionsAll>(
+        `/api/climate/projections-all?var=${encodeURIComponent(variable)}`,
+      ),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<ProjectionsAll>) => env.data,
+  });
+}
+
+export type FwiProjection = {
+  method: string;
+  fit: { slope_days_per_C: number; intercept: number; n: number };
+  scenarios: Record<string, { decade: number; july_temp_c: number; days_fwi_ge_19: number; observed: boolean }[]>;
+};
+
+export function useFwiProjection() {
+  return useQuery({
+    queryKey: ["climate", "fwi-projection"],
+    queryFn: () => apiGet<FwiProjection>("/api/climate/fwi-projection"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<FwiProjection>) => env.data,
+  });
+}
+
+export type TruCarbon = { available: boolean; rows: Record<string, number | string>[] };
+
+export function useTruCarbon() {
+  return useQuery({
+    queryKey: ["climate", "tru-carbon"],
+    queryFn: () => apiGet<TruCarbon>("/api/climate/tru-carbon"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<TruCarbon>) => env.data,
+  });
+}
+
 export function useSeasonContext() {
   return useQuery({
     queryKey: ["firesmart", "season-context"],

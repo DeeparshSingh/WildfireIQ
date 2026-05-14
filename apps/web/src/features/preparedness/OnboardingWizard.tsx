@@ -85,7 +85,7 @@ export function OnboardingWizard({
               color: "var(--color-cyan-glow)",
             }}
           >
-            Phase 5 · Welcome
+            Welcome
           </div>
           <h1
             style={{

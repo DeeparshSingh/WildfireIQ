@@ -335,7 +335,7 @@ function Header({
             color: "var(--color-cyan-glow)",
           }}
         >
-          Phase 5 · Community Preparedness Hub
+          Community Preparedness Hub
         </div>
         <h1
           style={{
@@ -465,11 +465,17 @@ function PrivacyFooter() {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: "hsl(220 30% 8% / 0.85)",
+  background:
+    // custom chevron drawn as inline SVG; native arrow hidden via -webkit-appearance:none
+    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2399aabb' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\") no-repeat right 12px center / 10px 6px, hsl(220 30% 8% / 0.85)",
   color: "var(--color-text-hi)",
   border: "1px solid hsl(200 80% 50% / 0.25)",
   borderRadius: 8,
-  padding: "8px 12px",
+  padding: "8px 32px 8px 12px",
   fontFamily: "var(--font-body)",
   fontSize: 13,
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  cursor: "pointer",
 };

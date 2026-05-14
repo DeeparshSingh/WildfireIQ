@@ -160,6 +160,12 @@ def climate_projections(ssp: str | None = None, var: str | None = None) -> list[
     return _records(df)
 
 
+def seasonal_metrics() -> list[dict[str, Any]]:
+    """Per-year joined fire+weather+FWI metrics (Phase 6)."""
+    df = _read_parquet_safe(PROCESSED_ROOT / "seasonal_metrics.parquet")
+    return _records(df)
+
+
 def season_context() -> dict[str, Any]:
     """Derived metrics for the Phase 5 right-column ticker.
 

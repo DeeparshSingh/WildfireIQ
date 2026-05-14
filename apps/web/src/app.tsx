@@ -7,7 +7,7 @@ import { GlobeView } from "./features/globe/GlobeView";
 import { AirQualityRoute } from "./features/air-quality/AirQualityRoute";
 import { PreparednessRoute } from "./features/preparedness/PreparednessRoute";
 import { SharedView } from "./features/preparedness/SharedView";
-import { ClimatePlaceholder } from "./features/climate/ClimatePlaceholder";
+import { ClimateRoute } from "./features/climate/ClimateRoute";
 import { AboutView } from "./features/about/AboutView";
 
 export function App() {
@@ -29,7 +29,7 @@ export function App() {
           <Route path="/air-quality" element={<AirQualityRoute />} />
           <Route path="/preparedness" element={<PreparednessRoute />} />
           <Route path="/preparedness/shared" element={<SharedView />} />
-          <Route path="/climate" element={<ClimatePlaceholder />} />
+          <Route path="/climate" element={<ClimateRoute />} />
           <Route path="/about" element={<AboutView />} />
         </Routes>
       </AppShell>

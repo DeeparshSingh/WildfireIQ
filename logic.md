@@ -617,11 +617,96 @@ every poll.
 
 ---
 
-## Phase 6 · Climate Trend (planned)
+## Phase 6 · Climate Trend Module ✅
 
-30-year fire-season severity chart from `fires_historical.parquet`. CMIP6
-ensemble projections from ClimateData.ca (currently placeholder synthetic
-data). Theil-Sen trend lines with bootstrap CIs.
+A six-section scrollytelling page at `/climate` that tells the story of
+how the Thompson-Okanagan's fire seasons have changed and where they're
+going. Each section fades in on scroll via `IntersectionObserver`, sits on
+a procedural topographic-line backdrop at 4% opacity, and exposes its
+source + method + CSV download under an (i) chip.
+
+**Derived dataset — `data/processed/seasonal_metrics.parquet`**
+
+Built by `wildfireiq_api.ml.seasonal_metrics.build()` (run nightly at
+02:30 UTC by the `derived_seasonal_metrics` ingest job). One row per year
+1999–today, joining:
+
+- Historical fires (`fires_historical.parquet`) aggregated per `fire_year`
+  with a bbox filter: total area burned, fire count, largest fire,
+  season start/end DOY, season length.
+- Open-Meteo ERA5 archive daily wx (`weather_kamloops_archive_daily.parquet`):
+  mean July daily-max temperature, July-Aug total precipitation, mean
+  July-Aug VPD.
+- A fresh Van Wagner FWI run over the entire daily wx archive (using
+  `ml/fwi.py`): max July-Aug FWI, count of days with FWI ≥ 19 (the
+  CFFDRS extreme threshold).
+
+**Section 1 — Three decades of fire.** Visx bar chart of annual area
+burned (Thompson-Okanagan BBOX). 1999-2010 baseline mean drawn as a
+dashed reference line. Five landmark seasons (2003 Okanagan Mountain,
+2017 Elephant Hill, 2018, 2021 Lytton, 2023) get amber highlight bars +
+annotation cards below the chart with the area burned and a one-line
+context.
+
+**Section 2 — Hotter, drier, longer.** Three sparkline panels for mean
+July daily-max temp, July-Aug precipitation, July-Aug VPD. Each carries
+a Theil-Sen trend line (robust median slope, 1000-bootstrap 95% CI)
+plus a slope label like "+4.75 °C since 1999 · CI 0.063 → 0.320
+°C/yr". Slope and CI come from `/api/climate/trends`.
+
+**Section 3 — Fire season starts earlier and ends later.** One
+horizontal bar per year from first-ignition DOY to last-ignition DOY.
+Bar colour scales with sqrt(area_burned / max_area), bucketed sage →
+amber → ember → red. Month gridlines + a legend below.
+
+**Section 4 — What's coming.** CMIP6 ensemble projections to 2100 under
+SSP1-2.6 / SSP2-4.5 / SSP5-8.5. Variable picker (tasmean / tasmax /
+pr). Each scenario drawn as a q10–q90 shaded band plus the q50 line,
+with a segmented control to toggle scenarios on/off. Observed historical
+overlay in off-white. Currently backed by the Phase 1 synthetic CMIP6
+placeholder — drop-in replace with the real ensemble is a single
+parquet swap (no code change).
+
+**Section 5 — What this means for fire weather.** Decade-by-decade
+projection of `days FWI ≥ 19`. Fits historical `days_fwi_ge_19 ~
+mean_july_temp` linearly, evaluates on each scenario's per-decade July
+temperature (observed pre-2020; baseline + scaled ΔT thereafter, with
+ΔT₂₀₄₀ = 1.0 / 1.8 / 2.9 °C for the three SSPs). Grouped bar chart with
+solid (observed) vs. diagonal-stripe (projected) fills. The method
+string is explicit about being a coarse heuristic, not a physics run.
+
+**Section 6 — TRU campus carbon (optional).** Renders only when both
+`VITE_ENABLE_TRU_CARBON=true` and `data/tru_carbon.csv` exists. Bar
+chart of annual tCO₂e with a Sustainability-Office target line.
+Otherwise the component returns `null` — the section is fully hidden,
+not an empty husk.
+
+**Endpoints**
+
+- `GET /api/climate/seasonal` — full per-year metrics. `?format=csv` for download.
+- `GET /api/climate/trends` — Theil-Sen slope + CI for 7 metrics.
+- `GET /api/climate/ribbon` — first/last/length DOY + area_burned per year.
+- `GET /api/climate/projections-all?var=` — observed + 3 SSPs in one payload.
+- `GET /api/climate/projection?ssp=&var=` — single scenario; supports `?format=csv`.
+- `GET /api/climate/fwi-projection` — heuristic FWI≥19-days-by-decade with method string + linear-fit coefficients.
+- `GET /api/climate/tru-carbon` — feature-flagged; reports `available: false` when the CSV is absent.
+
+**Print stylesheet**
+
+`@media print` strips backgrounds, normalises chart fills, and
+`page-break-inside: avoid` on every section — Cmd-P produces a clean
+four-page research-artifact PDF.
+
+**Caveats**
+
+- The CMIP6 ensemble shipped in Phase 1 is a structurally-correct
+  synthetic placeholder, not the real ClimateData.ca download. Section 4
+  + 5 trend shapes are illustrative; the slope is wired correctly but
+  the absolute values move when the real ensemble is dropped in.
+- Section 5's FWI projection is a coarse linear extrapolation of one
+  predictor (July temp), explicitly disclosed in the method string.
+- All trends are sensitive to the chosen baseline. We start at 1999
+  (DataBC's record begins) and document the span in every label.
 
 ---
 
