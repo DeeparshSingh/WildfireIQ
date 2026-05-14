@@ -1,0 +1,160 @@
+"""Open-Meteo Air Quality archive + forecast ingest.
+
+Open-Meteo's `air-quality-api.open-meteo.com` returns hourly pollutant
+concentrations (PM2.5, PM10, O3, NO2, SO2, CO) plus the European AQI for any
+lat/lon. The free tier supports up to 92 days back + 5 days forward.
+
+We also co-locate weather features (temp, RH, wind, precip) from the same
+provider so the AQ forecaster trains on coherent rows without joining
+parquets across sources.
+
+Output: `data/processed/aq_hourly_kamloops.parquet` — UPSERT on `time_utc`.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+import pandas as pd
+
+from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
+from ..paths import PROCESSED_ROOT
+from .base import IngestContext, IngestJob, IngestReport
+
+
+AQ_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+WX_URL = "https://api.open-meteo.com/v1/forecast"
+ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
+
+class OpenMeteoAQHourlyJob(IngestJob):
+    """Hourly cron — pulls last 7 days actual + next 5 days forecast.
+    The historical bootstrap (92 days) is run separately on first install."""
+
+    name = "open_meteo_aq_hourly"
+    cadence = "15 * * * *"  # 15 min past each hour, AFTER weather job's :05
+    label = "Open-Meteo · Kamloops air quality hourly + 5d forecast"
+
+    past_days = 7
+    forecast_days = 5
+
+    async def run(self, ctx: IngestContext) -> IngestReport:
+        return await _run(self, ctx)
+
+
+class OpenMeteoAQArchiveJob(IngestJob):
+    """One-shot bootstrap — 92 days back to populate training data."""
+
+    name = "open_meteo_aq_archive"
+    cadence = None
+    label = "Open-Meteo · Kamloops AQ archive bootstrap (92 days)"
+
+    past_days = 92
+    forecast_days = 0
+
+    async def run(self, ctx: IngestContext) -> IngestReport:
+        return await _run(self, ctx)
+
+
+async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestContext) -> IngestReport:
+    fetched_at = ctx.started_at_utc.isoformat()
+
+    # ── 1. Pull air quality ────────────────────────────────────────
+    aq_params = {
+        "latitude": str(KAMLOOPS_LAT),
+        "longitude": str(KAMLOOPS_LON),
+        "hourly": ",".join([
+            "pm2_5",
+            "pm10",
+            "carbon_monoxide",
+            "nitrogen_dioxide",
+            "sulphur_dioxide",
+            "ozone",
+            "european_aqi",
+        ]),
+        "past_days": str(job.past_days),
+        "forecast_days": str(job.forecast_days),
+        "timezone": "UTC",
+    }
+    ctx.log.info("openmeteo_aq.fetch", past_days=job.past_days, forecast_days=job.forecast_days)
+    r = await ctx.client.get(AQ_URL, params=aq_params)
+    r.raise_for_status()
+    aq = r.json().get("hourly", {})
+    if not aq.get("time"):
+        return IngestReport(job_name=job.name, status="fail", error="empty AQ response")
+
+    # ── 2. Pull co-located weather (same range) ───────────────────
+    wx_params = {
+        "latitude": str(KAMLOOPS_LAT),
+        "longitude": str(KAMLOOPS_LON),
+        "hourly": ",".join([
+            "temperature_2m",
+            "relative_humidity_2m",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "precipitation",
+            "boundary_layer_height",
+        ]),
+        "past_days": str(job.past_days),
+        "forecast_days": str(job.forecast_days),
+        "timezone": "UTC",
+    }
+    rw = await ctx.client.get(WX_URL, params=wx_params)
+    rw.raise_for_status()
+    wx = rw.json().get("hourly", {})
+
+    # ── 3. Build dataframe ─────────────────────────────────────────
+    df = pd.DataFrame(
+        {
+            "time_utc": aq["time"],
+            "pm2_5": aq.get("pm2_5", []),
+            "pm10": aq.get("pm10", []),
+            "co": aq.get("carbon_monoxide", []),
+            "no2": aq.get("nitrogen_dioxide", []),
+            "so2": aq.get("sulphur_dioxide", []),
+            "o3": aq.get("ozone", []),
+            "european_aqi": aq.get("european_aqi", []),
+        }
+    )
+    if wx.get("time"):
+        wx_df = pd.DataFrame(
+            {
+                "time_utc": wx["time"],
+                "temp_c": wx.get("temperature_2m", []),
+                "rh_pct": wx.get("relative_humidity_2m", []),
+                "wind_kmh": wx.get("wind_speed_10m", []),
+                "wind_dir": wx.get("wind_direction_10m", []),
+                "precip_mm": wx.get("precipitation", []),
+                "boundary_layer_m": wx.get("boundary_layer_height", []),
+            }
+        )
+        df = df.merge(wx_df, on="time_utc", how="left")
+
+    df["time_utc"] = pd.to_datetime(df["time_utc"], utc=False).dt.tz_localize("UTC")
+    df["fetched_at_utc"] = fetched_at
+
+    # ── 4. Upsert into the existing parquet ────────────────────────
+    out_path = PROCESSED_ROOT / "aq_hourly_kamloops.parquet"
+    if out_path.exists():
+        try:
+            prev = pd.read_parquet(out_path)
+            prev["time_utc"] = pd.to_datetime(prev["time_utc"], utc=True)
+            df = pd.concat([prev, df], ignore_index=True)
+            df = df.sort_values("time_utc").drop_duplicates(
+                subset=["time_utc"], keep="last"
+            )
+        except Exception as exc:  # noqa: BLE001
+            ctx.log.info("openmeteo_aq.upsert_failed", error=str(exc))
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(out_path, compression="zstd", index=False)
+    ctx.log.info("openmeteo_aq.written", rows=len(df), path=str(out_path))
+
+    return IngestReport(
+        job_name=job.name,
+        status="ok",
+        rows_in=len(aq.get("time", [])),
+        rows_written=len(df),
+        bytes_written=out_path.stat().st_size,
+        artifacts=[out_path],
+    )

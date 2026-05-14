@@ -85,14 +85,16 @@ export function CameraPresetBar({ viewer }: { viewer: CesiumViewer | null }) {
       }}
     >
       <div
+        className="glass"
         style={{
+          alignSelf: "flex-end",
           fontFamily: "var(--font-data)",
           fontSize: 9,
           letterSpacing: "0.28em",
           textTransform: "uppercase",
-          color: "var(--color-text-low)",
-          padding: "2px 6px",
-          textAlign: "right",
+          color: "var(--color-text-mid)",
+          padding: "4px 10px",
+          borderRadius: "var(--radius-pill)",
         }}
       >
         Camera presets
@@ -102,18 +104,20 @@ export function CameraPresetBar({ viewer }: { viewer: CesiumViewer | null }) {
           key={p.id}
           type="button"
           onClick={() => flyToPreset(viewer, p)}
+          title={p.subtitle}
           className="glass"
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            padding: "10px 14px",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "8px 14px",
             borderRadius: "var(--radius-md)",
             cursor: "pointer",
             color: "var(--color-text-hi)",
             transition:
               "background var(--dur-fast) var(--ease-out-expo), transform var(--dur-fast) var(--ease-out-expo), box-shadow var(--dur-fast) var(--ease-out-expo)",
-            minWidth: 200,
+            minWidth: 220,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--glass-bg-strong)";
@@ -141,10 +145,9 @@ export function CameraPresetBar({ viewer }: { viewer: CesiumViewer | null }) {
             style={{
               fontFamily: "var(--font-data)",
               fontSize: 9,
-              letterSpacing: "0.24em",
+              letterSpacing: "0.18em",
               textTransform: "uppercase",
               color: "var(--color-text-low)",
-              marginTop: 2,
             }}
           >
             {p.subtitle}

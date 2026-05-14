@@ -1,0 +1,52 @@
+{
+  "source": "Health Canada · Air Quality Health Index (AQHI) · adapted from Interior Health and HealthLink BC guidance",
+  "audiences": ["general", "at_risk", "outdoor_workers"],
+  "bands": [
+    {
+      "aqhi_min": 1,
+      "aqhi_max": 3,
+      "label": "Low Risk",
+      "general": "Ideal air quality for outdoor activities.",
+      "at_risk": "Enjoy your usual outdoor activities.",
+      "outdoor_workers": "No restrictions."
+    },
+    {
+      "aqhi_min": 4,
+      "aqhi_max": 6,
+      "label": "Moderate Risk",
+      "general": "No need to modify outdoor activities unless you experience symptoms such as coughing or throat irritation.",
+      "at_risk": "Consider reducing or rescheduling strenuous activities outdoors if you are experiencing symptoms.",
+      "outdoor_workers": "Continue normal work; take breaks if symptoms develop."
+    },
+    {
+      "aqhi_min": 7,
+      "aqhi_max": 10,
+      "label": "High Risk",
+      "general": "Consider reducing or rescheduling strenuous activities outdoors if you experience symptoms.",
+      "at_risk": "Reduce or reschedule strenuous activities outdoors. Children and the elderly should also take it easy.",
+      "outdoor_workers": "Reduce exertion, take frequent breaks. Use N95 respirators if available."
+    },
+    {
+      "aqhi_min": 11,
+      "aqhi_max": 999,
+      "label": "Very High Risk",
+      "general": "Reduce or reschedule strenuous activities outdoors, especially if you experience symptoms such as coughing or throat irritation.",
+      "at_risk": "Avoid strenuous activities outdoors. Children and the elderly should also avoid outdoor physical exertion.",
+      "outdoor_workers": "Stop outdoor work if possible. Use N95 respirators and monitor for symptoms."
+    }
+  ],
+  "links": [
+    {
+      "title": "Health Canada · AQHI",
+      "url": "https://weather.gc.ca/airquality/pages/index_e.html"
+    },
+    {
+      "title": "BC Centre for Disease Control · Wildfire Smoke",
+      "url": "http://www.bccdc.ca/health-info/prevention-public-health/wildfire-smoke"
+    },
+    {
+      "title": "Interior Health · Air Quality",
+      "url": "https://www.interiorhealth.ca/health-and-wellness/environmental-health/air-quality"
+    }
+  ]
+}

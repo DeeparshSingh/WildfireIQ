@@ -88,6 +88,11 @@
   100% { transform: translateY(100vh); }
 }
 
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Live-data dot — used in top status bar */
 .live-dot {
   display: inline-block;

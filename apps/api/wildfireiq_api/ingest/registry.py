@@ -13,6 +13,7 @@ from .firework_smoke import FireWorkSmokeForecastJob
 from .firms_hotspots import FIRMSHotspotsJob
 from .geomet_aqhi import GeoMetAQHIRealtimeJob
 from .open_meteo import OpenMeteoArchiveBootstrapJob, OpenMeteoKamloopsJob
+from .open_meteo_aq import OpenMeteoAQArchiveJob, OpenMeteoAQHourlyJob
 from .waqi import WAQIKamloopsJob
 
 
@@ -24,6 +25,8 @@ def all_jobs() -> dict[str, IngestJob]:
         DataBCFiresHistoricalJob(),
         OpenMeteoKamloopsJob(),
         OpenMeteoArchiveBootstrapJob(),
+        OpenMeteoAQHourlyJob(),
+        OpenMeteoAQArchiveJob(),
         ECCCClimateBulkJob(),
         CWFISFWIDailyJob(),
         GeoMetAQHIRealtimeJob(),

@@ -146,8 +146,106 @@ export function useRiskGrid() {
   return useQuery({
     queryKey: ["risk", "grid"],
     queryFn: () => apiGet<RiskGrid>("/api/risk/grid"),
-    // Grid changes daily — don't hammer the inference call.
     refetchInterval: 30 * 60_000,
     select: (env: Envelope<RiskGrid>) => env.data,
+  });
+}
+
+// ── Phase 4 · Air Quality dashboard ─────────────────────────────────
+
+export type AqForecastPoint = {
+  horizon_h: number;
+  time_utc: string;
+  q10: number;
+  q50: number;
+  q90: number;
+  aqhi_q50: number;
+};
+export type AqObservation = { time_utc: string; pm2_5: number };
+export type AqForecast = {
+  issued_at_utc: string;
+  observations: AqObservation[];
+  forecasts: AqForecastPoint[];
+  metrics: Record<string, Record<string, number>>;
+};
+
+export function useAqForecast() {
+  return useQuery({
+    queryKey: ["aq", "forecast"],
+    queryFn: () => apiGet<AqForecast>("/api/aq/forecast"),
+    refetchInterval: 10 * 60_000,
+    select: (env: Envelope<AqForecast>) => env.data,
+  });
+}
+
+export type AqCurrentStation = {
+  station_id: string;
+  station_name: string;
+  latitude: number;
+  longitude: number;
+  aqhi: number | null;
+  observation_datetime_utc: string;
+};
+export type AqPollutants = {
+  station_name?: string;
+  aqi?: number | null;
+  pm25?: number | null;
+  pm10?: number | null;
+  o3?: number | null;
+  no2?: number | null;
+  so2?: number | null;
+  co?: number | null;
+  dominant_pollutant?: string | null;
+  observation_time_utc?: string;
+} | null;
+export type AqCurrent = { stations: AqCurrentStation[]; pollutants: AqPollutants };
+
+export function useAqCurrent() {
+  return useQuery({
+    queryKey: ["aq", "current"],
+    queryFn: () => apiGet<AqCurrent>("/api/aq/current"),
+    refetchInterval: 60_000,
+    select: (env: Envelope<AqCurrent>) => env.data,
+  });
+}
+
+export type AqCalendarDay = {
+  day_utc: string;
+  max_pm25: number;
+  mean_pm25: number;
+  max_aqhi: number;
+};
+export type AqCalendar = { days: AqCalendarDay[] };
+
+export function useAqCalendar(days = 90) {
+  return useQuery({
+    queryKey: ["aq", "calendar", days],
+    queryFn: () => apiGet<AqCalendar>(`/api/aq/calendar?days=${days}`),
+    refetchInterval: 60 * 60_000,
+    select: (env: Envelope<AqCalendar>) => env.data,
+  });
+}
+
+export type HealthGuidanceBand = {
+  aqhi_min: number;
+  aqhi_max: number;
+  label: string;
+  general: string;
+  at_risk: string;
+  outdoor_workers: string;
+};
+export type HealthGuidance = {
+  source: string;
+  audiences: string[];
+  bands: HealthGuidanceBand[];
+  links: { title: string; url: string }[];
+};
+
+export function useHealthGuidance() {
+  return useQuery({
+    queryKey: ["aq", "health-guidance"],
+    queryFn: () => apiGet<HealthGuidance>("/api/aq/health-guidance"),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<HealthGuidance>) => env.data,
   });
 }

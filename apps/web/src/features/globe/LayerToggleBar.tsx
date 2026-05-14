@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 
 import {
   useEvacActive,
@@ -11,7 +11,6 @@ import {
 } from "@/lib/api/hooks";
 import { useFiltersStore } from "@/stores/filters";
 import { type LayerId, useLayersStore } from "@/stores/layers";
-import { LayerInfoPopover } from "./LayerInfoPopover";
 
 type LayerDef = {
   id: LayerId;
@@ -116,7 +115,6 @@ export function LayerToggleBar() {
   const visible = useLayersStore((s) => s.visible);
   const toggle = useLayersStore((s) => s.toggle);
   const [spotlight, setSpotlight] = useState<LayerId | null>(null);
-  const [infoOpen, setInfoOpen] = useState<LayerId | null>(null);
 
   return (
     <motion.div
@@ -135,14 +133,16 @@ export function LayerToggleBar() {
       }}
     >
       <div
+        className="glass"
         style={{
+          alignSelf: "flex-end",
           fontFamily: "var(--font-data)",
           fontSize: 9,
           letterSpacing: "0.28em",
           textTransform: "uppercase",
-          color: "var(--color-text-low)",
-          padding: "0 6px 4px 6px",
-          textAlign: "right",
+          color: "var(--color-text-mid)",
+          padding: "4px 10px",
+          borderRadius: "var(--radius-pill)",
         }}
       >
         Layers
@@ -153,13 +153,8 @@ export function LayerToggleBar() {
           layer={layer}
           on={visible[layer.id]}
           dim={spotlight !== null && spotlight !== layer.id}
-          infoOpen={infoOpen === layer.id}
           onToggle={() => toggle(layer.id)}
           onOpenModal={() => useLayersStore.getState().openModal(layer.id)}
-          onToggleInfo={() =>
-            setInfoOpen((curr) => (curr === layer.id ? null : layer.id))
-          }
-          onCloseInfo={() => setInfoOpen(null)}
           onHoverStart={() => setSpotlight(layer.id)}
           onHoverEnd={() => setSpotlight(null)}
         />
@@ -172,22 +167,16 @@ function LayerToggle({
   layer,
   on,
   dim,
-  infoOpen,
   onToggle,
   onOpenModal,
-  onToggleInfo,
-  onCloseInfo,
   onHoverStart,
   onHoverEnd,
 }: {
   layer: LayerDef;
   on: boolean;
   dim: boolean;
-  infoOpen: boolean;
   onToggle: () => void;
   onOpenModal: () => void;
-  onToggleInfo: () => void;
-  onCloseInfo: () => void;
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
@@ -261,34 +250,6 @@ function LayerToggle({
       <Badge count={layer.count} on={on} accent={layer.accent} />
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleInfo();
-        }}
-        aria-label={`How ${layer.label} works`}
-        title="How this layer works"
-        style={{
-          width: 20,
-          height: 20,
-          display: "grid",
-          placeItems: "center",
-          padding: 0,
-          background: "transparent",
-          border: `1px solid ${infoOpen ? layer.accent : "var(--color-stroke)"}`,
-          borderRadius: "50%",
-          color: infoOpen ? layer.accent : "var(--color-text-low)",
-          cursor: "pointer",
-          fontFamily: "var(--font-data)",
-          fontSize: 10,
-          fontWeight: 600,
-          fontStyle: "italic",
-          transition: "border-color var(--dur-fast), color var(--dur-fast)",
-        }}
-      >
-        i
-      </button>
-      <button
-        type="button"
         onClick={onToggle}
         aria-label={`${on ? "Hide" : "Show"} ${layer.label}`}
         title={on ? "Hide layer" : "Show layer"}
@@ -303,11 +264,6 @@ function LayerToggle({
       >
         <Switch on={on} accent={layer.accent} />
       </button>
-      <AnimatePresence>
-        {infoOpen && (
-          <LayerInfoPopover layer={layer.id} onClose={onCloseInfo} />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

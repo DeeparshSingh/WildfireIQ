@@ -318,12 +318,127 @@ shown separately in the cell detail panel.
 
 ---
 
-## Phase 4 · Air Quality Monitor (coming next)
+## Phase 4 · Air Quality Monitor
 
-Will include the AQHI dial, 48-hour PM2.5 forecast with q10/q50/q90
-quantile bands, smoke event calendar, health guidance. The forecaster
-needs hourly historical PM2.5 from the BC Air Data Archive — not yet
-ingested. Logic for the forecaster will land here when built.
+A dedicated `/air-quality` route plus the proposal's second ML model:
+a 48-hour PM2.5 forecaster with quantile uncertainty bands.
+
+### 4.1 · AQ archive ingest (Open-Meteo CAMS)
+
+**Source**: `air-quality-api.open-meteo.com/v1/air-quality` — hourly
+pollutant concentrations from CAMS European reanalysis + forecast.
+Past_days=92 + forecast_days=5 covers training and prediction in one call.
+
+**Pipeline**:
+1. **Bootstrap** (`OpenMeteoAQArchiveJob`, one-shot): 92 days at Kamloops
+   centroid → 2,208 hourly rows. Pollutants: PM2.5, PM10, O3, NO2, SO2,
+   CO + European AQI. Joined with co-located weather (temp, RH, wind,
+   precip, boundary-layer height).
+2. **Recurring** (`OpenMeteoAQHourlyJob`, cron `15 * * * *`): 7 days back
+   + 5 days forecast, upserted by `time_utc` so the file always covers
+   the freshest 12-day window.
+3. Output: `data/processed/aq_hourly_kamloops.parquet`.
+
+**Why CAMS, not BC Air Data Archive**: CAMS gives hourly pollutant +
+weather in one API call, free, no signup. The BC Archive would give longer
+history but requires FTP + per-station joins. CAMS gets a working
+forecaster shipping today; the BC Archive can extend history later.
+
+### 4.2 · 48-hour PM2.5 forecaster (`aq_forecaster_v1`)
+
+**Model**: 21 LightGBM quantile regressors — 7 horizons × 3 quantiles.
+- Horizons: +1, +3, +6, +12, +24, +36, +48 hours
+- Quantiles: 0.10, 0.50, 0.90
+
+**Why per-horizon, not recurrent**: avoids error compounding, trains in
+seconds. Uncertainty widens naturally with horizon. **Why quantile, not
+point**: smoke events are bimodal (mostly clean / occasionally very bad);
+a point forecast hides the risk. The chart shows the q10-q90 band as a
+soft uncertainty halo around the q50 median.
+
+**Features per row (21)**:
+- PM2.5 current + 5 lags (h-1, h-3, h-6, h-12, h-24) + 6h-mean + 24h-mean
+- Co-pollutants: PM10, O3, NO2
+- Co-located weather: temp_c, rh_pct, wind_kmh, wind_dir, precip_mm,
+  boundary_layer_m
+- Calendar: hour_sin, hour_cos, dow_sin, dow_cos
+
+**Target**: PM2.5 (µg/m³) at the chosen horizon.
+
+**Splits**: 80% chronological train (1,766 rows), 20% holdout test.
+
+**Test MAE q50 vs persistence baseline**:
+
+| Horizon | Our model | Persistence | Δ |
+|---|---|---|---|
+| +1 h | 0.67 | 0.66 | tie |
+| +3 h | 1.63 | 1.70 | ↓0.07 |
+| +6 h | **2.27** | 2.85 | **↓0.58** |
+| +12 h | **3.20** | 4.06 | **↓0.86** |
+| +24 h | 3.82 | 3.63 | +0.19 |
+| +36 h | **3.90** | 4.19 | ↓0.29 |
+| +48 h | **3.32** | 3.92 | **↓0.60** |
+
+Genuinely beats persistence at 6, 12, 36, 48 h. Persistence is hard to
+beat at +1 h (yesterday's value is right most of the time) — that's
+expected and well-known.
+
+**PM2.5 → AQHI conversion**: standard Health Canada component formula
+`AQHI ≈ (1000/10.4) × (exp(0.000487 × PM2.5) − 1)`. This is the PM2.5-only
+approximation; real AQHI also uses NO2 + O3, but in wildfire smoke
+contexts PM2.5 dominates by an order of magnitude.
+
+**Pipeline files**:
+- `wildfireiq_api/ml/train_aq.py` — training script
+- `wildfireiq_api/ml/aq_infer.py` — runtime inference + calendar aggregation
+- `data/models/aq_forecaster_v1/h{1,3,6,12,24,36,48}/q{10,50,90}.txt` — boosters
+- `data/models/aq_forecaster_v1/metrics.json` — per-horizon MAE + pinball
+
+### 4.3 · `/air-quality` dashboard route
+
+**Components** (all under `apps/web/src/features/air-quality/`):
+
+1. **`AqhiDial`** — 320 px bespoke SVG arc dial. 270° sweep. Filled arc
+   animates 0 → current AQHI (path-length tween, 1.4 s). Centre shows
+   giant integer AQHI + band label. Glows when AQHI ≥ 7.
+2. **`ForecastChart`** — Visx area + line chart, 760 × 280:
+   - q10-q90 band: cyan-glow fill
+   - q50 median: cyan-glow line
+   - Trailing 12 observed h: white line + AQHI-coloured dots
+   - Dashed ember "now" line at issue time
+3. **`PollutantBars`** — 6 horizontal bars (PM2.5/PM10/O3/NO2/SO2/CO)
+   normalised to CAAQS 24-hour standards. Glow when ≥ 66% threshold.
+4. **`SmokeCalendar`** — GitHub-style heatmap of daily *max* AQHI for the
+   last 90 days. Hover shows date + max PM2.5 + max AQHI.
+5. **`HealthGuidance`** — Health Canada AQHI bands with three audience
+   tabs (General / At-risk / Outdoor workers). Active band glows. Links
+   to BCCDC + Interior Health references.
+
+**Refresh cadences**:
+| Source | Frontend re-fetch |
+|---|---|
+| AQHI stations | 60 s |
+| Forecast | 10 min |
+| Calendar | 60 min |
+| Health guidance | 24 h (static config) |
+
+**Endpoints**:
+- `GET /api/aq/current` — current AQHI stations + WAQI pollutant breakdown
+- `GET /api/aq/forecast` — 48-h quantile forecast + last 12 observed hours
+- `GET /api/aq/calendar?days=90` — per-day max-PM2.5 / max-AQHI series
+- `GET /api/aq/health-guidance` — static Health Canada bands
+
+**Attribution**: Open-Meteo CAMS (PM2.5 archive) · ECCC GeoMet (AQHI) ·
+WAQI/AQICN (pollutant split) · Health Canada (AQHI bands).
+
+**Limitations**:
+- Training window is 92 days. The forecaster generalises well within
+  the seasonal regime it was trained on; significant regime shifts
+  (e.g., first major smoke event of summer) may degrade accuracy until
+  fresh data is ingested.
+- PM2.5-only AQHI approximation — see above.
+- Forecast is for Kamloops centroid only. Multi-point AQ forecasting
+  (per neighbourhood) deferred to Phase 5+.
 
 ---
 
@@ -364,6 +479,7 @@ Every layer renders attribution in the FeatureInfoPanel footer:
 | AQ realtime | ECCC GeoMet · AQHI |
 | AQ pollutants | WAQI / AQICN |
 | AI Risk Grid | LightGBM, trained on BCWS 1999-2021 + ERA5; validated 2022+2023 |
+| AQ Forecaster | LightGBM quantile, trained on Open-Meteo CAMS 92 days; 7 horizons × q10/q50/q90 |
 
 ---
 
@@ -376,7 +492,10 @@ Every layer renders attribution in the FeatureInfoPanel footer:
 | Evac | 5 min ingest | 60 s frontend |
 | FWI | daily ingest | 10 min frontend |
 | Smoke Forecast | 6 h ingest | 30 min frontend |
-| AQ realtime | hourly ingest | — (Phase 4) |
+| AQ realtime | hourly ingest | 60 s frontend |
+| AQ archive (CAMS) | hourly + 92d bootstrap | — |
+| AQ forecaster | per-request (cached LightGBM) | 10 min frontend |
+| Smoke calendar | derived from CAMS | 60 min frontend |
 | AI Risk Grid | daily inference | 30 min frontend |
 
 ---

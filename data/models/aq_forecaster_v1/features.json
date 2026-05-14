@@ -1,0 +1,23 @@
+[
+  "pm2_5",
+  "pm2_5_lag1",
+  "pm2_5_lag3",
+  "pm2_5_lag6",
+  "pm2_5_lag12",
+  "pm2_5_lag24",
+  "pm2_5_mean6",
+  "pm2_5_mean24",
+  "pm10",
+  "o3",
+  "no2",
+  "temp_c",
+  "rh_pct",
+  "wind_kmh",
+  "wind_dir",
+  "precip_mm",
+  "boundary_layer_m",
+  "hour_sin",
+  "hour_cos",
+  "dow_sin",
+  "dow_cos"
+]

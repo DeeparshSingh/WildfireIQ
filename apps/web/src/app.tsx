@@ -4,7 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./shell/AppShell";
 import { Splash } from "./shell/Splash";
 import { GlobeView } from "./features/globe/GlobeView";
-import { AirQualityPlaceholder } from "./features/air-quality/AirQualityPlaceholder";
+import { AirQualityRoute } from "./features/air-quality/AirQualityRoute";
 import { PreparednessPlaceholder } from "./features/preparedness/PreparednessPlaceholder";
 import { ClimatePlaceholder } from "./features/climate/ClimatePlaceholder";
 import { AboutView } from "./features/about/AboutView";
@@ -25,7 +25,7 @@ export function App() {
       <AppShell>
         <Routes>
           <Route path="/" element={<GlobeView />} />
-          <Route path="/air-quality" element={<AirQualityPlaceholder />} />
+          <Route path="/air-quality" element={<AirQualityRoute />} />
           <Route path="/preparedness" element={<PreparednessPlaceholder />} />
           <Route path="/climate" element={<ClimatePlaceholder />} />
           <Route path="/about" element={<AboutView />} />
