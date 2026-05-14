@@ -55,6 +55,37 @@
 | `pnpm exec tsc -b --noEmit` | ✅ clean |
 | All 5 dashboard components render | ✅ |
 
+## Phase 4 follow-ups (same week, after first round of UI feedback)
+
+Four gaps surfaced in user testing — all fixed:
+
+1. **Smoke timestep parsing** — `firework_smoke` was keeping only the endpoints
+   of ECCC's ISO-8601 `start/end/period` interval, yielding 2 timesteps. Added
+   `_parse_iso8601_duration` + interval expansion. **2 → 73 hourly timesteps.**
+2. **`hoursFromNow` label** in the scrubber collapsed all past times to "now".
+   Now distinguishes "12 h ago", "2 d ago", "+6 h", "+1 d".
+3. **"How this layer works" banner** ate too much modal height — only 2 list
+   rows visible. Made it a collapsible header (one-line summary by default;
+   click ▾ to expand). List rows now get the modal's full height.
+4. **Very High Risk badge** rendered "11–11+" with a bad line wrap. Now
+   collapses to "11+" when `aqhi_max===999` and uses `whiteSpace: nowrap`.
+
+## Phase 4 deliverables that were originally deferred — now shipped
+
+5. **AQHI Web Notifications** (`NotifyMe`): threshold slider (4-10), browser
+   permission gate, 60-min cooldown. State entirely in `localStorage`. Zero
+   backend writes. Zero PII.
+6. **AQHI Stations minimap** (`StationsMap`): 300×300 schematic SVG of the 12
+   nearest AQHI stations to Kamloops, distance-projected via local
+   equirectangular math. Markers sized by AQHI value, coloured by band.
+   Concentric range rings.
+7. **Smoke calendar extended 90 → 365 days** to match the Phase 4 plan.
+
+Phase 4 is now feature-complete per the implementation plan.
+
 ## What's next — Phase 5
 
-Community Preparedness Hub: neighbourhood selector, FireSmart checklist, evacuation status widget, gamified progress tracking. All local-only (no PII, no backend writes). Existing `/api/evac/check` already powers point-in-polygon lookups.
+Community Preparedness Hub: neighbourhood selector, FireSmart checklist,
+evacuation status widget, gamified progress tracking. All local-only (no PII,
+no backend writes). Existing `/api/evac/check` already powers point-in-polygon
+lookups.

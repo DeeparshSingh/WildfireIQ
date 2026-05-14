@@ -414,10 +414,23 @@ contexts PM2.5 dominates by an order of magnitude.
 3. **`PollutantBars`** — 6 horizontal bars (PM2.5/PM10/O3/NO2/SO2/CO)
    normalised to CAAQS 24-hour standards. Glow when ≥ 66% threshold.
 4. **`SmokeCalendar`** — GitHub-style heatmap of daily *max* AQHI for the
-   last 90 days. Hover shows date + max PM2.5 + max AQHI.
+   last 365 days. Hover shows date + max PM2.5 + max AQHI.
 5. **`HealthGuidance`** — Health Canada AQHI bands with three audience
    tabs (General / At-risk / Outdoor workers). Active band glows. Links
    to BCCDC + Interior Health references.
+6. **`StationsMap`** — schematic SVG minimap of the 12 nearest AQHI
+   stations to Kamloops, projected via local equirectangular math. Three
+   concentric range rings, markers sized by AQHI value, coloured by band.
+   Not a real basemap — a purpose-built compact panel that shows *which*
+   stations are reporting and how far away. (MapLibre-based version may
+   land in Phase 7 polish if needed.)
+7. **`NotifyMe`** — Web Notification subscription with AQHI threshold
+   slider (4-10). Subscription state lives entirely in `localStorage`;
+   when current AQHI ≥ threshold and ≥ 60 minutes since last alert, fires
+   a native browser notification. **No backend writes, no PII.**
+   Permission gated via `Notification.requestPermission()`. Notifications
+   fire only while a tab is open — acceptable for the research demo
+   (no service worker required, no FCM, no cost).
 
 **Refresh cadences**:
 | Source | Frontend re-fetch |
@@ -430,7 +443,7 @@ contexts PM2.5 dominates by an order of magnitude.
 **Endpoints**:
 - `GET /api/aq/current` — current AQHI stations + WAQI pollutant breakdown
 - `GET /api/aq/forecast` — 48-h quantile forecast + last 12 observed hours
-- `GET /api/aq/calendar?days=90` — per-day max-PM2.5 / max-AQHI series
+- `GET /api/aq/calendar?days=365` — per-day max-PM2.5 / max-AQHI series
 - `GET /api/aq/health-guidance` — static Health Canada bands
 
 **Attribution**: Open-Meteo CAMS (PM2.5 archive) · ECCC GeoMet (AQHI) ·

@@ -101,6 +101,7 @@ function ModalContent({
 }) {
   const meta = LAYER_META[layer];
   const info = LAYER_INFO[layer];
+  const [infoOpen, setInfoOpen] = useState(false);
 
   return (
     <>
@@ -159,67 +160,7 @@ function ModalContent({
         </button>
       </header>
 
-      <div
-        style={{
-          padding: "14px 24px 18px 24px",
-          borderBottom: "1px solid var(--color-stroke)",
-          background: "var(--color-bg-1)",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-data)",
-            fontSize: 9,
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color: meta.accent,
-            marginBottom: 8,
-          }}
-        >
-          How this layer works
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontFamily: "var(--font-body)",
-            fontSize: 12.5,
-            lineHeight: 1.55,
-            color: "var(--color-text-mid)",
-          }}
-        >
-          <span style={{ color: "var(--color-text-hi)" }}>{info.what}</span>{" "}
-          {info.pipeline}
-        </p>
-        {info.caveat && (
-          <p
-            style={{
-              margin: "8px 0 0 0",
-              fontFamily: "var(--font-body)",
-              fontSize: 11,
-              lineHeight: 1.5,
-              color: "var(--color-text-low)",
-              fontStyle: "italic",
-            }}
-          >
-            {info.caveat}
-          </p>
-        )}
-        <div
-          style={{
-            marginTop: 10,
-            fontFamily: "var(--font-data)",
-            fontSize: 10,
-            letterSpacing: "0.06em",
-            color: "var(--color-text-low)",
-          }}
-        >
-          <span style={{ color: "var(--color-text-low)" }}>Source: </span>
-          <span style={{ color: "var(--color-text-mid)" }}>{info.source}</span>
-          <span style={{ color: "var(--color-stroke-strong)" }}> · </span>
-          <span style={{ color: "var(--color-text-low)" }}>Refresh: </span>
-          <span style={{ color: "var(--color-text-mid)" }}>{info.refresh}</span>
-        </div>
-      </div>
+      <CollapsibleInfo info={info} meta={meta} open={infoOpen} onToggle={() => setInfoOpen((v) => !v)} />
 
       {layer === "fires" && <FiresBrowser />}
       {layer === "hotspots" && <HotspotsBrowser />}
@@ -232,6 +173,126 @@ function ModalContent({
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────
+
+function CollapsibleInfo({
+  info,
+  meta,
+  open,
+  onToggle,
+}: {
+  info: (typeof LAYER_INFO)[LayerId];
+  meta: { label: string; accent: string };
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      style={{
+        borderBottom: "1px solid var(--color-stroke)",
+        background: "var(--color-bg-1)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          width: "100%",
+          padding: "10px 24px",
+          background: "transparent",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          cursor: "pointer",
+          color: "var(--color-text-mid)",
+          textAlign: "left",
+          fontFamily: "var(--font-data)",
+          fontSize: 10,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+        }}
+      >
+        <span style={{ color: meta.accent }}>How this layer works</span>
+        <span
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            color: "var(--color-text-low)",
+            textTransform: "none",
+            letterSpacing: 0,
+            fontFamily: "var(--font-body)",
+            fontSize: 12,
+          }}
+        >
+          {info.what}
+        </span>
+        <span
+          aria-hidden
+          style={{
+            width: 18,
+            height: 18,
+            display: "grid",
+            placeItems: "center",
+            color: "var(--color-text-low)",
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform var(--dur-fast) var(--ease-out-expo)",
+            fontFamily: "var(--font-data)",
+            fontSize: 10,
+          }}
+        >
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: "0 24px 14px 24px" }}>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-body)",
+              fontSize: 12.5,
+              lineHeight: 1.55,
+              color: "var(--color-text-mid)",
+            }}
+          >
+            {info.pipeline}
+          </p>
+          {info.caveat && (
+            <p
+              style={{
+                margin: "8px 0 0 0",
+                fontFamily: "var(--font-body)",
+                fontSize: 11,
+                lineHeight: 1.5,
+                color: "var(--color-text-low)",
+                fontStyle: "italic",
+              }}
+            >
+              {info.caveat}
+            </p>
+          )}
+          <div
+            style={{
+              marginTop: 10,
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              letterSpacing: "0.06em",
+              color: "var(--color-text-low)",
+            }}
+          >
+            <span style={{ color: "var(--color-text-low)" }}>Source: </span>
+            <span style={{ color: "var(--color-text-mid)" }}>{info.source}</span>
+            <span style={{ color: "var(--color-stroke-strong)" }}> · </span>
+            <span style={{ color: "var(--color-text-low)" }}>Refresh: </span>
+            <span style={{ color: "var(--color-text-mid)" }}>{info.refresh}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function flyAndClose(lon: number, lat: number, height: number) {
   const viewer = useGlobeStore.getState().viewer;
@@ -851,9 +912,14 @@ function SmokeBrowser() {
     const d = new Date(iso).getTime();
     const now = Date.now();
     const hrs = Math.round((d - now) / 3_600_000);
-    if (hrs <= 0) return "now";
-    if (hrs === 1) return "+1 h";
-    return `+${hrs} h`;
+    if (hrs === 0) return "now";
+    if (hrs > 0) {
+      if (hrs < 24) return `+${hrs} h`;
+      return `+${Math.round(hrs / 24)} d`;
+    }
+    const past = Math.abs(hrs);
+    if (past < 24) return `${past} h ago`;
+    return `${Math.round(past / 24)} d ago`;
   };
 
   return (

@@ -7,13 +7,43 @@ GetMap URLs for the frontend. Decoding GRIB2 deferred to Phase 4.
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
 from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
+
+
+# ISO 8601 duration parsing — minimal subset covering ECCC's PT<H>H / PT<M>M / P<D>D / PT<H>H<M>M.
+_DUR_RE = re.compile(
+    r"^P(?:(?P<d>\d+)D)?(?:T(?:(?P<h>\d+)H)?(?:(?P<m>\d+)M)?(?:(?P<s>\d+)S)?)?$"
+)
+
+
+def _parse_iso(s: str) -> datetime | None:
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _parse_iso8601_duration(s: str) -> timedelta | None:
+    m = _DUR_RE.match(s.strip())
+    if not m:
+        return None
+    parts = {k: int(v) for k, v in m.groupdict(default="0").items()}
+    return timedelta(
+        days=parts["d"],
+        hours=parts["h"],
+        minutes=parts["m"],
+        seconds=parts["s"],
+    )
 
 
 CAPS_URL = (
@@ -129,15 +159,34 @@ class FireWorkSmokeForecastJob(IngestJob):
                 note="time dimension not found",
             )
 
-        # Time dimension may be comma-separated list or an interval (start/end/period).
+        # Time dimension may be comma-separated list or an interval
+        # (start/end/period). ECCC FireWork uses interval form, e.g.
+        # `2026-05-13T12:00:00Z/2026-05-16T12:00:00Z/PT3H`. We must expand
+        # it into every individual timestep so the scrubber can step through
+        # the 48-hour forecast hour-by-hour, not just jump endpoint-to-endpoint.
         timesteps: list[str] = []
         for part in time_text.split(","):
             part = part.strip()
             if not part:
                 continue
             if "/" in part:
-                # interval form: start/end/period — keep endpoints only
                 bits = [b for b in part.split("/") if b]
+                if len(bits) >= 3:
+                    start = _parse_iso(bits[0])
+                    end = _parse_iso(bits[1])
+                    step = _parse_iso8601_duration(bits[2])
+                    if start and end and step:
+                        cur = start
+                        # Safety cap so a runaway interval doesn't explode.
+                        for _ in range(256):
+                            if cur > end:
+                                break
+                            timesteps.append(
+                                cur.strftime("%Y-%m-%dT%H:%M:%SZ")
+                            )
+                            cur = cur + step
+                        continue
+                # Fallback: just keep endpoints if we can't parse period.
                 if bits:
                     timesteps.append(bits[0])
                     if len(bits) >= 2:

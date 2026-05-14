@@ -23,8 +23,10 @@ import {
 import { AqhiDial } from "./AqhiDial";
 import { ForecastChart } from "./ForecastChart";
 import { HealthGuidance } from "./HealthGuidance";
+import { NotifyMe } from "./NotifyMe";
 import { PollutantBars } from "./PollutantBars";
 import { SmokeCalendar } from "./SmokeCalendar";
+import { StationsMap } from "./StationsMap";
 
 function fmtTime(iso: string | undefined) {
   if (!iso) return "—";
@@ -41,7 +43,7 @@ function fmtTime(iso: string | undefined) {
 export function AirQualityRoute() {
   const current = useAqCurrent();
   const forecast = useAqForecast();
-  const calendar = useAqCalendar(90);
+  const calendar = useAqCalendar(365);
   const guidance = useHealthGuidance();
 
   // Headline AQHI: use the highest-priority Kamloops station from GeoMet
@@ -116,12 +118,33 @@ export function AirQualityRoute() {
           </div>
         </header>
 
-        {/* Hero: dial */}
-        <Card title="Current AQHI">
-          {current.isLoading && <Skeleton h={280} />}
-          {!current.isLoading && (
-            <AqhiDial aqhi={aqhi} lastUpdated={fmtTime(lastUpdated)} />
-          )}
+        {/* Hero: dial + stations minimap, side-by-side */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.4fr 1fr",
+            gap: 24,
+            alignItems: "stretch",
+          }}
+        >
+          <Card title="Current AQHI">
+            {current.isLoading && <Skeleton h={280} />}
+            {!current.isLoading && (
+              <AqhiDial aqhi={aqhi} lastUpdated={fmtTime(lastUpdated)} />
+            )}
+          </Card>
+          <Card title="Stations · nearest to Kamloops">
+            {current.data ? (
+              <StationsMap stations={current.data.stations} />
+            ) : (
+              <Skeleton h={300} />
+            )}
+          </Card>
+        </div>
+
+        {/* Notification subscription */}
+        <Card title="Notifications">
+          <NotifyMe currentAqhi={aqhi} />
         </Card>
 
         {/* Forecast chart */}
@@ -168,7 +191,7 @@ export function AirQualityRoute() {
             )}
           </Card>
 
-          <Card title="Smoke event calendar · 90 days">
+          <Card title="Smoke event calendar · 365 days">
             {calendar.data ? (
               <SmokeCalendar data={calendar.data} />
             ) : (
