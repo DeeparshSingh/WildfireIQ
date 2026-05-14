@@ -251,3 +251,69 @@ export function useHealthGuidance() {
     select: (env: Envelope<HealthGuidance>) => env.data,
   });
 }
+
+// ─── FireSmart (Phase 5) ──────────────────────────────────────────────
+
+export type FireSmartZone = {
+  id: "immediate" | "intermediate_a" | "intermediate_b" | "extended";
+  label: string;
+  distance: string;
+  blurb: string;
+};
+
+export type FireSmartItem = {
+  id: string;
+  zone: FireSmartZone["id"];
+  title: string;
+  detail: string;
+  season: "any" | "spring" | "summer" | "fall";
+  applies_to: string[];
+  points: number;
+};
+
+export type FireSmartChecklist = {
+  zones: FireSmartZone[];
+  items: FireSmartItem[];
+  max_points: number;
+};
+
+export function useFireSmartChecklist(dwelling: string, season: string) {
+  return useQuery({
+    queryKey: ["firesmart", "checklist", dwelling, season],
+    queryFn: () =>
+      apiGet<FireSmartChecklist>(
+        `/api/firesmart/checklist?dwelling=${encodeURIComponent(
+          dwelling,
+        )}&season=${encodeURIComponent(season)}`,
+      ),
+    staleTime: 24 * 60 * 60_000,
+    select: (env: Envelope<FireSmartChecklist>) => env.data,
+  });
+}
+
+// ─── Evac check (point-in-polygon) ────────────────────────────────────
+
+export type EvacCheckResult = {
+  status: "clear" | "alert" | "order";
+  matches: Array<{
+    event_name?: string | null;
+    status?: string | null;
+    issuing_agency?: string | null;
+    issued_utc?: string | null;
+  }>;
+  queried: { lat: number; lon: number };
+};
+
+export function useEvacCheck(lat: number | null, lon: number | null) {
+  const enabled = lat !== null && lon !== null;
+  return useQuery({
+    queryKey: ["evac", "check", lat, lon],
+    enabled,
+    queryFn: () =>
+      apiGet<EvacCheckResult>(
+        `/api/evac/check?lat=${lat}&lon=${lon}`,
+      ),
+    refetchInterval: 60_000,
+    select: (env: Envelope<EvacCheckResult>) => env.data,
+  });
+}

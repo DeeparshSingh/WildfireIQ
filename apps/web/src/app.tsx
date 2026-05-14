@@ -5,7 +5,7 @@ import { AppShell } from "./shell/AppShell";
 import { Splash } from "./shell/Splash";
 import { GlobeView } from "./features/globe/GlobeView";
 import { AirQualityRoute } from "./features/air-quality/AirQualityRoute";
-import { PreparednessPlaceholder } from "./features/preparedness/PreparednessPlaceholder";
+import { PreparednessRoute } from "./features/preparedness/PreparednessRoute";
 import { ClimatePlaceholder } from "./features/climate/ClimatePlaceholder";
 import { AboutView } from "./features/about/AboutView";
 
@@ -26,7 +26,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<GlobeView />} />
           <Route path="/air-quality" element={<AirQualityRoute />} />
-          <Route path="/preparedness" element={<PreparednessPlaceholder />} />
+          <Route path="/preparedness" element={<PreparednessRoute />} />
           <Route path="/climate" element={<ClimatePlaceholder />} />
           <Route path="/about" element={<AboutView />} />
         </Routes>

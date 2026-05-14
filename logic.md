@@ -487,12 +487,62 @@ WAQI/AQICN (pollutant split) · Health Canada (AQHI bands).
 
 ---
 
-## Phase 5 · Community Preparedness Hub (planned)
+## Phase 5 · Community Preparedness Hub ✅
 
-Local-storage only (no PII, no backend writes). Neighbourhood selector,
-FireSmart checklist composed from canonical FireSmart Canada Home
-Ignition Zone actions filtered by user's situation. Points + achievements
-gamification. Live evac status via existing `/api/evac/check`.
+Local-storage only — no accounts, no PII ever leaves the device. Lives at
+`/preparedness`.
+
+**What it shows**
+
+- Personalised **Home Ignition Zone checklist** sourced from FireSmart
+  Canada's HIZ Assessment workbook. 19 actions across four zones:
+  Immediate (0–1.5 m), Intermediate Inner (1.5–10 m), Intermediate Outer
+  (10–30 m), Extended (30–100 m). Each item is rated 1–5 points by
+  impact-per-effort.
+- Filter the list by **dwelling type** (detached / townhome / cabin /
+  mobile) and **season** so users only see actions that apply to them.
+- **Score panel** — running points total, % completion, animated
+  progress bar.
+- **Badge ladder** — Got Started → Ember-Aware → Defensible Space →
+  Halfway There → FireSmart Home. Awarded deterministically on the
+  client, kept consistent with the backend's `/api/firesmart/score`
+  oracle.
+- **Live evac check** — point-in-polygon against the BC EMCR active
+  orders/alerts feed via `/api/evac/check?lat=&lon=`. Refreshes every
+  60 s. Coloured green (clear) / amber (alert) / red (order).
+- **Location picker** — Kamloops default, browser geolocation opt-in,
+  or manual lat/lon entry.
+
+**Backend**
+
+- `GET /api/firesmart/checklist?dwelling=&season=` — returns the four
+  HIZ zones plus the filtered item set with `max_points`. Static
+  reference data; no upstream call.
+- `POST /api/firesmart/score` — stateless oracle. Body
+  `{completed_ids[], dwelling, season}` → `{points, max_points,
+  completed, total, badges[]}`. Mirrors the client-side rules so the
+  badge ladder stays consistent if we ever surface it elsewhere.
+- `GET /api/evac/check` (existing, Phase 1) — Shapely point-in-polygon
+  against the live evac feature collection.
+
+**Privacy contract**
+
+- Dwelling, season, checklist progress → `localStorage` key
+  `wfiq.firesmart.v1`. Never transmitted.
+- Coordinates are sent to `/api/evac/check` purely for the
+  point-in-polygon lookup. Not logged or stored with any identifier.
+- No tracking, no analytics, no account.
+
+**Caveats / honest framing**
+
+- The checklist is a curated subset of FireSmart Canada's full HIZ
+  workbook — comprehensive enough to be useful for a homeowner, not a
+  substitute for a paid FireSmart Home Partners assessment.
+- "Points" are an internal gamification mechanic, not an industry
+  standard. They reflect FireSmart Canada's impact-per-effort guidance
+  but the exact weights are ours.
+- Evac check is informational. Follow BC EMCR and BC Wildfire Service
+  for official direction.
 
 ---
 
