@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from sqlalchemy import text
 
+from .db import session_scope
 from .ingest.base import IngestJob, run_job
 from .ingest.registry import scheduled_jobs
 
@@ -59,6 +62,60 @@ def stop_scheduler() -> None:
         _scheduler.shutdown(wait=False)
         _scheduler = None
         log.info("scheduler.stopped")
+
+
+async def refresh_stale_jobs(max_age_minutes: int) -> None:
+    """Run every recurring job whose latest successful run is older than the
+    threshold. Called at uvicorn startup so cold-start = fresh data even when
+    APScheduler hasn't yet fired its first tick of the day.
+
+    Runs jobs concurrently to keep startup fast. Errors are logged, never
+    raised — a failed upstream shouldn't block the API from booting.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)
+    cutoff_iso = cutoff.isoformat()
+
+    to_run: list[IngestJob] = []
+    async with session_scope() as session:
+        for job in scheduled_jobs():
+            result = await session.execute(
+                text(
+                    "SELECT started_at FROM ingest_runs "
+                    "WHERE job_name = :n AND status = 'ok' "
+                    "ORDER BY id DESC LIMIT 1"
+                ),
+                {"n": job.name},
+            )
+            row = result.first()
+            last_iso = row[0] if row else None
+            if last_iso is None or last_iso < cutoff_iso:
+                to_run.append(job)
+
+    if not to_run:
+        log.info("startup_refresh.nothing_to_run")
+        return
+
+    log.info(
+        "startup_refresh.running",
+        count=len(to_run),
+        jobs=[j.name for j in to_run],
+    )
+
+    async def _safe(j: IngestJob):
+        try:
+            await run_job(j)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("startup_refresh.job_failed", job=j.name, error=str(exc))
+
+    # Cap parallelism at 5 so we don't hammer a single upstream.
+    sem = asyncio.Semaphore(5)
+
+    async def _gated(j: IngestJob):
+        async with sem:
+            await _safe(j)
+
+    await asyncio.gather(*[_gated(j) for j in to_run])
+    log.info("startup_refresh.complete")
 
 
 async def run_now(name: str) -> None:

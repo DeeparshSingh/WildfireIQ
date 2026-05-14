@@ -62,9 +62,12 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
 
-    # Toggle the APScheduler. Default OFF in dev to avoid surprise upstream
-    # calls; bootstrap.py and the admin router still work without it.
-    scheduler_enabled: bool = Field(default=False)
+    # Run APScheduler in-process so every cron cadence actually fires.
+    # Set SCHEDULER_ENABLED=false in .env to disable (e.g. for CI / tests).
+    scheduler_enabled: bool = Field(default=True)
+    # Run every recurring job once at startup if its last successful run is
+    # older than the configured threshold. Ensures cold-start = fresh data.
+    startup_refresh_minutes: int = Field(default=30)
 
     # ── Region (Thompson-Okanagan canonical bbox) ────────────────────
     bbox_west: float = -121.5

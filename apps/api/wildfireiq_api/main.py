@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -14,7 +15,7 @@ from fastapi.responses import ORJSONResponse
 from . import __version__
 from .db import init_db
 from .routers import admin, aq, climate, evac, fires, firesmart, fwi, risk, weather
-from .scheduler import start_scheduler, stop_scheduler
+from .scheduler import refresh_stale_jobs, start_scheduler, stop_scheduler
 from .settings import get_settings
 
 
@@ -36,11 +37,18 @@ async def lifespan(app: FastAPI):
     log.info("startup", version=__version__)
     await init_db()
     settings = get_settings()
+    # Refresh anything stale before serving — fires the cron jobs that would
+    # otherwise wait for their next scheduled tick. Backgrounded so the
+    # event loop is free to accept the first request immediately.
+    refresh_task = asyncio.create_task(
+        refresh_stale_jobs(settings.startup_refresh_minutes)
+    )
     if settings.scheduler_enabled:
         start_scheduler()
     else:
         log.info("scheduler.disabled_via_settings")
     yield
+    refresh_task.cancel()
     stop_scheduler()
     log.info("shutdown")
 

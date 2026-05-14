@@ -528,21 +528,74 @@ Every layer renders attribution in the FeatureInfoPanel footer:
 
 ---
 
-## Cross-cutting · Refresh cadences
+## Cross-cutting · Data freshness audit
 
-| Layer | Cadence | Hook polling |
+Every layer's data refresh path. **The APScheduler is enabled by default**
+(set `SCHEDULER_ENABLED=false` in `.env` to disable). On every uvicorn
+startup, `refresh_stale_jobs()` fires every recurring job whose last
+successful run is older than 30 minutes — so cold-start = fresh data
+without waiting for the next cron tick.
+
+### Live (refresh continuously while the API is running)
+
+| Layer / endpoint | Upstream source | Ingest cadence | Frontend polling | Notes |
+|---|---|---|---|---|
+| Active Fires | DataBC WFS `PROT_CURRENT_FIRE_POLYS_SP` + `_PNTS_SP` | every 15 min | every 60 s | BC-wide bbox |
+| FIRMS Hotspots | NASA FIRMS USFS NRT CSV (VIIRS NOAA-20, SNPP, MODIS) | every 30 min | every 5 min | last 72 h window |
+| Evacuation | BC Emergency Mgmt ArcGIS FeatureServer | every 5 min | every 60 s | order/alert/rescind |
+| FWI Stations | Open-Meteo daily weather × 18 BC stations → Van Wagner port | every 30 min | every 10 min | CWFIS GeoServer is down; we run the math ourselves |
+| Smoke Forecast | ECCC GeoMet WMS `RAQDPS.Sfc_PM2.5-WildfireSmokePlume` | every 6 h | every 30 min | 73 hourly timesteps |
+| Smoke PM2.5 readout | Open-Meteo CAMS PM2.5 hourly forecast (joined into smoke timesteps) | every 60 min | piggybacks smoke fetch | µg/m³ value per timestep |
+| AQHI (current) | ECCC GeoMet `aqhi-observations-realtime` | every hour | every 60 s | 134-146 stations near Kamloops |
+| AQ pollutant breakdown | WAQI / AQICN `feed/geo:50.67;-120.33` | every hour | every 60 s | PM2.5/PM10/O3/NO2/SO2/CO split |
+| Open-Meteo weather (current) | Open-Meteo GEM-HRDPS continental | every hour | every 60 s | for Kamloops centroid |
+| Open-Meteo AQ archive | Open-Meteo CAMS (92-day past + 5-day forecast) | every hour, rolling | — (backend reads parquet) | feeds AQ forecaster + smoke joins |
+
+### Inferred at request time
+
+| Endpoint | What it does | Recompute trigger | Frontend polling |
+|---|---|---|---|
+| `/api/risk/grid` | LightGBM wildfire risk classifier → 185 H3 r=5 cells | each request (cached via `lru_cache` for model + density file; features re-derived per call from `weather_kamloops_archive_daily.parquet`) | every 30 min |
+| `/api/aq/forecast` | LightGBM quantile forecaster → 7 horizons × q10/q50/q90 | each request (model cached; features built from latest `aq_hourly_kamloops.parquet` row) | every 10 min |
+| `/api/aq/calendar` | Daily PM2.5/AQHI aggregation | each request (just a groupby over the archive parquet) | every 60 min |
+| `/api/evac/check?lat=&lon=` | Point-in-polygon over `evac_active.parquet` | each request | — (on-demand) |
+
+### One-shot bootstrap (historical, run once + refreshed yearly)
+
+| Job | Rows | Notes |
 |---|---|---|
-| Active Fires | 15 min ingest | 60 s frontend |
-| Hotspots | 30 min ingest | 5 min frontend |
-| Evac | 5 min ingest | 60 s frontend |
-| FWI | daily ingest | 10 min frontend |
-| Smoke Forecast | 6 h ingest | 30 min frontend |
-| AQ realtime | hourly ingest | 60 s frontend |
-| AQ archive (CAMS) | hourly + 92d bootstrap | — |
-| AQ forecaster | per-request (cached LightGBM) | 10 min frontend |
-| Smoke calendar | derived from CAMS | 60 min frontend |
-| AI Risk Grid | daily inference | 30 min frontend |
+| `databc_fires_historical` | 15,996 incidents (1999-2025) | Spine of the wildfire risk model. Re-run annually. |
+| `open_meteo_archive_kamloops` | 9,992 daily rows (ERA5 1999-today) | Re-run nightly via scheduler tick to extend the trail. |
+| `eccc_climate_kamloops` | ECCC bulk CSVs | Same as above. |
+| `open_meteo_aq_archive` | 2,208 hourly rows (CAMS 92-day) | Re-run hourly via the recurring CAMS job. |
+| `climatedata_projections` | 728 synthetic CMIP6 rows | Static; Phase 6 replaces with real CMIP6. |
+
+### Static (never refresh)
+
+| Resource | What it is |
+|---|---|
+| `health_guidance.json` | Health Canada AQHI bands × 3 audiences |
+| `thompson_okanagan.geojson` | The canonical regional bbox |
+| Trained LightGBM models (risk + AQ) | Frozen artifacts in `data/models/`; retrained only when we explicitly re-run the train scripts |
+| Cesium Ion terrain + Bing aerial imagery | Streamed at view time from Ion CDN |
+
+### How the user sees the freshness
+
+- Every LayerDetailModal banner shows `Refresh: <cadence>`.
+- The CoordinateReadout has a live cyan-pulsing dot to signal the globe is live.
+- The bottom of the AQ route shows "Updated {HH:MM} YKA".
+- Each detail panel (fire, hotspot, evac, risk) shows the `fetched_at_utc`
+  timestamp where the upstream provided it.
+
+### Failure modes & resilience
+
+- **CWFIS GeoServer 502** → `derived_fwi_stations` already runs in parallel
+  and writes to the same parquet; the layer never goes empty.
+- **BCEM URL shuffled between fire seasons** → job has a backup endpoint list.
+- **FIRMS rate limit** → tenacity retries 3 times with exponential backoff.
+- **Any upstream timeout** → job logs the failure to `ingest_runs` table; the
+  scheduler keeps trying on the next tick; cached parquet is served meanwhile.
 
 ---
 
-*Updated through Phase 3. Append new sections as later phases ship.*
+*Updated through Phase 4 + auto-refresh wiring. Append new sections as later phases ship.*
