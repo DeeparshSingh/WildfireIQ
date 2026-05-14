@@ -922,6 +922,18 @@ function SmokeBrowser() {
     return `${Math.round(past / 24)} d ago`;
   };
 
+  // Colour-coded PM2.5 badge tracking US-EPA AQI breakpoints.
+  const pm25Color = (v: number | null | undefined) => {
+    if (v == null) return "var(--color-stroke)";
+    if (v < 12) return "var(--aq-3)";
+    if (v < 35) return "var(--aq-5)";
+    if (v < 55) return "var(--aq-7)";
+    if (v < 150) return "var(--aq-9)";
+    return "var(--aq-plus)";
+  };
+  const pm25Label = (v: number | null | undefined) =>
+    v == null ? "no data" : `${v.toFixed(1)} µg/m³`;
+
   return (
     <>
       <Toolbar>
@@ -968,8 +980,40 @@ function SmokeBrowser() {
           <span style={{ color: "var(--color-cyan-glow)", whiteSpace: "nowrap" }}>
             {hoursFromNow(current.valid_time_utc)}
           </span>
+          <span
+            className="tabular"
+            style={{
+              padding: "3px 10px",
+              borderRadius: "var(--radius-pill)",
+              border: `1px solid ${pm25Color(current.pm25_at_kamloops)}`,
+              color: pm25Color(current.pm25_at_kamloops),
+              background: `color-mix(in oklab, ${pm25Color(current.pm25_at_kamloops)} 14%, transparent)`,
+              fontSize: 10,
+              letterSpacing: "0.06em",
+              whiteSpace: "nowrap",
+            }}
+            title="Open-Meteo CAMS PM2.5 forecast at Kamloops centroid for this hour"
+          >
+            PM2.5 {pm25Label(current.pm25_at_kamloops)}
+          </span>
         </div>
       </Toolbar>
+      <div
+        style={{
+          padding: "8px 24px",
+          fontFamily: "var(--font-body)",
+          fontSize: 11.5,
+          color: "var(--color-text-low)",
+          background: "var(--color-bg-2)",
+          borderBottom: "1px solid var(--color-stroke)",
+          lineHeight: 1.5,
+        }}
+      >
+        The WMS overlay is mostly transparent when PM2.5 is low — that's the
+        truth, not a missing image. The colour-coded PM2.5 badge on each
+        timestep below shows the Open-Meteo CAMS forecast value at Kamloops
+        so you can see what the ECCC model is actually predicting.
+      </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         {data.map((step, i) => {
           const active = i === safeIndex;
@@ -1023,24 +1067,43 @@ function SmokeBrowser() {
                   {step.layer_name}
                 </div>
               </div>
-              <span
-                className="tabular"
+              <div
                 style={{
-                  fontSize: 11,
-                  padding: "3px 10px",
-                  borderRadius: "var(--radius-pill)",
-                  border: `1px solid ${active ? "var(--color-cyan-glow)" : "var(--color-stroke)"}`,
-                  color: active ? "var(--color-cyan-glow)" : "var(--color-text-mid)",
-                  background: active
-                    ? "color-mix(in oklab, var(--color-cyan-glow) 12%, transparent)"
-                    : "transparent",
-                  fontFamily: "var(--font-data)",
-                  letterSpacing: "0.06em",
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  alignItems: "flex-end",
                 }}
               >
-                {hoursFromNow(step.valid_time_utc)}
-              </span>
+                <span
+                  className="tabular"
+                  style={{
+                    fontSize: 11,
+                    padding: "3px 10px",
+                    borderRadius: "var(--radius-pill)",
+                    border: `1px solid ${pm25Color(step.pm25_at_kamloops)}`,
+                    color: pm25Color(step.pm25_at_kamloops),
+                    background: `color-mix(in oklab, ${pm25Color(step.pm25_at_kamloops)} 14%, transparent)`,
+                    fontFamily: "var(--font-data)",
+                    letterSpacing: "0.06em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {pm25Label(step.pm25_at_kamloops)}
+                </span>
+                <span
+                  className="tabular"
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.18em",
+                    color: active ? "var(--color-cyan-glow)" : "var(--color-text-low)",
+                    fontFamily: "var(--font-data)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {hoursFromNow(step.valid_time_utc)}
+                </span>
+              </div>
             </button>
           );
         })}

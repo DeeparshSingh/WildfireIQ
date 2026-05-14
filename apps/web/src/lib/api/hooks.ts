@@ -71,6 +71,8 @@ export type SmokeTimestep = {
   valid_time_utc: string;
   fetch_url: string;
   fetched_at_utc: string;
+  /** PM2.5 µg/m³ at Kamloops at this forecast hour (joined from Open-Meteo CAMS). */
+  pm25_at_kamloops?: number | null;
 };
 
 export type RiskCell = {

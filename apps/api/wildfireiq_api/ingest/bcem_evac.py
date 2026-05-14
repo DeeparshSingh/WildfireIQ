@@ -9,7 +9,12 @@ import pandas as pd
 from shapely.geometry import box, shape
 from shapely.geometry.base import BaseGeometry
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import (
+    BC_BBOX_EAST as BBOX_EAST,
+    BC_BBOX_NORTH as BBOX_NORTH,
+    BC_BBOX_SOUTH as BBOX_SOUTH,
+    BC_BBOX_WEST as BBOX_WEST,
+)
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
 
@@ -97,9 +102,23 @@ class BCEMEvacuationJob(IngestJob):
                 continue
 
             props = f.get("properties") or {}
-            status = _normalize_status(kvs(props, "EVENT_TYPE", "STATUS", "EventType", "Status"))
+            # ORDER_ALERT_STATUS is the lifecycle status (Order/Alert/Rescind).
+            # EVENT_TYPE is the underlying event nature (Fire/Flood/Landslide).
+            # These are SEPARATE fields — the prior parser confused them.
+            status = _normalize_status(
+                kvs(props, "ORDER_ALERT_STATUS", "STATUS", "OrderAlertStatus", "Status")
+            )
+            event_type = kvs(props, "EVENT_TYPE", "EventType")
+            order_alert_name = kvs(props, "ORDER_ALERT_NAME", "OrderAlertName")
             issued_raw = kvs(
-                props, "ISSUED_DATE", "IssuedDate", "DATE_ISSUED", "EVENT_DATE", "EventDate"
+                props,
+                "EVENT_START_DATE",
+                "DATE_MODIFIED",
+                "ISSUED_DATE",
+                "IssuedDate",
+                "DATE_ISSUED",
+                "EVENT_DATE",
+                "EventDate",
             )
             # Some ArcGIS feeds give millis since epoch.
             issued_iso: str | None = None
@@ -132,6 +151,8 @@ class BCEMEvacuationJob(IngestJob):
                 {
                     "event_id": event_id,
                     "event_name": kvs(props, "EVENT_NAME", "NAME", "Name", "EventName"),
+                    "order_alert_name": order_alert_name,
+                    "event_type": event_type,
                     "status": status,
                     "issuing_agency": kvs(
                         props, "ISSUING_AGENCY", "IssuingAgency", "AGENCY", "Agency"
@@ -148,6 +169,8 @@ class BCEMEvacuationJob(IngestJob):
             columns=[
                 "event_id",
                 "event_name",
+                "order_alert_name",
+                "event_type",
                 "status",
                 "issuing_agency",
                 "issued_utc",

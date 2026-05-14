@@ -123,7 +123,26 @@ def aq_pollutants_latest() -> dict[str, Any] | None:
 
 
 def smoke_forecast_metadata() -> list[dict[str, Any]]:
-    return _records(_read_parquet_safe(PROCESSED_ROOT / "smoke_forecast_metadata.parquet"))
+    """Return smoke timesteps joined with our Open-Meteo CAMS PM2.5 forecast at
+    Kamloops centroid, so the modal scrubber can show the actual µg/m³ value
+    alongside each forecast hour. Without this, the WMS overlay is invisible
+    when PM2.5 is low — a transparent PNG looks like "no data" to the user.
+    """
+    smoke = _read_parquet_safe(PROCESSED_ROOT / "smoke_forecast_metadata.parquet")
+    if smoke is None or smoke.empty:
+        return []
+    aq = _read_parquet_safe(PROCESSED_ROOT / "aq_hourly_kamloops.parquet")
+    if aq is not None and not aq.empty and "time_utc" in aq.columns:
+        # Round smoke timestep to the hour and join to AQ's hourly grid.
+        smoke = smoke.copy()
+        smoke["_join"] = pd.to_datetime(smoke["valid_time_utc"], utc=True).dt.floor("h")
+        aq = aq[["time_utc", "pm2_5"]].copy()
+        aq["_join"] = pd.to_datetime(aq["time_utc"], utc=True).dt.floor("h")
+        merged = smoke.merge(aq[["_join", "pm2_5"]], on="_join", how="left")
+        merged = merged.rename(columns={"pm2_5": "pm25_at_kamloops"})
+        merged = merged.drop(columns=["_join"], errors="ignore")
+        return _records(merged)
+    return _records(smoke)
 
 
 def evac_active() -> list[dict[str, Any]]:

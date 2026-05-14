@@ -103,10 +103,15 @@ Evacuation Order, dashed amber for Alert, faint sage for Rescind.
 
 **Pipeline**:
 1. Job runs every 5 minutes during fire season, hourly off-season.
-2. GeoJSON features filtered to bbox intersection (Shapely).
-3. Saved to `data/processed/evac_active.parquet` (overwrite — current
+2. GeoJSON features filtered to BC-wide bbox intersection (Shapely).
+3. Each feature's `ORDER_ALERT_STATUS` (Order / Alert / Rescind) is parsed
+   as the lifecycle `status`. The underlying `EVENT_TYPE` (Fire / Flood /
+   Landslide / Atmospheric River) is stored separately. *Previously the
+   parser conflated these two fields — fixed when audit found "Flood" /
+   "Landslide" landing in the status column.*
+4. Saved to `data/processed/evac_active.parquet` (overwrite — current
    snapshot only).
-4. Backend `/api/evac/check?lat=&lon=` does point-in-polygon (Shapely) so
+5. Backend `/api/evac/check?lat=&lon=` does point-in-polygon (Shapely) so
    the Phase 5 preparedness hub can answer "is my address in an evac zone?"
 
 **Visual encoding logic**:
@@ -136,10 +141,20 @@ BUI, FWI, DSR).
 3. Append-only history with dedupe on (station_id, observation_date).
 
 **Current status**: CWFIS GeoServer has been returning HTTP 502 throughout
-the build window — their server is genuinely down. The job retries
-automatically and will populate when they recover. **Phase 3 made this
-non-blocking** by computing FWI ourselves from Open-Meteo weather data
-(see § 3.1).
+the build window — their server is genuinely down.
+**`derived_fwi_stations` job replaces it entirely**: every 30 minutes it
+pulls the last 30 days of daily weather (Open-Meteo) for ~18 representative
+BC stations (Kamloops, Vernon, Kelowna, Penticton, Salmon Arm, Merritt,
+Logan Lake, Cache Creek, 100 Mile House, Williams Lake, Lillooet, Princeton,
+Cranbrook, Castlegar, Revelstoke, Prince George, Fort St John, Smithers),
+runs the Van Wagner FWI port on each station's chronological series (so
+FFMC/DMC/DC carryover codes are valid), and writes the latest day's row
+per station to `fwi_stations_today.parquet` using the same schema CWFIS
+would have produced. The frontend `/api/fwi/today` route, the Cesium
+`FWIStationsLayer`, and the modal `FwiBrowser` all consume this file
+unchanged. The original CWFIS job stays scheduled; whenever NRCan recovers
+its server, the canonical values overwrite the derived ones for shared
+stations.
 
 ---
 
@@ -180,12 +195,24 @@ our job auto-discovers from GetCapabilities).
    `SingleTileImageryProvider` on the Cesium globe (alpha 0.55).
 
 **Time scrubber** (built in Phase 4): the Smoke Forecast LayerDetailModal
-exposes a range slider + prev/next chips + a list view of every available
-forecast timestep (typically 13 timesteps over 39 hours). Clicking a
+exposes a range slider + prev/next chips + a scrollable list of every
+forecast timestep (~73 hourly steps over 3 days after we fixed the ISO-8601
+interval parser to expand `start/end/period` properly). Clicking a
 timestep or moving the slider updates `useSmokeStore.timestepIndex`, which
 the Cesium `SmokeLayer` reads and reactively swaps the WMS PNG overlay.
-Opening the scrubber modal auto-enables the smoke layer so changes are
-visible immediately.
+Opening the scrubber modal auto-enables the smoke layer.
+
+**PM2.5 readout per timestep**: ECCC's RAQDPS-FW WMS returns mostly-
+transparent pixels when PM2.5 is low — which makes the layer look "broken"
+to a user who can't see the value being rendered. To fix this without
+needing a WMS GetFeatureInfo call (slow + flaky), the
+`smoke_forecast_metadata` endpoint joins each smoke timestep to our
+existing Open-Meteo CAMS hourly forecast (Phase 4) by floor-to-hour on
+`time_utc`. Every timestep now carries `pm25_at_kamloops` (µg/m³), which
+the modal displays as a colour-graded badge per row (sage < 12 →
+amber 12-35 → orange 35-55 → red 55-150 → magenta > 150, matching US-EPA
+AQI breakpoints). This makes the layer self-evidently useful even on
+"clean air" days.
 
 ---
 

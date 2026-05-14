@@ -42,17 +42,17 @@ export const LAYER_INFO: Record<LayerId, LayerInfo> = {
     refresh: "ingest every 5 min · frontend re-fetch every 60 s",
   },
   fwi: {
-    what: "Stations across BC reporting today's Canadian Fire Weather Index codes (FFMC, DMC, DC, ISI, BUI, FWI, DSR). Circle colour reflects the FWI value using standard CFFDRS thresholds.",
+    what: "Stations across BC reporting today's Canadian Fire Weather Index codes (FFMC, DMC, DC, ISI, BUI, FWI, DSR). Circle colour follows standard CFFDRS thresholds.",
     pipeline:
-      "We hit Natural Resources Canada's CWFIS GeoServer daily at 18:00 UTC for the live station table. CWFIS has been HTTP-502'd for some time — when it's down, this layer is empty, but Phase 3 also computes FWI ourselves from Open-Meteo weather, so the AI Risk Grid still works.",
-    source: "Natural Resources Canada · CWFIS",
-    refresh: "ingest daily 18 UTC · frontend re-fetch every 10 min",
+      "Primary source is NRCan's CWFIS GeoServer, but it has been HTTP-502 throughout the build. Our `derived_fwi_stations` job replaces it: every 30 min it pulls 30 days of daily weather from Open-Meteo for ~18 representative BC stations and runs the Van Wagner FWI port — same equations CFFDRS uses — to produce all 7 codes per station. When CWFIS recovers, both jobs run and the canonical values overwrite the derived ones.",
+    source: "Van Wagner derivation from Open-Meteo · preferring NRCan CWFIS when reachable",
+    refresh: "derived job every 30 min · frontend re-fetch every 10 min",
   },
   smoke: {
-    what: "ECCC's official wildfire smoke forecast — surface-level PM2.5 concentration as a translucent overlay on the globe. Open this modal to step through each forecast hour with the time scrubber.",
+    what: "ECCC's official wildfire smoke forecast — surface-level PM2.5 concentration as a translucent overlay on the globe. Open this modal to step through each forecast hour and see the PM2.5 µg/m³ value per timestep.",
     pipeline:
-      "Every 6 hours we read the MSC GeoMet WMS GetCapabilities document, find the latest RAQDPS-FW Wildfire Smoke run, and catalogue the available timesteps. The frontend renders the selected timestep as a single tile imagery layer over the bbox at 55% alpha. The scrubber in this modal swaps the imagery to whichever forecast hour you pick.",
-    source: "ECCC · RAQDPS-FW via MSC GeoMet WMS",
+      "Every 6 hours we read the MSC GeoMet WMS GetCapabilities document, find the latest RAQDPS-FW Wildfire Smoke run, and expand its ISO-8601 time interval into ~73 hourly timesteps. Each timestep is joined to the matching hour of our Open-Meteo CAMS PM2.5 forecast at Kamloops, so the modal shows the actual concentration value — important because the WMS overlay is transparent when PM2.5 is low (which is the truth, not a bug).",
+    source: "ECCC · RAQDPS-FW via MSC GeoMet WMS · joined with Open-Meteo CAMS for the µg/m³ readout",
     refresh: "ingest every 6 h · frontend re-fetch every 30 min",
   },
   risk: {
