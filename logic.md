@@ -489,58 +489,129 @@ WAQI/AQICN (pollutant split) · Health Canada (AQHI bands).
 
 ## Phase 5 · Community Preparedness Hub ✅
 
-Local-storage only — no accounts, no PII ever leaves the device. Lives at
-`/preparedness`.
+Local-storage + IndexedDB only — no accounts, no PII ever leaves the device.
+Lives at `/preparedness`.
 
-**What it shows**
+**Onboarding (3-step inline wizard)**
 
-- Personalised **Home Ignition Zone checklist** sourced from FireSmart
-  Canada's HIZ Assessment workbook. 19 actions across four zones:
-  Immediate (0–1.5 m), Intermediate Inner (1.5–10 m), Intermediate Outer
-  (10–30 m), Extended (30–100 m). Each item is rated 1–5 points by
-  impact-per-effort.
-- Filter the list by **dwelling type** (detached / townhome / cabin /
-  mobile) and **season** so users only see actions that apply to them.
-- **Score panel** — running points total, % completion, animated
-  progress bar.
-- **Badge ladder** — Got Started → Ember-Aware → Defensible Space →
-  Halfway There → FireSmart Home. Awarded deterministically on the
-  client, kept consistent with the backend's `/api/firesmart/score`
-  oracle.
-- **Live evac check** — point-in-polygon against the BC EMCR active
-  orders/alerts feed via `/api/evac/check?lat=&lon=`. Refreshes every
-  60 s. Coloured green (clear) / amber (alert) / red (order).
-- **Location picker** — Kamloops default, browser geolocation opt-in,
-  or manual lat/lon entry.
+1. **Pick your neighbourhood** — typeahead over 14 Kamloops neighbourhoods
+   loaded from `/api/firesmart/neighbourhoods` (backed by
+   `data/geo/kamloops_neighbourhoods.geojson`). Selecting one captures the
+   centroid lat/lon that drives every downstream lookup.
+2. **Tell us your situation** — six multi-select chips (house with yard,
+   renter, pets, sensitive group, outdoor worker, mobility considerations).
+   Optional.
+3. **Notification preferences** — AQHI alert threshold slider (4–10) and
+   evac-alerts toggle. If toggled on, we request Web Notification
+   permission once.
 
-**Backend**
+Wizard answers persist to `localStorage` under `wildfireiq.profile.v1`.
 
-- `GET /api/firesmart/checklist?dwelling=&season=` — returns the four
-  HIZ zones plus the filtered item set with `max_points`. Static
-  reference data; no upstream call.
-- `POST /api/firesmart/score` — stateless oracle. Body
-  `{completed_ids[], dwelling, season}` → `{points, max_points,
-  completed, total, badges[]}`. Mirrors the client-side rules so the
-  badge ladder stays consistent if we ever surface it elsewhere.
-- `GET /api/evac/check` (existing, Phase 1) — Shapely point-in-polygon
-  against the live evac feature collection.
+**Three-column hub layout (stacks on iPad portrait)**
+
+- **Left — live situational readouts** (`LiveStatusPanel`):
+  - Evacuation status for your neighbourhood (60-s refresh)
+  - Current Kamloops AQHI from ECCC GeoMet
+  - Highest Fire Weather Index among the nearest three stations
+  - Days since last 5 mm+ rain in Kamloops
+  - Days to the historical fire-season peak — derived as the
+    area-weighted median day-of-year of 1999-2025 BC fires (currently
+    early July, computed not hardcoded).
+- **Centre — the checklist** (`Checklist`):
+  - 30 actions sourced from FireSmart Canada's Home Ignition Zone
+    workbook, hosted in `data/firesmart/firesmart_actions.json`.
+  - Grouped into 5 sections: Immediate (0–1.5 m), Intermediate Inner
+    (1.5–10 m), Intermediate Outer (10–30 m), Extended (30–100 m), and
+    Plan & Go-Bag.
+  - Filtered by **dwelling** + **situation** chips, then **re-ordered**
+    by season relevance — each action carries
+    `season_priority: {spring, summer, fall, winter}`, so spring puts
+    pruning/clearing at the top, summer surfaces go-bag readiness and
+    grass cutting, fall prioritises canopy thinning.
+  - Each row: title, estimated minutes, cost band, category,
+    expandable "why this matters" detail, points chip, photo capture
+    button.
+  - **Photos** captured via `<input capture="environment">` (native
+    iPad/iPhone camera) and stored as blobs in IndexedDB
+    (`wildfireiq.progress.v1` / `photos` store). Photos never traverse
+    the network and aren't included in shared URLs.
+- **Right — progress** (`ProgressPanel`):
+  - Score panel: points / max, % complete, animated progress bar,
+    streak counter, "N to go" ticker.
+  - All 12 achievements always visible (earned = full opacity + amber
+    accent; unearned = greyed). Catalogue served by
+    `/api/firesmart/achievements`.
+  - **Share my progress** — generates a `/preparedness/shared#<base64>`
+    URL that encodes the profile + progress in the hash and copies it
+    to the clipboard. Recipients land on `SharedView`, which decodes
+    the hash entirely client-side (no server hit, no photos).
+  - **Reset profile + progress** — wipes localStorage and IndexedDB.
+
+**Achievements (12 total)**
+
+`first_steps` · `ember_aware` · `zone_one_hero` · `defensible_space` ·
+`halfway` · `photo_documentarian` · `smoke_aware` · `streak_7` ·
+`streak_30` · `storm_ready` (Plan & Go-Bag done before July 1) ·
+`neighbour` (shared the link) · `firesmart_home`. Each fires once and
+triggers a 1.2 s canvas confetti burst (respects
+`prefers-reduced-motion`). Rules live both client-side (for instant
+reaction) and in `/api/firesmart/score` so any future surface stays
+consistent.
+
+**Streaks**
+
+`rolloverStreak()` runs once per session: if `lastVisitDay === today`
+no-op; if `=== yesterday` increment; otherwise reset to 1. Drives the
+`streak_7` and `streak_30` badges.
+
+**Web Notifications**
+
+If the user opted in during onboarding, a state-change watcher fires a
+notification when evac status transitions to Alert or Order. Rate-
+limited by `lastEvacStatus` in progress state so we don't re-notify on
+every poll.
+
+**Backend (Phase 5 endpoints)**
+
+- `GET /api/firesmart/checklist?dwelling=&season=&situation=` — the 30
+  curated actions, dwelling-gated, situation-gated, season-ordered.
+- `GET /api/firesmart/neighbourhoods` — 14 Kamloops neighbourhood
+  polygons.
+- `GET /api/firesmart/achievements` — full 12-badge catalogue.
+- `GET /api/firesmart/season-context` — `days_since_5mm_rain`,
+  `peak_month`, `peak_day`, derived from the Open-Meteo daily wx +
+  historical fire parquets at request time.
+- `POST /api/firesmart/score` — stateless oracle returning points,
+  totals, and the earned-badge list given a completed-ids array, photo
+  count, streak, and flags.
+- `GET /api/evac/check?lat=&lon=` — Phase 1 endpoint, Shapely
+  point-in-polygon over the live BC EMCR feature collection.
 
 **Privacy contract**
 
-- Dwelling, season, checklist progress → `localStorage` key
-  `wfiq.firesmart.v1`. Never transmitted.
-- Coordinates are sent to `/api/evac/check` purely for the
-  point-in-polygon lookup. Not logged or stored with any identifier.
+- `localStorage` keys: `wildfireiq.profile.v1`,
+  `wildfireiq.progress.v1`. Never transmitted.
+- IndexedDB: `wildfireiq.progress.v1` / `photos` store. Photo blobs
+  never leave the device.
+- Coordinates are sent to `/api/evac/check` purely for polygon lookup,
+  never logged with an identifier.
+- Share URL encodes only the data the user explicitly chose to share;
+  it's a hash fragment so it never reaches our server unless the
+  recipient opens the link in this app — and even then we decode it
+  client-side.
 - No tracking, no analytics, no account.
 
 **Caveats / honest framing**
 
-- The checklist is a curated subset of FireSmart Canada's full HIZ
-  workbook — comprehensive enough to be useful for a homeowner, not a
-  substitute for a paid FireSmart Home Partners assessment.
-- "Points" are an internal gamification mechanic, not an industry
-  standard. They reflect FireSmart Canada's impact-per-effort guidance
-  but the exact weights are ours.
+- The 30-action list is a curated subset of FireSmart Canada's full
+  workbook — comprehensive enough to be useful, not a substitute for a
+  paid FireSmart Home Partners assessment.
+- Neighbourhood polygons are hand-curated bounding boxes around
+  centroids derived from City of Kamloops descriptions; not
+  survey-accurate, but good enough for "am I near an evac zone?".
+- Point weights and the badge ladder are our internal heuristic — they
+  reflect FireSmart Canada's impact-per-effort guidance but aren't an
+  industry standard.
 - Evac check is informational. Follow BC EMCR and BC Wildfire Service
   for official direction.
 

@@ -254,40 +254,114 @@ export function useHealthGuidance() {
 
 // ─── FireSmart (Phase 5) ──────────────────────────────────────────────
 
-export type FireSmartZone = {
-  id: "immediate" | "intermediate_a" | "intermediate_b" | "extended";
+export type FireSmartGroupId =
+  | "immediate"
+  | "intermediate_a"
+  | "intermediate_b"
+  | "extended"
+  | "plan_gobag";
+
+export type FireSmartGroup = {
+  id: FireSmartGroupId;
   label: string;
   distance: string;
-  blurb: string;
 };
 
-export type FireSmartItem = {
+export type FireSmartAction = {
   id: string;
-  zone: FireSmartZone["id"];
+  zone: FireSmartGroupId;
   title: string;
-  detail: string;
-  season: "any" | "spring" | "summer" | "fall";
-  applies_to: string[];
+  why: string;
+  category: "structural" | "vegetation" | "preparedness" | "awareness";
+  estimated_minutes: number | null;
+  cost: "free" | "low" | "medium" | "high";
+  season_priority: Record<string, number>;
+  applies: { dwelling?: string[]; situation?: string[] };
   points: number;
 };
 
 export type FireSmartChecklist = {
-  zones: FireSmartZone[];
-  items: FireSmartItem[];
+  groups: FireSmartGroup[];
+  actions: FireSmartAction[];
   max_points: number;
+  version: string;
 };
 
-export function useFireSmartChecklist(dwelling: string, season: string) {
+export function useFireSmartChecklist(
+  dwelling: string,
+  season: string,
+  situation: string[],
+) {
+  const sitParam = situation.join(",");
   return useQuery({
-    queryKey: ["firesmart", "checklist", dwelling, season],
+    queryKey: ["firesmart", "checklist", dwelling, season, sitParam],
     queryFn: () =>
       apiGet<FireSmartChecklist>(
         `/api/firesmart/checklist?dwelling=${encodeURIComponent(
           dwelling,
-        )}&season=${encodeURIComponent(season)}`,
+        )}&season=${encodeURIComponent(season)}&situation=${encodeURIComponent(sitParam)}`,
       ),
     staleTime: 24 * 60 * 60_000,
     select: (env: Envelope<FireSmartChecklist>) => env.data,
+  });
+}
+
+export type FireSmartAchievement = {
+  id: string;
+  label: string;
+  blurb: string;
+  emoji: string;
+  rule: string;
+};
+
+export function useFireSmartAchievements() {
+  return useQuery({
+    queryKey: ["firesmart", "achievements"],
+    queryFn: () =>
+      apiGet<{ achievements: FireSmartAchievement[] }>(
+        "/api/firesmart/achievements",
+      ),
+    staleTime: 24 * 60 * 60_000,
+    select: (env) => env.data.achievements,
+  });
+}
+
+export type NeighbourhoodFeature = {
+  type: "Feature";
+  properties: {
+    name: string;
+    centroid_lat: number;
+    centroid_lon: number;
+  };
+  geometry: { type: "Polygon"; coordinates: number[][][] };
+};
+
+export function useNeighbourhoods() {
+  return useQuery({
+    queryKey: ["firesmart", "neighbourhoods"],
+    queryFn: () =>
+      apiGet<{ type: "FeatureCollection"; features: NeighbourhoodFeature[] }>(
+        "/api/firesmart/neighbourhoods",
+      ),
+    staleTime: 24 * 60 * 60_000,
+    select: (env) => env.data.features,
+  });
+}
+
+export type SeasonContext = {
+  days_since_5mm_rain: number | null;
+  peak_month: number;
+  peak_day: number;
+  peak_basis: string;
+};
+
+export function useSeasonContext() {
+  return useQuery({
+    queryKey: ["firesmart", "season-context"],
+    queryFn: () =>
+      apiGet<SeasonContext>("/api/firesmart/season-context"),
+    refetchInterval: 60 * 60_000,
+    select: (env: Envelope<SeasonContext>) => env.data,
   });
 }
 

@@ -1,293 +1,183 @@
-"""Personalized FireSmart checklist (Phase 5).
+"""Personalized FireSmart Hub (Phase 5).
 
-Source of items: FireSmart Canada — "Protecting your Home from Wildfire" /
-Home Ignition Zone (HIZ) Assessment workbook. The HIZ is structured as four
-concentric zones outward from the structure:
+Reads two static reference files (no upstream calls):
 
-  Immediate Zone   0 – 1.5 m   (non-combustible "ember-defensible" perimeter)
-  Intermediate A   1.5 – 10 m  (lean, clean, green — well-spaced low fuels)
-  Intermediate B   10 – 30 m   (thinned canopy, ladder fuels removed)
-  Extended         30 – 100 m  (selective thinning, surface fuel reduction)
+  data/firesmart/firesmart_actions.json   — 30 curated HIZ + Plan-&-Go-Bag actions
+                                            sourced from FireSmart Canada's
+                                            Home Ignition Zone Assessment.
+  data/geo/kamloops_neighbourhoods.geojson — 14 Kamloops neighbourhood polygons
+                                             for the onboarding selector + inset
+                                             fly-to.
 
-We host a curated checklist here so the frontend can render it without
-re-hitting an external server, then filter by user situation (dwelling type,
-season). Nothing is written back — all progress lives in the browser's
-localStorage. No PII ever touches this backend.
+Every state-mutating concept (progress, photos, streaks) lives on the client.
+This router just composes static reference data with situation / season /
+dwelling filters, then serves a stateless badge-ladder oracle. No PII ever
+touches the backend.
 """
 
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter
 
+from . import _data
 from ._envelope import Envelope, Meta
 
 router = APIRouter()
 
 
-ZONES: list[dict[str, Any]] = [
-    {
-        "id": "immediate",
-        "label": "Immediate Zone",
-        "distance": "0 – 1.5 m",
-        "blurb": (
-            "The 1.5-metre non-combustible band hugging your home. Embers that "
-            "land here are the #1 way houses ignite during a wildfire — keep it "
-            "clear, period."
-        ),
-    },
-    {
-        "id": "intermediate_a",
-        "label": "Intermediate Zone · Inner",
-        "distance": "1.5 – 10 m",
-        "blurb": (
-            "Lean, clean, and green. Spaced-out plantings, irrigated lawn, no "
-            "ladder fuels under trees, hardscape paths where you can."
-        ),
-    },
-    {
-        "id": "intermediate_b",
-        "label": "Intermediate Zone · Outer",
-        "distance": "10 – 30 m",
-        "blurb": (
-            "Thin canopies so flames can't crown from tree to tree. Limb to 2 m. "
-            "Keep surface fuels low and discontinuous."
-        ),
-    },
-    {
-        "id": "extended",
-        "label": "Extended Zone",
-        "distance": "30 – 100 m",
-        "blurb": (
-            "Selective thinning reduces the intensity of a fire reaching your "
-            "property. Coordinate with neighbours — embers travel kilometres."
-        ),
-    },
+REPO_ROOT = Path(__file__).resolve().parents[4]
+ACTIONS_PATH = REPO_ROOT / "data" / "firesmart" / "firesmart_actions.json"
+NEIGHBOURHOODS_PATH = REPO_ROOT / "data" / "geo" / "kamloops_neighbourhoods.geojson"
+
+
+@lru_cache(maxsize=1)
+def _load_actions() -> dict[str, Any]:
+    with ACTIONS_PATH.open() as f:
+        return json.load(f)
+
+
+@lru_cache(maxsize=1)
+def _load_neighbourhoods() -> dict[str, Any]:
+    with NEIGHBOURHOODS_PATH.open() as f:
+        return json.load(f)
+
+
+# ─── Achievement catalogue (≥ 12) ──────────────────────────────────────
+# Definitions are hosted server-side so the frontend and any future surface
+# (e.g. a shared progress view) agree on the rules.
+
+ACHIEVEMENTS: list[dict[str, Any]] = [
+    {"id": "first_steps", "label": "First Steps", "blurb": "Complete your first FireSmart action.", "emoji": "🌱", "rule": "completed>=1"},
+    {"id": "ember_aware", "label": "Ember-Aware", "blurb": "Complete 5 actions across any zones.", "emoji": "🪵", "rule": "completed>=5"},
+    {"id": "zone_one_hero", "label": "Zone 1 Hero", "blurb": "Finish every Immediate Zone action that applies to you.", "emoji": "🛡️", "rule": "all_zone:immediate"},
+    {"id": "defensible_space", "label": "Defensible Space", "blurb": "Earn 25 points across any zones.", "emoji": "🏕️", "rule": "points>=25"},
+    {"id": "halfway", "label": "Halfway There", "blurb": "Tick off 50% of the actions that apply to you.", "emoji": "🚧", "rule": "completed>=total/2"},
+    {"id": "photo_documentarian", "label": "Photo Documentarian", "blurb": "Attach photos to 5 completed actions.", "emoji": "📷", "rule": "photos>=5"},
+    {"id": "smoke_aware", "label": "Smoke-Aware", "blurb": "Open the AQ guidance during a moderate-or-worse smoke day.", "emoji": "💨", "rule": "smoke_aware"},
+    {"id": "streak_7", "label": "Streak: 7", "blurb": "Visit the hub 7 days in a row.", "emoji": "🔥", "rule": "streak>=7"},
+    {"id": "streak_30", "label": "Streak: 30", "blurb": "Visit the hub 30 days in a row.", "emoji": "🗓️", "rule": "streak>=30"},
+    {"id": "storm_ready", "label": "Storm Ready", "blurb": "Finish your Plan & Go-Bag actions before July 1.", "emoji": "🎒", "rule": "all_zone:plan_gobag&before_july"},
+    {"id": "neighbour", "label": "Neighbour", "blurb": "Share your progress link (your data stays in the URL, never on a server).", "emoji": "🤝", "rule": "shared"},
+    {"id": "firesmart_home", "label": "FireSmart Home", "blurb": "Complete every action that applies to you.", "emoji": "🏆", "rule": "completed==total"},
 ]
 
 
-# Each item is rated 1–5 points by impact-per-effort per FireSmart Canada guidance.
-ITEMS: list[dict[str, Any]] = [
-    # ─── Immediate (0–1.5 m) ────────────────────────────────────────────
-    {
-        "id": "im_roof_debris",
-        "zone": "immediate",
-        "title": "Clear roof and gutters of needles, leaves, debris",
-        "detail": "Dry organic litter is the most common ember-ignition site. Check after every windstorm.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 5,
-    },
-    {
-        "id": "im_no_combustibles",
-        "zone": "immediate",
-        "title": "No combustibles within 1.5 m of the structure",
-        "detail": "Move firewood, propane tanks, bark mulch, patio cushions, and recycling bins out of the 1.5 m zone.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 5,
-    },
-    {
-        "id": "im_vents_screened",
-        "zone": "immediate",
-        "title": "Vents covered with 3 mm non-combustible mesh",
-        "detail": "Embers enter attics and crawlspaces through unscreened vents. Replace plastic/wood mesh with metal.",
-        "season": "any",
-        "applies_to": ["house", "cabin", "mobile"],
-        "points": 4,
-    },
-    {
-        "id": "im_decks_enclosed",
-        "zone": "immediate",
-        "title": "Enclose or screen the underside of decks",
-        "detail": "Open decks collect embers. Solid skirting (non-combustible) or fine mesh prevents accumulation.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 4,
-    },
-    {
-        "id": "im_windows_tempered",
-        "zone": "immediate",
-        "title": "Replace single-pane windows with tempered double-pane",
-        "detail": "Radiant heat from a nearby fire shatters single panes long before flame contact.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin"],
-        "points": 3,
-    },
-    {
-        "id": "im_doormat_metal",
-        "zone": "immediate",
-        "title": "Replace combustible doormats with rubber or coir-on-metal",
-        "detail": "A burning welcome mat ignites the door jamb.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 2,
-    },
-
-    # ─── Intermediate A (1.5–10 m) ──────────────────────────────────────
-    {
-        "id": "ia_grass_short",
-        "zone": "intermediate_a",
-        "title": "Mow grass to under 10 cm",
-        "detail": "Tall cured grass spreads flame fast and low. Keep mown through dry months.",
-        "season": "summer",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 4,
-    },
-    {
-        "id": "ia_tree_spacing",
-        "zone": "intermediate_a",
-        "title": "Space trees so crowns are 3 m+ apart",
-        "detail": "Continuous canopy lets fire run tree to tree. Selectively remove or limb.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 4,
-    },
-    {
-        "id": "ia_no_conifer_close",
-        "zone": "intermediate_a",
-        "title": "No coniferous (pine, fir, spruce, juniper) within 10 m",
-        "detail": "Conifers carry volatile oils and burn hot. Replace with deciduous or non-flammable hardscape.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 5,
-    },
-    {
-        "id": "ia_ladder_fuels",
-        "zone": "intermediate_a",
-        "title": "Remove ladder fuels (shrubs under trees)",
-        "detail": "Shrubs beneath tree crowns let surface fire climb into the canopy.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 3,
-    },
-    {
-        "id": "ia_woodpile_distant",
-        "zone": "intermediate_a",
-        "title": "Move firewood and lumber stacks to ≥ 10 m",
-        "detail": "Stacked wood is a massive ember catcher and slow-burning fuel bed.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 3,
-    },
-
-    # ─── Intermediate B (10–30 m) ───────────────────────────────────────
-    {
-        "id": "ib_limb_trees",
-        "zone": "intermediate_b",
-        "title": "Limb trees to 2 m above ground",
-        "detail": "Removing lower branches breaks the connection between surface fuels and the canopy.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 4,
-    },
-    {
-        "id": "ib_deadfall",
-        "zone": "intermediate_b",
-        "title": "Remove dead/down wood and slash piles",
-        "detail": "Dry deadfall ignites readily from embers and produces intense local flames.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 3,
-    },
-    {
-        "id": "ib_thin_canopy",
-        "zone": "intermediate_b",
-        "title": "Thin canopy so trees are 3–6 m apart at the crowns",
-        "detail": "A discontinuous canopy is the single biggest predictor of structure survival in WUI fires.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 4,
-    },
-
-    # ─── Extended (30–100 m) ────────────────────────────────────────────
-    {
-        "id": "ex_selective_thinning",
-        "zone": "extended",
-        "title": "Selectively thin dense stands and remove dead trees",
-        "detail": "Reduces fireline intensity as a wildfire approaches. Coordinate with neighbours and your local FireSmart rep.",
-        "season": "any",
-        "applies_to": ["house", "cabin"],
-        "points": 3,
-    },
-    {
-        "id": "ex_neighbour_coord",
-        "zone": "extended",
-        "title": "Coordinate with neighbours on shared FireSmart treatments",
-        "detail": "Embers travel >1 km. Your neighbour's untreated lot is your exposure.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin"],
-        "points": 2,
-    },
-
-    # ─── Emergency prep cross-cutters ───────────────────────────────────
-    {
-        "id": "go_bag",
-        "zone": "immediate",
-        "title": "Pack a 72-hour Grab-and-Go kit",
-        "detail": "Per BC Emergency Management: 4 L water/person/day, non-perishable food, prescriptions, ID copies, phone charger, N95 masks for smoke.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 5,
-    },
-    {
-        "id": "evac_plan",
-        "zone": "immediate",
-        "title": "Map two evacuation routes + a meet-up point",
-        "detail": "One primary, one backup — both leading away from forested approaches. Practice with everyone in the household.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 4,
-    },
-    {
-        "id": "sub_alerts",
-        "zone": "immediate",
-        "title": "Subscribe to local emergency alerts",
-        "detail": "Kamloops + TNRD push alerts via Voyent Alert and Alertable. BC Wildfire Service on X is fastest for incident updates.",
-        "season": "any",
-        "applies_to": ["house", "townhome", "cabin", "mobile"],
-        "points": 3,
-    },
-]
+# ─── Filtering ─────────────────────────────────────────────────────────
 
 
-def _filter_items(dwelling: str, season: str) -> list[dict[str, Any]]:
+def _filter_actions(
+    dwelling: str,
+    season: str,
+    situation: list[str],
+) -> list[dict[str, Any]]:
+    """Apply dwelling + situation gating; sort by season relevance."""
+    raw = _load_actions()["actions"]
     d = dwelling.lower()
     s = season.lower()
-    return [
-        i
-        for i in ITEMS
-        if d in i["applies_to"] and (i["season"] == "any" or s in (i["season"], "any"))
-    ]
+    sit = {x.lower() for x in situation}
+
+    out: list[dict[str, Any]] = []
+    for a in raw:
+        applies = a.get("applies", {})
+
+        # Dwelling gate — required.
+        dwellings = applies.get("dwelling", [])
+        if dwellings and d not in dwellings:
+            continue
+
+        # Situation gate — if the action has a "situation" list, the user
+        # must have *at least one* of those tags. Actions without a
+        # situation field apply universally.
+        required = applies.get("situation")
+        if required and not (sit & set(required)):
+            continue
+
+        out.append(a)
+
+    # Season-aware ordering: highest season_priority first, then by points.
+    def _key(a: dict[str, Any]) -> tuple[int, int]:
+        sp = a.get("season_priority") or {}
+        return (-int(sp.get(s, 3)), -int(a.get("points", 0)))
+
+    out.sort(key=_key)
+    return out
 
 
-def _badges_for(points: int, completed: int, total: int) -> list[dict[str, str]]:
-    badges: list[dict[str, str]] = []
-    if completed >= 1:
-        badges.append({"id": "started", "label": "Got Started", "emoji": "🌱"})
-    if completed >= 5:
-        badges.append({"id": "ember_aware", "label": "Ember-Aware", "emoji": "🪵"})
-    if points >= 25:
-        badges.append({"id": "defensible_space", "label": "Defensible Space", "emoji": "🛡️"})
-    if total > 0 and completed / total >= 0.5:
-        badges.append({"id": "halfway", "label": "Halfway There", "emoji": "🚧"})
-    if total > 0 and completed == total:
-        badges.append({"id": "firesmart_home", "label": "FireSmart Home", "emoji": "🏆"})
-    return badges
+def _badges_for(
+    points: int,
+    completed: int,
+    total: int,
+    photos: int,
+    streak: int,
+    completed_ids: set[str],
+    actions: list[dict[str, Any]],
+    flags: dict[str, bool],
+    today_iso: str | None,
+) -> list[dict[str, str]]:
+    """Centralised badge ladder. Mirrors the frontend exactly."""
+    earned: list[dict[str, str]] = []
+    by_id = {a["id"]: a for a in actions}
+
+    def _has(pred: bool, ach_id: str) -> None:
+        if not pred:
+            return
+        for a in ACHIEVEMENTS:
+            if a["id"] == ach_id:
+                earned.append({"id": a["id"], "label": a["label"], "emoji": a["emoji"], "blurb": a["blurb"]})
+                return
+
+    _has(completed >= 1, "first_steps")
+    _has(completed >= 5, "ember_aware")
+    _has(points >= 25, "defensible_space")
+    _has(total > 0 and completed >= total / 2, "halfway")
+    _has(photos >= 5, "photo_documentarian")
+    _has(flags.get("smoke_aware", False), "smoke_aware")
+    _has(streak >= 7, "streak_7")
+    _has(streak >= 30, "streak_30")
+    _has(flags.get("shared", False), "neighbour")
+    _has(total > 0 and completed == total, "firesmart_home")
+
+    # Zone 1 Hero
+    zone_1_actions = [a for a in actions if a["zone"] == "immediate"]
+    if zone_1_actions and all(a["id"] in completed_ids for a in zone_1_actions):
+        _has(True, "zone_one_hero")
+
+    # Storm Ready — plan_gobag complete before July 1
+    pg_actions = [a for a in actions if a["zone"] == "plan_gobag"]
+    before_july = today_iso is not None and today_iso[5:7] in {"01", "02", "03", "04", "05", "06"}
+    if pg_actions and all(a["id"] in completed_ids for a in pg_actions) and before_july:
+        _has(True, "storm_ready")
+
+    return earned
 
 
-@router.get("/checklist", summary="FireSmart HIZ checklist filtered by situation")
+# ─── Endpoints ─────────────────────────────────────────────────────────
+
+
+@router.get("/checklist", summary="Personalised HIZ + Plan-&-Go-Bag checklist")
 async def checklist(
     dwelling: str = "house",
-    season: str = "any",
+    season: str = "summer",
+    situation: str = "",
 ) -> dict[str, Any]:
-    items = _filter_items(dwelling, season)
+    """Return groups + filtered, season-ordered actions for the user's situation.
+
+    `situation` is a comma-separated list: e.g. "pets,sensitive,outdoor_worker".
+    """
+    sit = [s.strip() for s in situation.split(",") if s.strip()]
+    actions = _filter_actions(dwelling, season, sit)
+    groups = _load_actions()["_groups"]
     return Envelope[dict](
         data={
-            "zones": ZONES,
-            "items": items,
-            "max_points": sum(i["points"] for i in items),
+            "groups": groups,
+            "actions": actions,
+            "max_points": sum(a["points"] for a in actions),
+            "version": _load_actions()["_version"],
         },
         meta=Meta(
             source="firesmart_canada",
@@ -297,22 +187,83 @@ async def checklist(
     ).model_dump(mode="json")
 
 
+@router.get("/neighbourhoods", summary="Kamloops neighbourhood polygons")
+async def neighbourhoods() -> dict[str, Any]:
+    fc = _load_neighbourhoods()
+    return Envelope[dict](
+        data=fc,
+        meta=Meta(
+            source="kamloops_open_data",
+            attribution="WildfireIQ — curated from City of Kamloops neighbourhood descriptions",
+            phase="5",
+        ),
+    ).model_dump(mode="json")
+
+
+@router.get("/achievements", summary="Achievement catalogue (12 badges)")
+async def achievements() -> dict[str, Any]:
+    return Envelope[dict](
+        data={"achievements": ACHIEVEMENTS},
+        meta=Meta(
+            source="firesmart_canada",
+            attribution="WildfireIQ — Phase 5",
+            phase="5",
+        ),
+    ).model_dump(mode="json")
+
+
+@router.get("/season-context", summary="Days-since-rain + season-peak countdown")
+async def season_context() -> dict[str, Any]:
+    ctx = _data.season_context()
+    return Envelope[dict](
+        data=ctx,
+        meta=Meta(
+            source="wildfireiq_derived",
+            attribution="Open-Meteo daily wx + BC Wildfire Service historical fires",
+            phase="5",
+        ),
+    ).model_dump(mode="json")
+
+
 @router.post("/score", summary="Compute points + badges from a completed-items list")
 async def score(payload: dict[str, Any]) -> dict[str, Any]:
-    """Stateless scoring helper. Body: {completed_ids: [...], dwelling, season}.
+    """Stateless oracle so client + server agree on the badge ladder.
 
-    Progress lives in the browser, not on the server — this endpoint just
-    centralises the badge ladder so rules stay consistent.
+    Body shape:
+      {
+        completed_ids: [...],
+        dwelling, season, situation: [...],
+        photos: int, streak: int,
+        flags: {smoke_aware: bool, shared: bool},
+        today: "YYYY-MM-DD"
+      }
     """
     completed_ids = set(payload.get("completed_ids", []) or [])
     dwelling = (payload.get("dwelling") or "house").lower()
-    season = (payload.get("season") or "any").lower()
+    season = (payload.get("season") or "summer").lower()
+    situation = [s.lower() for s in (payload.get("situation") or [])]
+    photos = int(payload.get("photos") or 0)
+    streak = int(payload.get("streak") or 0)
+    flags = payload.get("flags") or {}
+    today = payload.get("today")
 
-    eligible = _filter_items(dwelling, season)
-    total = len(eligible)
-    completed = sum(1 for i in eligible if i["id"] in completed_ids)
-    points = sum(i["points"] for i in eligible if i["id"] in completed_ids)
-    max_points = sum(i["points"] for i in eligible)
+    actions = _filter_actions(dwelling, season, situation)
+    total = len(actions)
+    completed = sum(1 for a in actions if a["id"] in completed_ids)
+    points = sum(a["points"] for a in actions if a["id"] in completed_ids)
+    max_points = sum(a["points"] for a in actions)
+
+    badges = _badges_for(
+        points=points,
+        completed=completed,
+        total=total,
+        photos=photos,
+        streak=streak,
+        completed_ids=completed_ids,
+        actions=actions,
+        flags=flags,
+        today_iso=today,
+    )
 
     return Envelope[dict](
         data={
@@ -320,7 +271,8 @@ async def score(payload: dict[str, Any]) -> dict[str, Any]:
             "max_points": max_points,
             "completed": completed,
             "total": total,
-            "badges": _badges_for(points, completed, total),
+            "badges": badges,
+            "all_achievements": ACHIEVEMENTS,
         },
         meta=Meta(
             source="firesmart_canada",

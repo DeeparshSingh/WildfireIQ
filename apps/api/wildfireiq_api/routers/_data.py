@@ -160,6 +160,52 @@ def climate_projections(ssp: str | None = None, var: str | None = None) -> list[
     return _records(df)
 
 
+def season_context() -> dict[str, Any]:
+    """Derived metrics for the Phase 5 right-column ticker.
+
+    Returns:
+      days_since_5mm_rain : last day with ≥5 mm precip in Kamloops daily wx
+      peak_month_day      : (month, day) of the historical Thompson-Okanagan
+                             fire-season peak (median date of area burned).
+    """
+    out: dict[str, Any] = {
+        "days_since_5mm_rain": None,
+        "peak_month": 7,
+        "peak_day": 20,
+        "peak_basis": "median day-of-year of area burned across 1999-2025 BC fires",
+    }
+
+    daily = _read_parquet_safe(PROCESSED_ROOT / "weather_kamloops_daily.parquet")
+    if daily is not None and "precip_mm" in daily.columns and "day_local" in daily.columns:
+        df = daily.copy()
+        df["day_local"] = pd.to_datetime(df["day_local"], errors="coerce")
+        df = df.dropna(subset=["day_local"]).sort_values("day_local")
+        today_ts = pd.Timestamp.utcnow().normalize().tz_localize(None)
+        observed = df[(df.get("is_forecast", False) != True) & (df["day_local"] <= today_ts)]
+        wet = observed[observed["precip_mm"] >= 5.0]
+        if not wet.empty:
+            last_wet = wet["day_local"].max()
+            out["days_since_5mm_rain"] = int((today_ts - last_wet).days)
+
+    hist = _read_parquet_safe(PROCESSED_ROOT / "fires_historical.parquet")
+    if hist is not None and "discovery_date_utc" in hist.columns and "hectares" in hist.columns:
+        h = hist.copy()
+        h["d"] = pd.to_datetime(h["discovery_date_utc"], errors="coerce")
+        h = h.dropna(subset=["d"])
+        h["doy"] = h["d"].dt.dayofyear
+        # area-weighted median day-of-year
+        if not h.empty and h["hectares"].sum() > 0:
+            sorted_h = h.sort_values("doy")
+            cumw = sorted_h["hectares"].cumsum()
+            half = sorted_h["hectares"].sum() / 2
+            peak_doy = int(sorted_h.loc[cumw >= half, "doy"].iloc[0])
+            peak_date = pd.Timestamp(year=2000, month=1, day=1) + pd.Timedelta(days=peak_doy - 1)
+            out["peak_month"] = int(peak_date.month)
+            out["peak_day"] = int(peak_date.day)
+
+    return out
+
+
 def fires_seasonal_summary() -> list[dict[str, Any]]:
     """Aggregate historical fires by year — used by /api/climate/seasonal."""
     df = _read_parquet_safe(PROCESSED_ROOT / "fires_historical.parquet")

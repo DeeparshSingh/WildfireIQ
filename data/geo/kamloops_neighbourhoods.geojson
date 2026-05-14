@@ -1,0 +1,509 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Aberdeen",
+        "centroid_lat": 50.6235,
+        "centroid_lon": -120.431,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.453,
+              50.6035
+            ],
+            [
+              -120.40899999999999,
+              50.6035
+            ],
+            [
+              -120.40899999999999,
+              50.6435
+            ],
+            [
+              -120.453,
+              50.6435
+            ],
+            [
+              -120.453,
+              50.6035
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sahali",
+        "centroid_lat": 50.6555,
+        "centroid_lon": -120.365,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.38499999999999,
+              50.6375
+            ],
+            [
+              -120.345,
+              50.6375
+            ],
+            [
+              -120.345,
+              50.673500000000004
+            ],
+            [
+              -120.38499999999999,
+              50.673500000000004
+            ],
+            [
+              -120.38499999999999,
+              50.6375
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brocklehurst",
+        "centroid_lat": 50.705,
+        "centroid_lon": -120.375,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.4,
+              50.684999999999995
+            ],
+            [
+              -120.35,
+              50.684999999999995
+            ],
+            [
+              -120.35,
+              50.725
+            ],
+            [
+              -120.4,
+              50.725
+            ],
+            [
+              -120.4,
+              50.684999999999995
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "North Shore",
+        "centroid_lat": 50.697,
+        "centroid_lon": -120.33,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.352,
+              50.679
+            ],
+            [
+              -120.30799999999999,
+              50.679
+            ],
+            [
+              -120.30799999999999,
+              50.715
+            ],
+            [
+              -120.352,
+              50.715
+            ],
+            [
+              -120.352,
+              50.679
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Westsyde",
+        "centroid_lat": 50.76,
+        "centroid_lon": -120.385,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.41000000000001,
+              50.735
+            ],
+            [
+              -120.36,
+              50.735
+            ],
+            [
+              -120.36,
+              50.785
+            ],
+            [
+              -120.41000000000001,
+              50.785
+            ],
+            [
+              -120.41000000000001,
+              50.735
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Valleyview",
+        "centroid_lat": 50.67,
+        "centroid_lon": -120.27,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.295,
+              50.65
+            ],
+            [
+              -120.24499999999999,
+              50.65
+            ],
+            [
+              -120.24499999999999,
+              50.690000000000005
+            ],
+            [
+              -120.295,
+              50.690000000000005
+            ],
+            [
+              -120.295,
+              50.65
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Juniper Ridge",
+        "centroid_lat": 50.665,
+        "centroid_lon": -120.24,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.25999999999999,
+              50.65
+            ],
+            [
+              -120.22,
+              50.65
+            ],
+            [
+              -120.22,
+              50.68
+            ],
+            [
+              -120.25999999999999,
+              50.68
+            ],
+            [
+              -120.25999999999999,
+              50.65
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dallas",
+        "centroid_lat": 50.65,
+        "centroid_lon": -120.21,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.235,
+              50.632
+            ],
+            [
+              -120.18499999999999,
+              50.632
+            ],
+            [
+              -120.18499999999999,
+              50.668
+            ],
+            [
+              -120.235,
+              50.668
+            ],
+            [
+              -120.235,
+              50.632
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Barnhartvale",
+        "centroid_lat": 50.63,
+        "centroid_lon": -120.17,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.19500000000001,
+              50.61
+            ],
+            [
+              -120.145,
+              50.61
+            ],
+            [
+              -120.145,
+              50.650000000000006
+            ],
+            [
+              -120.19500000000001,
+              50.650000000000006
+            ],
+            [
+              -120.19500000000001,
+              50.61
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pineview Valley",
+        "centroid_lat": 50.62,
+        "centroid_lon": -120.4,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.418,
+              50.605
+            ],
+            [
+              -120.382,
+              50.605
+            ],
+            [
+              -120.382,
+              50.635
+            ],
+            [
+              -120.418,
+              50.635
+            ],
+            [
+              -120.418,
+              50.605
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Batchelor Heights",
+        "centroid_lat": 50.73,
+        "centroid_lon": -120.415,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.435,
+              50.711999999999996
+            ],
+            [
+              -120.39500000000001,
+              50.711999999999996
+            ],
+            [
+              -120.39500000000001,
+              50.748
+            ],
+            [
+              -120.435,
+              50.748
+            ],
+            [
+              -120.435,
+              50.711999999999996
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dufferin",
+        "centroid_lat": 50.65,
+        "centroid_lon": -120.35,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.368,
+              50.638
+            ],
+            [
+              -120.332,
+              50.638
+            ],
+            [
+              -120.332,
+              50.662
+            ],
+            [
+              -120.368,
+              50.662
+            ],
+            [
+              -120.368,
+              50.638
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Knutsford",
+        "centroid_lat": 50.55,
+        "centroid_lon": -120.35,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.38,
+              50.525
+            ],
+            [
+              -120.32,
+              50.525
+            ],
+            [
+              -120.32,
+              50.574999999999996
+            ],
+            [
+              -120.38,
+              50.574999999999996
+            ],
+            [
+              -120.38,
+              50.525
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rayleigh",
+        "centroid_lat": 50.8,
+        "centroid_lon": -120.38,
+        "source": "WildfireIQ \u2014 hand-curated bounding boxes from City of Kamloops neighbourhood descriptions"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.41,
+              50.775
+            ],
+            [
+              -120.35,
+              50.775
+            ],
+            [
+              -120.35,
+              50.824999999999996
+            ],
+            [
+              -120.41,
+              50.824999999999996
+            ],
+            [
+              -120.41,
+              50.775
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
