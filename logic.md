@@ -179,8 +179,13 @@ our job auto-discovers from GetCapabilities).
 2. Frontend uses the first available timestep as a
    `SingleTileImageryProvider` on the Cesium globe (alpha 0.55).
 
-**Phase 4 will add**: time scrubber so users can step through the 48-hour
-forecast hour-by-hour.
+**Time scrubber** (built in Phase 4): the Smoke Forecast LayerDetailModal
+exposes a range slider + prev/next chips + a list view of every available
+forecast timestep (typically 13 timesteps over 39 hours). Clicking a
+timestep or moving the slider updates `useSmokeStore.timestepIndex`, which
+the Cesium `SmokeLayer` reads and reactively swaps the WMS PNG overlay.
+Opening the scrubber modal auto-enables the smoke layer so changes are
+visible immediately.
 
 ---
 

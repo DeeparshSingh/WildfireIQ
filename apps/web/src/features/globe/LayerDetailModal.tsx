@@ -9,12 +9,14 @@ import {
   useFirmsHotspots,
   useFwiToday,
   useRiskGrid,
+  useSmokeForecast,
 } from "@/lib/api/hooks";
 import { cinematicFlyTo } from "@/lib/cesium-helpers/cinematicFlyTo";
 import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
 import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { type LayerId, useLayersStore } from "@/stores/layers";
+import { useSmokeStore } from "@/stores/smoke";
 import { LAYER_INFO } from "./layerInfo";
 
 const LAYER_META: Record<LayerId, { label: string; accent: string }> = {
@@ -802,23 +804,182 @@ function RiskBrowser() {
 }
 
 function SmokeBrowser() {
+  const { data, isLoading } = useSmokeForecast();
+  const timestepIndex = useSmokeStore((s) => s.timestepIndex);
+  const setTimestepIndex = useSmokeStore((s) => s.setTimestepIndex);
+  const setLayerOn = useLayersStore((s) => s.set);
+  const smokeVisible = useLayersStore((s) => s.visible.smoke);
+
+  // When the user opens this modal we autoturn-on the smoke layer so the
+  // scrubber's changes are visible on the globe immediately.
+  useEffect(() => {
+    if (!smokeVisible) setLayerOn("smoke", true);
+  }, [setLayerOn, smokeVisible]);
+
+  if (isLoading || !data) {
+    return (
+      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+        Loading forecast timesteps…
+      </div>
+    );
+  }
+  if (data.length === 0) {
+    return (
+      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+        No smoke forecast timesteps available right now.
+      </div>
+    );
+  }
+
+  const safeIndex = Math.min(Math.max(0, timestepIndex), data.length - 1);
+  const current = data[safeIndex];
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return new Intl.DateTimeFormat("en-CA", {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "America/Vancouver",
+    }).format(d);
+  };
+
+  const hoursFromNow = (iso: string) => {
+    const d = new Date(iso).getTime();
+    const now = Date.now();
+    const hrs = Math.round((d - now) / 3_600_000);
+    if (hrs <= 0) return "now";
+    if (hrs === 1) return "+1 h";
+    return `+${hrs} h`;
+  };
+
   return (
-    <div
-      style={{
-        padding: 48,
-        textAlign: "center",
-        fontFamily: "var(--font-body)",
-        color: "var(--color-text-mid)",
-        fontSize: 14,
-        lineHeight: 1.6,
-      }}
-    >
-      The Smoke Forecast layer is a continuous WMS overlay, not discrete items.
-      <br />
-      <span style={{ color: "var(--color-text-low)", fontFamily: "var(--font-data)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-        Phase 4 adds a time-scrubbing UI here
-      </span>
-    </div>
+    <>
+      <Toolbar>
+        <FilterChip
+          active={false}
+          onClick={() => setTimestepIndex(Math.max(0, safeIndex - 1))}
+        >
+          ← Prev
+        </FilterChip>
+        <FilterChip
+          active={false}
+          onClick={() => setTimestepIndex(Math.min(data.length - 1, safeIndex + 1))}
+        >
+          Next →
+        </FilterChip>
+        <div
+          className="tabular"
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-low)",
+            letterSpacing: "0.08em",
+          }}
+        >
+          <input
+            type="range"
+            min={0}
+            max={data.length - 1}
+            value={safeIndex}
+            onChange={(e) => setTimestepIndex(Number(e.target.value))}
+            aria-label="Forecast timestep"
+            style={{
+              flex: 1,
+              accentColor: "var(--color-cyan-glow)",
+            }}
+          />
+          <span style={{ color: "var(--color-text-hi)", whiteSpace: "nowrap" }}>
+            {fmt(current.valid_time_utc)}
+          </span>
+          <span style={{ color: "var(--color-cyan-glow)", whiteSpace: "nowrap" }}>
+            {hoursFromNow(current.valid_time_utc)}
+          </span>
+        </div>
+      </Toolbar>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {data.map((step, i) => {
+          const active = i === safeIndex;
+          return (
+            <button
+              key={`${step.valid_time_utc}-${i}`}
+              type="button"
+              onClick={() => setTimestepIndex(i)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                width: "100%",
+                padding: "12px 24px",
+                background: active ? "var(--color-bg-3)" : "transparent",
+                border: "none",
+                borderBottom: "1px solid var(--color-stroke)",
+                borderLeft: active
+                  ? "3px solid var(--color-cyan-glow)"
+                  : "3px solid transparent",
+                cursor: "pointer",
+                fontFamily: "var(--font-body)",
+                textAlign: "left",
+                transition: "background var(--dur-fast)",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--color-bg-2)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: active ? "var(--color-text-hi)" : "var(--color-text-mid)",
+                  }}
+                >
+                  {fmt(step.valid_time_utc)}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontFamily: "var(--font-data)",
+                    color: "var(--color-text-low)",
+                    letterSpacing: "0.06em",
+                    marginTop: 2,
+                  }}
+                >
+                  {step.layer_name}
+                </div>
+              </div>
+              <span
+                className="tabular"
+                style={{
+                  fontSize: 11,
+                  padding: "3px 10px",
+                  borderRadius: "var(--radius-pill)",
+                  border: `1px solid ${active ? "var(--color-cyan-glow)" : "var(--color-stroke)"}`,
+                  color: active ? "var(--color-cyan-glow)" : "var(--color-text-mid)",
+                  background: active
+                    ? "color-mix(in oklab, var(--color-cyan-glow) 12%, transparent)"
+                    : "transparent",
+                  fontFamily: "var(--font-data)",
+                  letterSpacing: "0.06em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {hoursFromNow(step.valid_time_utc)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

@@ -9,6 +9,7 @@ import { useSmokeForecast } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
+import { useSmokeStore } from "@/stores/smoke";
 
 // Thompson-Okanagan region bbox (lon_min, lat_min, lon_max, lat_max)
 const SMOKE_RECT = Rectangle.fromDegrees(-121.5, 50.0, -118.5, 51.5);
@@ -18,6 +19,7 @@ export function SmokeLayer() {
   const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.smoke);
   const { data } = useSmokeForecast();
+  const timestepIndex = useSmokeStore((s) => s.timestepIndex);
 
   const layerRef = useRef<ImageryLayer | null>(null);
 
@@ -37,12 +39,14 @@ export function SmokeLayer() {
       return removeExisting;
     }
 
-    const first = data[0];
+    // Clamp to the available timesteps if the user has scrubbed past the end.
+    const safeIndex = Math.min(Math.max(0, timestepIndex), data.length - 1);
+    const chosen = data[safeIndex];
     let cancelled = false;
 
     (async () => {
       try {
-        const provider = await SingleTileImageryProvider.fromUrl(first.fetch_url, {
+        const provider = await SingleTileImageryProvider.fromUrl(chosen.fetch_url, {
           rectangle: SMOKE_RECT,
         });
         if (cancelled || viewer.isDestroyed()) return;
@@ -62,7 +66,7 @@ export function SmokeLayer() {
       cancelled = true;
       removeExisting();
     };
-  }, [viewer, gate, visible, data]);
+  }, [viewer, gate, visible, data, timestepIndex]);
 
   return null;
 }

@@ -49,9 +49,9 @@ export const LAYER_INFO: Record<LayerId, LayerInfo> = {
     refresh: "ingest daily 18 UTC · frontend re-fetch every 10 min",
   },
   smoke: {
-    what: "ECCC's official wildfire smoke forecast — surface-level PM2.5 concentration as a translucent overlay on the globe.",
+    what: "ECCC's official wildfire smoke forecast — surface-level PM2.5 concentration as a translucent overlay on the globe. Open this modal to step through each forecast hour with the time scrubber.",
     pipeline:
-      "Every 6 hours we read the MSC GeoMet WMS GetCapabilities document, find the latest RAQDPS-FW Wildfire Smoke run, and catalogue the available timesteps. The frontend renders the first timestep as a single tile imagery layer over the bbox at 55% alpha. Phase 4 will add a time scrubber to step through the 48-hour forecast hour-by-hour.",
+      "Every 6 hours we read the MSC GeoMet WMS GetCapabilities document, find the latest RAQDPS-FW Wildfire Smoke run, and catalogue the available timesteps. The frontend renders the selected timestep as a single tile imagery layer over the bbox at 55% alpha. The scrubber in this modal swaps the imagery to whichever forecast hour you pick.",
     source: "ECCC · RAQDPS-FW via MSC GeoMet WMS",
     refresh: "ingest every 6 h · frontend re-fetch every 30 min",
   },

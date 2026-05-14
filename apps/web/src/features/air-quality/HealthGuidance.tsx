@@ -79,21 +79,24 @@ export function HealthGuidance({
           >
             <div
               style={{
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 borderRadius: "50%",
                 background: color,
                 color: "var(--color-bg-0)",
                 fontFamily: "var(--font-data)",
                 fontWeight: 700,
-                fontSize: 14,
+                fontSize: 13,
                 display: "grid",
                 placeItems: "center",
                 flexShrink: 0,
+                whiteSpace: "nowrap",
                 boxShadow: isActive ? `0 0 16px ${color}` : "none",
               }}
             >
-              {band.aqhi_min}–{band.aqhi_max === 999 ? "11+" : band.aqhi_max}
+              {band.aqhi_max === 999
+                ? `${band.aqhi_min}+`
+                : `${band.aqhi_min}–${band.aqhi_max}`}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
