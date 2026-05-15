@@ -66,7 +66,7 @@ export function TopBar() {
           borderRadius: "var(--radius-pill)",
         }}
       >
-        Phase 0 · v0.1.0
+        v1.0.0
       </div>
     </header>
   );
