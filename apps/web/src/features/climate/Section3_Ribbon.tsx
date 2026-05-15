@@ -52,12 +52,12 @@ export function Section3_Ribbon() {
   return (
     <SectionShell
       kicker="Section 3"
-      title="Fire season starts earlier and ends later."
-      sub="Each row is one year. Bar starts at the day-of-year of the first reported ignition and ends at the last. Colour intensity scales with total area burned."
+      title="The shape of a fire season."
+      sub="Each row is one year — bar starts at the day-of-year of the first reported ignition and ends at the last; colour intensity scales with total area burned. Contrary to the global narrative, in the Thompson-Okanagan the data does not show a lengthening season: first-ignition DOY has no significant trend, and end-of-season DOY is actually trending modestly earlier (−1.3 days/yr, CI excludes zero). What has clearly intensified is the burn area within those windows."
       info={
         <InfoChip
           source="BC Wildfire Service · DataBC"
-          method="`season_start_doy` = min DOY of fire discoveries; `season_end_doy` = max. Filtered to Thompson-Okanagan BBOX."
+          method="`season_start_doy` = min DOY of fire discoveries; `season_end_doy` = max; Theil-Sen 1000-bootstrap confidence intervals computed at `/api/climate/trends`. Filtered to Thompson-Okanagan bounding box."
           downloadUrl={`${API_BASE}/api/climate/ribbon?format=csv`}
           downloadName="fire_season_ribbon.csv"
         />

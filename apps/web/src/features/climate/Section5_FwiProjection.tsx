@@ -49,7 +49,7 @@ export function Section5_FwiProjection() {
     <SectionShell
       kicker="Section 5"
       title="What this means for fire weather."
-      sub="Days per year with FWI ≥ 19 — the threshold above which crown-fire behaviour becomes likely under CFFDRS. Observed 2000s/2010s/2020s; projected 2030s and 2040s under each emission pathway."
+      sub="Days per year with FWI ≥ 19 — the CFFDRS threshold for likely crown-fire behaviour. Observed 2000s, 2010s, 2020s come from running our Van Wagner port on real ERA5 weather and counting threshold-crossing days. Projected 2030s and 2040s use a coarse linear extrapolation (one predictor, July temperature) — disclosed in full under the (i) chip. Not a physics-driven projection."
       info={
         <InfoChip
           source="WildfireIQ derived from Open-Meteo ERA5 + Van Wagner FWI port + ClimateData.ca CMIP6 placeholder"

@@ -46,7 +46,7 @@ export function Section4_Projections() {
     <SectionShell
       kicker="Section 4"
       title="What's coming."
-      sub="CMIP6 ensemble projections to 2050 under three emission pathways. Bands show ensemble q10–q90 spread; line is the q50 (median) member. Observed = historical Kamloops record."
+      sub="CMIP6-shape ensemble projections under three emission pathways. Bands show ensemble q10–q90 spread; line is the q50 (median) member. Observed = historical Kamloops record. ⚠ The projection rows in this build are a synthetic placeholder with the correct shape, not the live ClimateData.ca download — the trend direction is illustrative; absolute values shift when the real ensemble is dropped into `data/processed/climate_projections.parquet`."
       info={
         <InfoChip
           source="ClimateData.ca CMIP6 multi-model ensemble (placeholder in this build)"
