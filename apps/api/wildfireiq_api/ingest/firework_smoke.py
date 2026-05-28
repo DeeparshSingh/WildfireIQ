@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import BC_BBOX_EAST, BC_BBOX_NORTH, BC_BBOX_SOUTH, BC_BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
 
@@ -63,12 +63,17 @@ LAYER_CANDIDATES = [
 
 
 def _getmap_url(layer: str, iso_time: str) -> str:
+    # Province-wide BC extent so the smoke overlay covers everywhere the
+    # fire/hotspot/evac layers do. WIDTH:HEIGHT ~= the bbox aspect ratio
+    # (25° lon × 11.7° lat ≈ 2.1:1) so the PNG isn't stretched. The
+    # SingleTileImageryProvider maps this image onto a matching Cesium
+    # rectangle (see SmokeLayer.SMOKE_RECT) — the two extents must agree.
     return (
         "https://geo.weather.gc.ca/geomet"
         "?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap"
         f"&LAYERS={layer}&CRS=EPSG:4326"
-        f"&BBOX={BBOX_SOUTH},{BBOX_WEST},{BBOX_NORTH},{BBOX_EAST}"
-        "&WIDTH=512&HEIGHT=512&FORMAT=image/png"
+        f"&BBOX={BC_BBOX_SOUTH},{BC_BBOX_WEST},{BC_BBOX_NORTH},{BC_BBOX_EAST}"
+        "&WIDTH=1100&HEIGHT=512&FORMAT=image/png"
         f"&TIME={iso_time}&TRANSPARENT=TRUE"
     )
 

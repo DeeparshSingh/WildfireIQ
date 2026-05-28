@@ -11,8 +11,10 @@ import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 import { useSmokeStore } from "@/stores/smoke";
 
-// Thompson-Okanagan region bbox (lon_min, lat_min, lon_max, lat_max)
-const SMOKE_RECT = Rectangle.fromDegrees(-121.5, 50.0, -118.5, 51.5);
+// Province-wide BC bbox (lon_min, lat_min, lon_max, lat_max) — must match
+// the GetMap BBOX in the firework_smoke ingest job so the overlay image
+// lands on the correct geographic extent.
+const SMOKE_RECT = Rectangle.fromDegrees(-139.0, 48.3, -114.0, 60.0);
 
 export function SmokeLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
