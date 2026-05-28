@@ -1,31 +1,25 @@
-"""ECCC GeoMet AQHI realtime ingest (hourly @ :10)."""
+"""ECCC GeoMet AQHI realtime ingest (hourly @ :10).
+
+Covers the whole province so the air-quality stations map shows every BC
+AQHI station, matching the province-wide fire/hotspot/evac layers. The
+/api/aq/current headline still selects the Kamloops station.
+"""
 
 from __future__ import annotations
 
 import json
-import math
 
 import pandas as pd
 
-from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
+from ..constants import BC_BBOX_EAST, BC_BBOX_NORTH, BC_BBOX_SOUTH, BC_BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, parse_iso
 
-
 GEOMET_URL = (
     "https://api.weather.gc.ca/collections/aqhi-observations-realtime/items"
-    "?bbox=-121.5,50.0,-118.5,51.5&f=json&limit=500&sortby=-observation_datetime"
+    f"?bbox={BC_BBOX_WEST},{BC_BBOX_SOUTH},{BC_BBOX_EAST},{BC_BBOX_NORTH}"
+    "&f=json&limit=1000&sortby=-observation_datetime"
 )
-KEEP_RADIUS_KM = 100.0
-
-
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    r = 6371.0088
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return 2 * r * math.asin(math.sqrt(a))
 
 
 class GeoMetAQHIRealtimeJob(IngestJob):
@@ -55,8 +49,6 @@ class GeoMetAQHIRealtimeJob(IngestJob):
             coords = geom.get("coordinates") or [None, None]
             lon, lat = coords[0], coords[1]
             if lat is None or lon is None:
-                continue
-            if _haversine_km(KAMLOOPS_LAT, KAMLOOPS_LON, lat, lon) > KEEP_RADIUS_KM:
                 continue
             obs_dt = parse_iso(props.get("observation_datetime"))
             obs_iso = obs_dt.isoformat() if obs_dt else props.get("observation_datetime")
@@ -98,7 +90,7 @@ class GeoMetAQHIRealtimeJob(IngestJob):
             try:
                 existing = pd.read_parquet(out_path)
                 merged = pd.concat([existing, new_df], ignore_index=True)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 ctx.log.info("geomet_aqhi.existing_read_fail", err=str(e))
                 merged = new_df
         else:

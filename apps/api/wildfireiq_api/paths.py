@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT: Path = Path(__file__).resolve().parents[3]
 DATA_ROOT: Path = REPO_ROOT / "data"
 RAW_ROOT: Path = DATA_ROOT / "raw"

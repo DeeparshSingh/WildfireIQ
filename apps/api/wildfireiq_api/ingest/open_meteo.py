@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
 from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
-
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -197,7 +196,7 @@ class OpenMeteoArchiveBootstrapJob(IngestJob):
     label = "Open-Meteo ERA5 archive + recent tail · Kamloops daily"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         yesterday = (today - timedelta(days=1)).isoformat()
 
         # ── 1. Deep ERA5 history (1999 → yesterday; trailing ~5 days NaN) ──
@@ -234,7 +233,7 @@ class OpenMeteoArchiveBootstrapJob(IngestJob):
                 df = pd.concat([df, tail], ignore_index=True)
                 df["day_local"] = df["day_local"].astype(str)
                 df = df.drop_duplicates(subset=["day_local"], keep="last")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             ctx.log.info("open_meteo.archive.tail_failed", error=str(exc))
 
         # Drop any rows that are still entirely NaN (ERA5's unfilled tail).

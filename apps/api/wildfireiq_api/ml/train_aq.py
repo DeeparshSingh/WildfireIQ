@@ -28,16 +28,13 @@ Time-series train/test split — 80% chronological train, 20% holdout test.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_pinball_loss
 
 from ..paths import MODELS_ROOT, PROCESSED_ROOT
-
 
 HORIZONS_H = [1, 3, 6, 12, 24, 36, 48]
 QUANTILES = [0.10, 0.50, 0.90]
@@ -122,8 +119,8 @@ def main() -> None:
         h_dir = ART / f"h{h}"
         h_dir.mkdir(exist_ok=True)
         h_metrics: dict[str, float] = {
-            "n_train": int(len(train)),
-            "n_test": int(len(test)),
+            "n_train": len(train),
+            "n_test": len(test),
         }
 
         for q in QUANTILES:

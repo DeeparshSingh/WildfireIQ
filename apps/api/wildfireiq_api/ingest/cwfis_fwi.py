@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 
 import httpx
 import pandas as pd
 
 from ..constants import (
     BC_BBOX_EAST as BBOX_EAST,
+)
+from ..constants import (
     BC_BBOX_NORTH as BBOX_NORTH,
+)
+from ..constants import (
     BC_BBOX_SOUTH as BBOX_SOUTH,
+)
+from ..constants import (
     BC_BBOX_WEST as BBOX_WEST,
 )
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs
-
 
 WFS_URL = "https://cwfis.cfs.nrcan.gc.ca/geoserver/public/ows"
 
@@ -142,7 +146,7 @@ class CWFISFWIDailyJob(IngestJob):
             try:
                 prev = pd.read_parquet(hist_path)
                 combined = pd.concat([prev, df], ignore_index=True)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 combined = df.copy()
         else:
             combined = df.copy()

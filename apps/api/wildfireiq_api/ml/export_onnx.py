@@ -20,7 +20,6 @@ from pathlib import Path
 
 import numpy as np
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 RISK_DIR = REPO_ROOT / "data" / "models" / "wildfire_risk_v1"
 

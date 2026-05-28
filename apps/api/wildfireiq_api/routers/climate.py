@@ -20,9 +20,9 @@ from typing import Any
 
 from fastapi import APIRouter, Response
 
+from ..ml.trends import theil_sen_with_ci
 from . import _data
 from ._envelope import Envelope, Meta
-from ..ml.trends import theil_sen_with_ci
 
 router = APIRouter()
 
@@ -66,7 +66,7 @@ def _envelope_or_csv(
 
 
 @router.get("/seasonal", summary="Per-year fire+climate metrics, 1999-present")
-async def seasonal(format: str = "json") -> Any:  # noqa: A002
+async def seasonal(format: str = "json") -> Any:
     rows = _data.seasonal_metrics()
     return _envelope_or_csv(
         rows,
@@ -126,7 +126,7 @@ async def trends() -> dict[str, Any]:
 
 
 @router.get("/ribbon", summary="Fire-season ribbon: first/last DOY per year")
-async def ribbon(format: str = "json") -> Any:  # noqa: A002
+async def ribbon(format: str = "json") -> Any:
     rows = _data.seasonal_metrics()
     ribbon_rows = [
         {
@@ -151,7 +151,7 @@ async def ribbon(format: str = "json") -> Any:  # noqa: A002
 async def projection(
     ssp: str = "ssp245",
     var: str = "tasmean",
-    format: str = "json",  # noqa: A002
+    format: str = "json",
 ) -> Any:
     rows = _data.climate_projections(ssp=ssp, var=var)
     return _envelope_or_csv(
@@ -240,7 +240,7 @@ async def fwi_projection() -> dict[str, Any]:
                 "baseline + scenario ΔT thereafter). Coarse heuristic, not a "
                 "physics-driven projection."
             ),
-            "fit": {"slope_days_per_C": float(slope), "intercept": float(intercept), "n": int(len(T))},
+            "fit": {"slope_days_per_C": float(slope), "intercept": float(intercept), "n": len(T)},
             "scenarios": out,
         },
         meta=Meta(

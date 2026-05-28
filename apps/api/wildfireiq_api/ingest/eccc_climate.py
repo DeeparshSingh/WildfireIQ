@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 
 import pandas as pd
@@ -11,7 +11,6 @@ import pandas as pd
 from ..constants import KAMLOOPS_A_STATION_ID
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
-
 
 BULK_URL = "https://climate.weather.gc.ca/climate_data/bulk_data_e.html"
 
@@ -35,7 +34,7 @@ class ECCCClimateBulkJob(IngestJob):
     label = "ECCC · Kamloops climate bulk (bootstrap)"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        current_year = datetime.now(timezone.utc).year
+        current_year = datetime.now(UTC).year
         frames: list[pd.DataFrame] = []
         artifacts: list = []
         rows_total = 0
@@ -52,7 +51,7 @@ class ECCCClimateBulkJob(IngestJob):
             try:
                 r = await ctx.client.get(BULK_URL, params=params, timeout=60.0)
                 r.raise_for_status()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 ctx.log.info("eccc.fetch_failed", year=year, error=str(exc))
                 await asyncio.sleep(0.5)
                 continue
@@ -64,7 +63,7 @@ class ECCCClimateBulkJob(IngestJob):
 
             try:
                 df = pd.read_csv(StringIO(text_body), header=0, low_memory=False)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 ctx.log.info("eccc.parse_failed", year=year, error=str(exc))
                 await asyncio.sleep(0.5)
                 continue

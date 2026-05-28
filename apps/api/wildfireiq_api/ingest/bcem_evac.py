@@ -11,13 +11,18 @@ from shapely.geometry.base import BaseGeometry
 
 from ..constants import (
     BC_BBOX_EAST as BBOX_EAST,
+)
+from ..constants import (
     BC_BBOX_NORTH as BBOX_NORTH,
+)
+from ..constants import (
     BC_BBOX_SOUTH as BBOX_SOUTH,
+)
+from ..constants import (
     BC_BBOX_WEST as BBOX_WEST,
 )
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
-
 
 CANDIDATE_URLS = [
     "https://services6.arcgis.com/ubm4tcTYICKBpist/arcgis/rest/services/"
@@ -71,7 +76,7 @@ class BCEMEvacuationJob(IngestJob):
                 gj = r.json()
                 used_url = url
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 probe_notes.append(f"{url} -> {e!r}")
                 continue
 
@@ -96,7 +101,7 @@ class BCEMEvacuationJob(IngestJob):
                 continue
             try:
                 geom: BaseGeometry = shape(geom_raw)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
             if geom.is_empty or not geom.intersects(region):
                 continue
@@ -125,7 +130,7 @@ class BCEMEvacuationJob(IngestJob):
             if isinstance(issued_raw, (int, float)):
                 try:
                     issued_iso = pd.to_datetime(issued_raw, unit="ms", utc=True).isoformat()
-                except Exception:  # noqa: BLE001
+                except Exception:
                     issued_iso = None
             elif isinstance(issued_raw, str):
                 d = parse_iso(issued_raw)
@@ -137,7 +142,7 @@ class BCEMEvacuationJob(IngestJob):
             )
             try:
                 area_ha = float(geom.area) * 1e4  # rough: degrees^2 * 1e4 ~ very approximate
-            except Exception:  # noqa: BLE001
+            except Exception:
                 area_ha = None
             # Prefer explicit field if present
             area_field = kvs(props, "AREA_HECTARES", "Hectares", "Area_ha")

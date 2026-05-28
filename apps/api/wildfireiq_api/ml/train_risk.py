@@ -18,7 +18,6 @@ fire-day count) to produce a per-cell risk score, which is then bucketed:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import joblib
 import lightgbm as lgb
@@ -34,7 +33,6 @@ from sklearn.metrics import (
 )
 
 from ..paths import MODELS_ROOT, PROCESSED_ROOT
-
 
 FEATURE_COLS = [
     # current-day weather
@@ -108,9 +106,9 @@ def main() -> None:
     p_test_cal = calibrator.predict(p_test_raw)
 
     metrics = {
-        "n_train": int(len(train)),
-        "n_val": int(len(val)),
-        "n_test": int(len(test)),
+        "n_train": len(train),
+        "n_val": len(val),
+        "n_test": len(test),
         "best_iter": int(booster.best_iteration or PARAMS.get("num_iterations", 0)),
         "val_pr_auc_raw": float(average_precision_score(y_val, p_val_raw)),
         "val_roc_auc_raw": float(roc_auc_score(y_val, p_val_raw)),

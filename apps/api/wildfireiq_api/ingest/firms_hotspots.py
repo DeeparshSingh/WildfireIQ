@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import io
-from datetime import datetime, timezone
 
 import pandas as pd
 
 from ..constants import (
     BC_BBOX_EAST as BBOX_EAST,
+)
+from ..constants import (
     BC_BBOX_NORTH as BBOX_NORTH,
+)
+from ..constants import (
     BC_BBOX_SOUTH as BBOX_SOUTH,
+)
+from ..constants import (
     BC_BBOX_WEST as BBOX_WEST,
 )
 from ..paths import PROCESSED_ROOT
 from ..settings import get_settings
 from .base import IngestContext, IngestJob, IngestReport
-
 
 FIRMS_BASE = "https://firms.modaps.eosdis.nasa.gov/usfs/api/area/csv"
 SOURCES = ["VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT", "MODIS_NRT"]
@@ -65,7 +69,7 @@ class FIRMSHotspotsJob(IngestJob):
 
             try:
                 df = pd.read_csv(io.StringIO(csv_text))
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 ctx.log.info("firms.parse_failed", source=source, err=str(e))
                 continue
 

@@ -20,7 +20,6 @@ from .routers import admin, aq, climate, evac, fires, firesmart, fwi, risk, weat
 from .scheduler import refresh_stale_jobs, start_scheduler, stop_scheduler
 from .settings import get_settings
 
-
 # Historical / static endpoints can cache longer — they only change when
 # an overnight ingest job rewrites the underlying parquet.
 _LONG_CACHE_PREFIXES = (
@@ -91,7 +90,7 @@ async def lifespan(app: FastAPI):
         con.execute("SELECT 1").fetchall()
         con.close()
         log.info("duckdb.warmup.ok")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("duckdb.warmup.skip", error=str(exc))
     settings = get_settings()
     # Refresh anything stale before serving — fires the cron jobs that would

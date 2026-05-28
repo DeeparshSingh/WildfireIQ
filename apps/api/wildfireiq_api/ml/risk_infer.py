@@ -13,17 +13,14 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from pathlib import Path
 
 import joblib
 import lightgbm as lgb
-import numpy as np
 import pandas as pd
 
 from ..paths import MODELS_ROOT, PROCESSED_ROOT
-from .features import _enrich_weather  # noqa: PLC2701
+from .features import _enrich_weather
 from .train_risk import FEATURE_COLS
-
 
 ART_DIR = MODELS_ROOT / "wildfire_risk_v1"
 

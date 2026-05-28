@@ -69,7 +69,7 @@ train-aq:
 .PHONY: research-assets
 research-assets:
 	@mkdir -p apps/web/public/research
-	@cp -f docs/model-cards/*.md apps/web/public/research/ 2>/dev/null || true
+	@cp -f documents/model-cards/*.md apps/web/public/research/ 2>/dev/null || true
 	@cp -f data/models/wildfire_risk_v1/metrics.json apps/web/public/research/wildfire_risk_v1.metrics.json 2>/dev/null || true
 	@cp -f data/models/aq_forecaster_v1/metrics.json apps/web/public/research/aq_forecaster_v1.metrics.json 2>/dev/null || true
 	@echo "Mirrored model cards + metrics into apps/web/public/research/"

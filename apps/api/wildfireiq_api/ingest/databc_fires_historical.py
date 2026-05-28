@@ -8,7 +8,7 @@ from __future__ import annotations
 import io
 import json
 import zipfile
-from datetime import timezone
+from datetime import UTC
 
 import pandas as pd
 from shapely.geometry import box, shape
@@ -16,7 +16,6 @@ from shapely.geometry import box, shape
 from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
-
 
 WFS_BASE = "https://openmaps.gov.bc.ca/geo/pub/wfs"
 PERIM_TYPE = "pub:WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_FIRE_POLYS_SP"
@@ -62,7 +61,7 @@ def _row_from_feature(feat: dict, layer_label: str, kind: str, bbox_poly) -> dic
                 keep = g.intersects(bbox_poly)
             else:
                 keep = (BBOX_WEST <= lon <= BBOX_EAST) and (BBOX_SOUTH <= lat <= BBOX_NORTH)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
     if not keep:
         return None
@@ -85,7 +84,7 @@ def _row_from_feature(feat: dict, layer_label: str, kind: str, bbox_poly) -> dic
         "fire_year": int(kvs(props, "FIRE_YEAR") or 0) or None,
         "fire_name": str(kvs(props, "FIRE_NAME", "INCIDENT_NAME") or ""),
         "hectares": float(hectares_raw) if hectares_raw is not None else None,
-        "discovery_date_utc": disc_dt.astimezone(timezone.utc).isoformat() if disc_dt else "",
+        "discovery_date_utc": disc_dt.astimezone(UTC).isoformat() if disc_dt else "",
         "ignition_cause": str(
             kvs(props, "FIRE_CAUSE", "GENERAL_CAUSE", "IGNITION_CAUSE") or ""
         ),
@@ -107,7 +106,7 @@ async def _wfs_paged(ctx: IngestContext, type_name: str, kind: str, layer_label:
         r.raise_for_status()
         try:
             fc = r.json()
-        except Exception:  # noqa: BLE001
+        except Exception:
             break
         feats = fc.get("features", []) or []
         if not feats:
@@ -168,7 +167,7 @@ class DataBCFiresHistoricalJob(IngestJob):
         try:
             perim_rows, perim_in = await _try_zip_perimeters(ctx, bbox_poly)
             ctx.log.info("databc_hist.zip.ok", rows=len(perim_rows))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             notes.append(f"perimeters zip failed ({type(e).__name__}); used WFS pagination")
             ctx.log.info("databc_hist.zip.fail", err=str(e))
             perim_rows, perim_in = await _wfs_paged(

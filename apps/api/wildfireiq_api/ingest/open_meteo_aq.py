@@ -13,14 +13,13 @@ Output: `data/processed/aq_hourly_kamloops.parquet` — UPSERT on `time_utc`.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
 from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
-
 
 AQ_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 WX_URL = "https://api.open-meteo.com/v1/forecast"
@@ -66,14 +65,14 @@ class OpenMeteoAQArchiveJob(IngestJob):
         return await _run(self, ctx)
 
 
-async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestContext) -> IngestReport:
+async def _run(job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestContext) -> IngestReport:
     fetched_at = ctx.started_at_utc.isoformat()
 
     # Archive mode uses an explicit date range (past_days is capped at 92 by
     # the AQ endpoint); the hourly cron uses past_days/forecast_days.
     archive_days = getattr(job, "archive_days", None)
     if archive_days:
-        end = datetime.now(timezone.utc).date()
+        end = datetime.now(UTC).date()
         start = end - pd.Timedelta(days=archive_days)
         range_params = {"start_date": start.isoformat(), "end_date": end.isoformat()}
         wx_url = ARCHIVE_URL  # ERA5 archive supports the long window
@@ -163,7 +162,7 @@ async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestC
             df = df.sort_values("time_utc").drop_duplicates(
                 subset=["time_utc"], keep="last"
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             ctx.log.info("openmeteo_aq.upsert_failed", error=str(exc))
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

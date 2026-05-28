@@ -126,7 +126,7 @@ A higher FWI doesn't mean a fire is happening — it means the *conditions* for 
 4. **Validation discipline.** We never let the model see 2022 or 2023 during training. Testing on those held-out years is what makes the 0.66 number trustworthy rather than memorised.
 5. **Per-cell step.** The single regional probability is scaled by each H3 hexagon's historical fire count (square-root-normalised so a few extreme cells don't dominate), then bucketed Low/Moderate/High/Extreme.
 
-Full detail and reliability diagrams: [`docs/model-cards/wildfire_risk_v1.md`](./docs/model-cards/wildfire_risk_v1.md).
+Full detail and reliability diagrams: [`model-cards/wildfire_risk_v1.md`](./model-cards/wildfire_risk_v1.md).
 
 ---
 
@@ -138,7 +138,7 @@ Full detail and reliability diagrams: [`docs/model-cards/wildfire_risk_v1.md`](.
 | **Where the data comes from** | Live AQHI from ECCC GeoMet; pollutant breakdown from WAQI; hourly PM2.5 history + forecast inputs from Open-Meteo CAMS. |
 | **How often it updates** | Live AQHI every **hour**; pollutant feed every **hour**; the AQ history archive refreshes nightly to keep a rolling 365-day calendar. |
 | **How the forecast is computed** | A second in-house model: **21 LightGBM quantile regressors** (7 forecast horizons × 3 quantiles — 10th, 50th, 90th percentile). The 50th is the central forecast; the 10th–90th band is the honest uncertainty range shown on the chart. |
-| **Accuracy** | The forecaster beats the naïve "tomorrow = today" persistence baseline at the 6-, 12-, 36-, and 48-hour horizons. Full per-horizon error table: [`docs/model-cards/aq_forecaster_v1.md`](./docs/model-cards/aq_forecaster_v1.md). |
+| **Accuracy** | The forecaster beats the naïve "tomorrow = today" persistence baseline at the 6-, 12-, 36-, and 48-hour horizons. Full per-horizon error table: [`model-cards/aq_forecaster_v1.md`](./model-cards/aq_forecaster_v1.md). |
 | **Known limits** | One location (Kamloops). It can't see a smoke plume coming from across the US border until the lagged readings start to rise. |
 
 ### What is AQHI?
@@ -179,4 +179,4 @@ The **smoke calendar** colours each of the last 365 days by that day's worst AQH
 
 ---
 
-*Last reviewed: 2026-05-28. For the engineering-level account of every pipeline, see [`logic.md`](./logic.md). For per-field parquet schemas, see [`docs/data-dictionary.md`](./docs/data-dictionary.md).*
+*Last reviewed: 2026-05-28. For the engineering-level account of every pipeline, see [`logic.md`](./logic.md). For per-field parquet schemas, see [`data-dictionary.md`](./data-dictionary.md).*

@@ -804,4 +804,41 @@ without waiting for the next cron tick.
 
 ---
 
-*Updated through Phase 4 + auto-refresh wiring. Append new sections as later phases ship.*
+## Handoff state (current)
+
+All seven phases are implemented. Notable items finalised during the
+polish/handoff pass:
+
+- **Always-fresh launch.** On startup the backend refreshes any source
+  older than 30 minutes, so fires, hotspots, evac, FWI, smoke, AQHI, the
+  weather archive, and the AI risk grid are current within seconds.
+- **AI risk grid freshness.** The ERA5 archive job runs daily and splices
+  the recent observed tail from the forecast endpoint, so the daily
+  weather series reaches today and the risk grid is computed on today's
+  weather (previously it could lag ~18 days).
+- **Smoke calendar.** The AQ archive pulls a true rolling 365 days via
+  `start_date`/`end_date` (CAMS), so the calendar fills the full year.
+- **FWI stations.** The multi-station pull caps concurrency and retries on
+  HTTP 429, so all 18 BC stations populate reliably.
+- **Province-wide coverage.** Active fires, hotspots, evacuation zones,
+  FWI stations, AQHI, and the smoke overlay all cover BC. Historical fires
+  and the AI risk grid remain scoped to the Thompson-Okanagan by design
+  (the risk model uses one regional weather signal — a documented limit).
+- **Globe panels.** Active-fire and evacuation lists sort newest-first;
+  evac has a "hide past" control that removes rescinded zones from both
+  the list and the map.
+- **Layer copy** rewritten for a non-technical audience; per-layer
+  reference in [`data-layer.md`](./data-layer.md).
+- **Frontend** code-splits every non-globe route; the backend sets
+  Cache-Control headers and warms DuckDB at startup.
+
+### Remaining (optional, not blocking handoff)
+
+- 90-second demo recording.
+- On-device iPad usability testing.
+- Swap the synthetic CMIP6 placeholder for the live ClimateData.ca
+  ensemble (a parquet drop-in; no code change).
+
+---
+
+*Reflects all phases through handoff. Documentation index is in the project README.*

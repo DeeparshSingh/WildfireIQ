@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC
 
 import pandas as pd
 from shapely.geometry import shape
@@ -16,7 +16,6 @@ from ..constants import (
 )
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
-
 
 WFS_BASE = "https://openmaps.gov.bc.ca/geo/pub/wfs"
 PERIM_TYPE = "pub:WHSE_LAND_AND_NATURAL_RESOURCE.PROT_CURRENT_FIRE_POLYS_SP"
@@ -84,7 +83,7 @@ class DataBCFiresCurrentJob(IngestJob):
                         c = g.centroid
                         lat = float(c.y)
                         lon = float(c.x)
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         pass
 
                 disc = kvs(
@@ -112,7 +111,7 @@ class DataBCFiresCurrentJob(IngestJob):
                         if kvs(props, "CURRENT_SIZE", "FIRE_SIZE_HECTARES", "SIZE_HA")
                         is not None
                         else None,
-                        "discovery_date_utc": disc_dt.astimezone(timezone.utc).isoformat()
+                        "discovery_date_utc": disc_dt.astimezone(UTC).isoformat()
                         if disc_dt
                         else "",
                         "latitude": lat,

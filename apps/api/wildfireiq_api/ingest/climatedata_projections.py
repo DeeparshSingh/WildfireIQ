@@ -13,7 +13,6 @@ import pandas as pd
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
 
-
 SCENARIOS = {
     "ssp126": 1.5,
     "ssp245": 2.5,

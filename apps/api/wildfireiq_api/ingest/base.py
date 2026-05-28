@@ -6,7 +6,7 @@ import asyncio
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,6 @@ from tenacity import (
 from .. import __version__
 from ..db import session_scope
 from ..paths import RAW_ROOT
-
 
 USER_AGENT: str = (
     f"WildfireIQ/{__version__} "
@@ -93,7 +92,7 @@ class IngestJob(ABC):
 async def run_job(job: IngestJob, *, timeout: float = 60.0) -> IngestReport:
     """Run a job with HTTPX, retries, and ingest_runs bookkeeping."""
     log = structlog.get_logger().bind(job=job.name)
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     started_perf = time.perf_counter()
 
     async with httpx.AsyncClient(
@@ -120,7 +119,7 @@ async def run_job(job: IngestJob, *, timeout: float = 60.0) -> IngestReport:
                 status="fail",
                 error=f"retries exhausted: {exc!r}",
             )
-        except Exception as exc:  # noqa: BLE001 — record + continue
+        except Exception as exc:
             report = IngestReport(
                 job_name=job.name,
                 status="fail",
@@ -128,7 +127,7 @@ async def run_job(job: IngestJob, *, timeout: float = 60.0) -> IngestReport:
             )
 
     report.duration_ms = int((time.perf_counter() - started_perf) * 1000)
-    finished_at = datetime.now(timezone.utc)
+    finished_at = datetime.now(UTC)
 
     log.info(
         "ingest.run.complete",

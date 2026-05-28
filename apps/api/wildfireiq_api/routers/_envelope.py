@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
@@ -11,7 +11,7 @@ T = TypeVar("T")
 
 
 class Meta(BaseModel):
-    cached_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    cached_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     source: str = "wildfireiq"
     attribution: str = ""
     phase: str = "0"

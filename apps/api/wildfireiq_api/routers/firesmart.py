@@ -121,7 +121,6 @@ def _badges_for(
 ) -> list[dict[str, str]]:
     """Centralised badge ladder. Mirrors the frontend exactly."""
     earned: list[dict[str, str]] = []
-    by_id = {a["id"]: a for a in actions}
 
     def _has(pred: bool, ach_id: str) -> None:
         if not pred:

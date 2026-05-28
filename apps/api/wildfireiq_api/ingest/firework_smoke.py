@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
 from ..constants import BC_BBOX_EAST, BC_BBOX_NORTH, BC_BBOX_SOUTH, BC_BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
-
 
 # ISO 8601 duration parsing — minimal subset covering ECCC's PT<H>H / PT<M>M / P<D>D / PT<H>H<M>M.
 _DUR_RE = re.compile(
@@ -28,7 +27,7 @@ def _parse_iso(s: str) -> datetime | None:
     if not s:
         return None
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(UTC)
     except ValueError:
         return None
 

@@ -77,7 +77,7 @@ class WAQIKamloopsJob(IngestJob):
             try:
                 existing = pd.read_parquet(out_path)
                 merged = pd.concat([existing, new_df], ignore_index=True)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 ctx.log.info("waqi.existing_read_fail", err=str(e))
                 merged = new_df
         else:

@@ -11,7 +11,6 @@ Outputs:
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import h3
@@ -21,7 +20,6 @@ import pandas as pd
 from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
 from ..paths import PROCESSED_ROOT
 from .fwi import compute_fwi
-
 
 H3_RES = 5  # ~250 km² hexagons — ~180 cells over Thompson-Okanagan
 

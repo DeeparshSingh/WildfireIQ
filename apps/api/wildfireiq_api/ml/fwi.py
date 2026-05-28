@@ -36,7 +36,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-
 # Day-length factors from Van Wagner (1987), for ~50° N latitude (lat 46–54).
 # Index 0 unused; 1–12 = Jan–Dec.
 DAYLENGTH_DMC = np.array(

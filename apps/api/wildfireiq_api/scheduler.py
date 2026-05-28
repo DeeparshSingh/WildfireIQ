@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -14,7 +14,6 @@ from .db import session_scope
 from .ingest.base import IngestJob, run_job
 from .ingest.registry import scheduled_jobs
 
-
 log = structlog.get_logger()
 _scheduler: AsyncIOScheduler | None = None
 
@@ -23,7 +22,7 @@ def _wrap(job: IngestJob):
     async def runner():
         try:
             await run_job(job)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.error("scheduler.job.crash", job=job.name, error=str(exc))
 
     return runner
@@ -72,7 +71,7 @@ async def refresh_stale_jobs(max_age_minutes: int) -> None:
     Runs jobs concurrently to keep startup fast. Errors are logged, never
     raised — a failed upstream shouldn't block the API from booting.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)
+    cutoff = datetime.now(UTC) - timedelta(minutes=max_age_minutes)
     cutoff_iso = cutoff.isoformat()
 
     to_run: list[IngestJob] = []
@@ -104,7 +103,7 @@ async def refresh_stale_jobs(max_age_minutes: int) -> None:
     async def _safe(j: IngestJob):
         try:
             await run_job(j)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("startup_refresh.job_failed", job=j.name, error=str(exc))
 
     # Cap parallelism at 5 so we don't hammer a single upstream.

@@ -6,11 +6,11 @@ from .base import IngestJob
 from .bcem_evac import BCEMEvacuationJob
 from .climatedata_projections import ClimateDataProjectionsJob
 from .cwfis_fwi import CWFISFWIDailyJob
+from .databc_fires_current import DataBCFiresCurrentJob
+from .databc_fires_historical import DataBCFiresHistoricalJob
 from .derived_fires_unified import DerivedFiresUnifiedJob
 from .derived_fwi import DerivedFWIStationsJob
 from .derived_seasonal_metrics import DerivedSeasonalMetricsJob
-from .databc_fires_current import DataBCFiresCurrentJob
-from .databc_fires_historical import DataBCFiresHistoricalJob
 from .eccc_climate import ECCCClimateBulkJob
 from .firework_smoke import FireWorkSmokeForecastJob
 from .firms_hotspots import FIRMSHotspotsJob

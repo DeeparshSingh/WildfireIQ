@@ -30,7 +30,6 @@ from ..ml.fwi import compute_fwi
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
 
-
 # Representative BC weather stations (name, lat, lon) — same anchors users
 # search for in the location bar and that appear on the BCWS Fire Centre map.
 STATIONS: list[tuple[str, float, float]] = [
@@ -92,7 +91,7 @@ async def _pull_station_weather(
                 continue
             r.raise_for_status()
             break
-        except Exception:  # noqa: BLE001
+        except Exception:
             await asyncio.sleep(1.0 * (attempt + 1))
             r = None
     if r is None or r.status_code != 200:
