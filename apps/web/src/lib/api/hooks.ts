@@ -21,6 +21,15 @@ export type Fire = {
   fetched_at_utc: string;
 };
 
+/** Sort fires newest-discovered first; undated fires sink to the bottom. */
+export function sortFiresByDateDesc(fires: Fire[]): Fire[] {
+  return [...fires].sort((a, b) => {
+    const ta = a.discovery_date_utc ? Date.parse(a.discovery_date_utc) : -Infinity;
+    const tb = b.discovery_date_utc ? Date.parse(b.discovery_date_utc) : -Infinity;
+    return tb - ta;
+  });
+}
+
 export type Hotspot = {
   latitude: number;
   longitude: number;

@@ -6,6 +6,7 @@ import {
   type Fire,
   isPastEvac,
   sortEvacByDateDesc,
+  sortFiresByDateDesc,
   useEvacActive,
   useFiresCurrent,
   useFirmsHotspots,
@@ -523,6 +524,18 @@ function fireCentroid(f: Fire): [number, number] | null {
   return null;
 }
 
+function fmtDiscoveryDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Vancouver",
+  }).format(d);
+}
+
 function FiresBrowser() {
   const filter = useFiltersStore((s) => s.fires);
   const setFires = useFiltersStore((s) => s.setFires);
@@ -532,7 +545,7 @@ function FiresBrowser() {
 
   const items = useMemo(() => {
     const arr = hooks ?? [];
-    return arr.filter((f) => {
+    const filtered = arr.filter((f) => {
       const status = (f.status ?? "").toLowerCase();
       const isOut = status === "out" || status === "extinguished";
       if (isOut && !filter.includeExtinguished) return false;
@@ -543,6 +556,8 @@ function FiresBrowser() {
         return false;
       return true;
     });
+    // Newest discovered first.
+    return sortFiresByDateDesc(filtered);
   }, [hooks, filter, search]);
 
   return (
@@ -562,7 +577,7 @@ function FiresBrowser() {
           ≥ 10 ha
         </FilterChip>
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
-          {items.length} match{items.length === 1 ? "" : "es"}
+          {items.length} match{items.length === 1 ? "" : "es"} · newest first
         </span>
       </Toolbar>
       <ResultsList
@@ -570,12 +585,13 @@ function FiresBrowser() {
         empty="No fires match the current filters."
         render={(f) => {
           const c = fireCentroid(f);
+          const discovered = fmtDiscoveryDate(f.discovery_date_utc);
           return (
             <Row
               key={f.fire_id}
               onClick={() => c && flyAndClose(c[0], c[1], 35_000)}
               primary={f.fire_name || `Fire ${f.fire_id}`}
-              secondary={`${f.status ?? "—"} · ${f.stage_of_control ?? "—"}`}
+              secondary={`${f.status ?? "—"} · ${f.stage_of_control ?? "—"}${discovered ? ` · discovered ${discovered}` : ""}`}
               badge={f.hectares != null ? `${f.hectares.toLocaleString()} ha` : "—"}
               badgeColor="var(--color-ember-400)"
             />
