@@ -114,7 +114,7 @@ def build() -> Path:
     # Clip to 1999+ (where DataBC's record begins) and exclude the current
     # incomplete year unless > Oct (so the chart isn't dragged down by a
     # half-finished season).
-    today = pd.Timestamp.utcnow()
+    today = pd.Timestamp.now(tz="UTC")
     cur_year = int(today.year)
     if today.month < 10:
         df = df[df.year < cur_year]

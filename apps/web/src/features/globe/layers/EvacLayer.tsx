@@ -9,9 +9,10 @@ import {
   type Entity,
 } from "cesium";
 
-import { useEvacActive, type EvacZone } from "@/lib/api/hooks";
+import { isPastEvac, useEvacActive, type EvacZone } from "@/lib/api/hooks";
 import { parseWkt } from "@/lib/cesium-helpers/wkt";
 import { requestRender } from "@/lib/cesium-helpers/render";
+import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -66,6 +67,7 @@ export function EvacLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
   const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.evac);
+  const hidePast = useFiltersStore((s) => s.evac.hidePast);
   const { data } = useEvacActive();
 
   const addedRef = useRef<Entity[]>([]);
@@ -92,6 +94,9 @@ export function EvacLayer() {
     }
 
     for (const z of data) {
+      // Hide rescinded / no-longer-active zones from the map when the
+      // "hide past" control is on (mirrors the modal list filter).
+      if (hidePast && isPastEvac(z)) continue;
       const parsed = parseWkt(z.geom_wkt);
       if (!parsed || parsed.kind === "point") continue;
       const rings = parsed.positions;
@@ -143,7 +148,7 @@ export function EvacLayer() {
     requestRender(viewer);
 
     return cleanup;
-  }, [viewer, gate, visible, data]);
+  }, [viewer, gate, visible, data, hidePast]);
 
   return null;
 }

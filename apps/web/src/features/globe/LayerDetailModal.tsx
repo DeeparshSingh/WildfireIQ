@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   type EvacZone,
   type Fire,
+  isPastEvac,
+  sortEvacByDateDesc,
   useEvacActive,
   useFiresCurrent,
   useFirmsHotspots,
@@ -663,7 +665,8 @@ function EvacBrowser() {
 
   const items = useMemo(() => {
     const arr = hooks ?? [];
-    return arr.filter((z) => {
+    const filtered = arr.filter((z) => {
+      if (filter.hidePast && isPastEvac(z)) return false;
       const status = (z.status ?? "").toLowerCase();
       if (filter.statuses.length > 0 && !filter.statuses.some((s) => status.includes(s.toLowerCase())))
         return false;
@@ -673,6 +676,8 @@ function EvacBrowser() {
       }
       return true;
     });
+    // Newest issued first.
+    return sortEvacByDateDesc(filtered);
   }, [hooks, filter, search]);
 
   const statusActive = (s: string) => filter.statuses.includes(s);
@@ -690,8 +695,11 @@ function EvacBrowser() {
         <FilterChip active={statusActive("Order")} onClick={() => toggleStatus("Order")}>Order</FilterChip>
         <FilterChip active={statusActive("Alert")} onClick={() => toggleStatus("Alert")}>Alert</FilterChip>
         <FilterChip active={statusActive("Rescind")} onClick={() => toggleStatus("Rescind")}>Rescind</FilterChip>
+        <FilterChip active={filter.hidePast} onClick={() => setEvac({ hidePast: !filter.hidePast })}>
+          {filter.hidePast ? "Hiding past" : "Show past"}
+        </FilterChip>
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
-          {items.length} zone{items.length === 1 ? "" : "s"}
+          {items.length} zone{items.length === 1 ? "" : "s"} · newest first
         </span>
       </Toolbar>
       <ResultsList

@@ -43,14 +43,24 @@ class OpenMeteoAQHourlyJob(IngestJob):
 
 
 class OpenMeteoAQArchiveJob(IngestJob):
-    """One-shot bootstrap — 92 days back to populate training data."""
+    """Bootstrap + nightly top-up — 365 days back.
+
+    The air-quality `past_days` parameter is capped at 92 by Open-Meteo, so
+    for a full year we pass an explicit `start_date`/`end_date` range. CAMS
+    reanalysis is available from 2022-07-29 onward, so a 365-day window is
+    always satisfiable. Weather features for the same window come from the
+    ERA5 archive endpoint (which also accepts the date range).
+
+    Runs nightly so the smoke-event calendar always covers a rolling year.
+    """
 
     name = "open_meteo_aq_archive"
-    cadence = None
-    label = "Open-Meteo · Kamloops AQ archive bootstrap (92 days)"
+    cadence = "40 2 * * *"  # 02:40 UTC, after the other derived jobs
+    label = "Open-Meteo · Kamloops AQ archive (365 days)"
 
-    past_days = 92
+    past_days = 92  # unused in date-range mode; kept for the shared _run signature
     forecast_days = 0
+    archive_days = 365  # triggers start_date/end_date mode
 
     async def run(self, ctx: IngestContext) -> IngestReport:
         return await _run(self, ctx)
@@ -58,6 +68,18 @@ class OpenMeteoAQArchiveJob(IngestJob):
 
 async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestContext) -> IngestReport:
     fetched_at = ctx.started_at_utc.isoformat()
+
+    # Archive mode uses an explicit date range (past_days is capped at 92 by
+    # the AQ endpoint); the hourly cron uses past_days/forecast_days.
+    archive_days = getattr(job, "archive_days", None)
+    if archive_days:
+        end = datetime.now(timezone.utc).date()
+        start = end - pd.Timedelta(days=archive_days)
+        range_params = {"start_date": start.isoformat(), "end_date": end.isoformat()}
+        wx_url = ARCHIVE_URL  # ERA5 archive supports the long window
+    else:
+        range_params = {"past_days": str(job.past_days), "forecast_days": str(job.forecast_days)}
+        wx_url = WX_URL
 
     # ── 1. Pull air quality ────────────────────────────────────────
     aq_params = {
@@ -72,11 +94,10 @@ async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestC
             "ozone",
             "european_aqi",
         ]),
-        "past_days": str(job.past_days),
-        "forecast_days": str(job.forecast_days),
         "timezone": "UTC",
+        **range_params,
     }
-    ctx.log.info("openmeteo_aq.fetch", past_days=job.past_days, forecast_days=job.forecast_days)
+    ctx.log.info("openmeteo_aq.fetch", mode="archive" if archive_days else "hourly", **range_params)
     r = await ctx.client.get(AQ_URL, params=aq_params)
     r.raise_for_status()
     aq = r.json().get("hourly", {})
@@ -95,11 +116,10 @@ async def _run(job: "OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob", ctx: IngestC
             "precipitation",
             "boundary_layer_height",
         ]),
-        "past_days": str(job.past_days),
-        "forecast_days": str(job.forecast_days),
         "timezone": "UTC",
+        **range_params,
     }
-    rw = await ctx.client.get(WX_URL, params=wx_params)
+    rw = await ctx.client.get(wx_url, params=wx_params)
     rw.raise_for_status()
     wx = rw.json().get("hourly", {})
 

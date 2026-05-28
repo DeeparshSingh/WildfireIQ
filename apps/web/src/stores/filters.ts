@@ -25,6 +25,8 @@ export type HotspotsFilter = {
 export type EvacFilter = {
   /** Statuses to show. Empty = all. */
   statuses: string[];
+  /** Hide rescinded / no-longer-active zones from both the list and the map. */
+  hidePast: boolean;
 };
 
 export type FwiFilter = {
@@ -56,6 +58,7 @@ export const useFiltersStore = create<FiltersState>((set) => ({
   },
   evac: {
     statuses: [],
+    hidePast: true,
   },
   fwi: {
     minFwi: 0,

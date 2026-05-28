@@ -80,10 +80,22 @@ async def _pull_station_weather(
         "forecast_days": "1",
         "timezone": "UTC",
     }
-    try:
-        r = await client.get(OPEN_METEO_FORECAST, params=params)
-        r.raise_for_status()
-    except Exception:  # noqa: BLE001
+    # Open-Meteo rate-limits bursts (HTTP 429). Retry a few times with
+    # backoff so we don't silently drop stations on a cold start where all
+    # stations fire at once.
+    r = None
+    for attempt in range(4):
+        try:
+            r = await client.get(OPEN_METEO_FORECAST, params=params)
+            if r.status_code == 429:
+                await asyncio.sleep(1.5 * (attempt + 1))
+                continue
+            r.raise_for_status()
+            break
+        except Exception:  # noqa: BLE001
+            await asyncio.sleep(1.0 * (attempt + 1))
+            r = None
+    if r is None or r.status_code != 200:
         return None
 
     j = r.json().get("daily") or {}
@@ -115,11 +127,16 @@ class DerivedFWIStationsJob(IngestJob):
     async def run(self, ctx: IngestContext) -> IngestReport:
         fetched_at = ctx.started_at_utc.isoformat()
 
-        # Fan out station weather pulls in parallel.
-        tasks = [
-            _pull_station_weather(ctx.client, name, lat, lon)
-            for name, lat, lon in STATIONS
-        ]
+        # Fan out station weather pulls, but cap concurrency at 4 so we
+        # don't trip Open-Meteo's burst rate limit (which silently 429s and
+        # drops stations). 18 stations / 4 at a time finishes in ~5 batches.
+        sem = asyncio.Semaphore(4)
+
+        async def _gated(name: str, lat: float, lon: float):
+            async with sem:
+                return await _pull_station_weather(ctx.client, name, lat, lon)
+
+        tasks = [_gated(name, lat, lon) for name, lat, lon in STATIONS]
         frames = await asyncio.gather(*tasks)
         good = [f for f in frames if f is not None and not f.empty]
         if not good:

@@ -19,49 +19,49 @@ export type LayerInfo = {
 
 export const LAYER_INFO: Record<LayerId, LayerInfo> = {
   fires: {
-    what: "Every wildfire BC Wildfire Service currently reports anywhere in the province. Burned-area perimeters (when mapped) are drawn as translucent polygons; smaller / point-only fires are shown as flame icons.",
+    what: "Where wildfires are burning in BC right now. Each fire is shown two ways: if the fire is big enough to have its burned area mapped, you'll see a shaded outline of that area; smaller fires appear as a single flame marker. This is the same list of fires the BC Wildfire Service publishes — we don't add or guess anything.",
     pipeline:
-      "We pull from DataBC's WFS endpoints for current fire perimeters and points every 15 minutes, drop status=\"Out\" by default (you can toggle them back on inside this modal), and serve the rest verbatim. No modelling — what you see is the same fire list BCWS publishes.",
-    source: "BC Wildfire Service · DataBC",
-    refresh: "ingest every 15 min · frontend re-fetch every 60 s",
+      "We ask the BC government's open data service for the current fire list every 15 minutes. By default we hide fires marked \"Out\" so the map shows what's still active — you can switch them back on with the filters in this panel. Click any fire to see its name, size (in hectares), and how contained it is.",
+    source: "BC Wildfire Service (official government data)",
+    refresh: "Updated every 15 minutes; the map re-checks every minute",
   },
   hotspots: {
-    what: "Thermal anomalies detected by NASA satellites in the last 72 hours. Dot size scales with Fire Radiative Power; colour ramps from pale yellow (low energy) to deep red (high energy).",
+    what: "Spots on the ground that satellites measured as unusually hot in the last 3 days. Think of these as \"heat alarms,\" not confirmed fires — a hotspot means a satellite saw heat there and it's worth a look. Bigger, redder dots gave off more heat; small pale dots are weaker signals.",
     pipeline:
-      "We query NASA FIRMS's near-real-time CSV endpoint every 30 minutes for VIIRS-NOAA20, VIIRS-SNPP, and MODIS detections in the BC bbox. Confidence < 30 is filtered out as likely false positive. A hotspot is not the same as a confirmed fire — it's worth investigating, not a confirmed ignition.",
-    source: "NASA FIRMS · VIIRS / MODIS NRT",
-    refresh: "ingest every 30 min · frontend re-fetch every 5 min",
+      "NASA satellites pass over BC a few times a day and record heat. We download those readings every 30 minutes and drop the least reliable ones (low-confidence detections). A single fire can light up two or three neighbouring dots at once — that's normal, it just means the hot area is bigger than one satellite pixel.",
+    source: "NASA FIRMS satellites (VIIRS and MODIS)",
+    refresh: "Updated every 30 minutes; the map re-checks every 5 minutes",
     caveat:
-      "Thermal anomalies can include gas flares, hot rooftops, and processing facilities — not just fires.",
+      "Not every hotspot is a wildfire. Industrial flares, hot rooftops, and processing plants can also trip the heat sensor. Treat a hotspot as \"investigate,\" not \"confirmed fire.\"",
   },
   evac: {
-    what: "Active Evacuation Orders, Alerts, and Rescinds issued by BC Emergency Management. Orders fill red with a solid outline; Alerts fill amber with a dashed outline; Rescinds fade to sage.",
+    what: "Areas where people have been told to leave or get ready to leave because of a nearby hazard. Three levels: an Evacuation ORDER (leave now) is filled red; an ALERT (be ready to leave) is amber with a dashed edge; a RESCIND (it's safe again) fades to green. Tap the \"Hide past\" control to remove rescinded zones from the list and the map.",
     pipeline:
-      "Every 5 minutes during fire season (hourly off-season), we pull the BC Emergency Map's public FeatureServer, filter to features that intersect the BC bbox, and serve them verbatim. Point-in-polygon checks via Shapely power the Phase 5 \"am I in an evac zone?\" lookup.",
-    source: "BC Emergency Management Climate Readiness",
-    refresh: "ingest every 5 min · frontend re-fetch every 60 s",
+      "We pull the official BC Emergency Management map every few minutes and draw the zones exactly as issued. The Preparedness Hub uses these same shapes to answer \"is my address inside an evacuation zone?\"",
+    source: "BC Emergency Management Climate Readiness (official)",
+    refresh: "Updated every 5 minutes; the map re-checks every minute",
   },
   fwi: {
-    what: "Stations across BC reporting today's Canadian Fire Weather Index codes (FFMC, DMC, DC, ISI, BUI, FWI, DSR). Circle colour follows standard CFFDRS thresholds.",
+    what: "How dangerous the weather is for fire spread, measured at weather stations across BC. This is the Fire Weather Index (FWI) — a single number that combines temperature, humidity, wind, and recent rain into a fire-danger score. Low numbers (green) mean fire is unlikely to spread fast; high numbers (red) mean conditions are primed for a fast, intense fire. It describes the *weather*, not whether a fire actually exists.",
     pipeline:
-      "Primary source is NRCan's CWFIS GeoServer, but it has been HTTP-502 throughout the build. Our `derived_fwi_stations` job replaces it: every 30 min it pulls 30 days of daily weather from Open-Meteo for ~18 representative BC stations and runs the Van Wagner FWI port — same equations CFFDRS uses — to produce all 7 codes per station. When CWFIS recovers, both jobs run and the canonical values overwrite the derived ones.",
-    source: "Van Wagner derivation from Open-Meteo · preferring NRCan CWFIS when reachable",
-    refresh: "derived job every 30 min · frontend re-fetch every 10 min",
+      "Canada's official fire-weather service was unreachable for much of this build, so we calculate the same index ourselves. Every 30 minutes we take the last 30 days of weather for ~18 BC towns and run the exact equations Canada uses (the Van Wagner method) to produce each station's score. If the official service comes back online, its numbers take priority.",
+    source: "Calculated with Canada's official FWI equations from Open-Meteo weather",
+    refresh: "Updated every 30 minutes; the map re-checks every 10 minutes",
   },
   smoke: {
-    what: "ECCC's official wildfire smoke forecast — surface-level PM2.5 concentration as a translucent overlay on the globe. Open this modal to step through each forecast hour and see the PM2.5 µg/m³ value per timestep.",
+    what: "Canada's official forecast for wildfire smoke — specifically tiny airborne particles called PM2.5 that are the part of smoke most harmful to breathe. The shaded overlay shows where smoke is predicted hour by hour. Use the time slider in this panel to step through the next ~3 days; each step shows the predicted particle level (in µg/m³ — micrograms per cubic metre) for Kamloops.",
     pipeline:
-      "Every 6 hours we read the MSC GeoMet WMS GetCapabilities document, find the latest RAQDPS-FW Wildfire Smoke run, and expand its ISO-8601 time interval into ~73 hourly timesteps. Each timestep is joined to the matching hour of our Open-Meteo CAMS PM2.5 forecast at Kamloops, so the modal shows the actual concentration value — important because the WMS overlay is transparent when PM2.5 is low (which is the truth, not a bug).",
-    source: "ECCC · RAQDPS-FW via MSC GeoMet WMS · joined with Open-Meteo CAMS for the µg/m³ readout",
-    refresh: "ingest every 6 h · frontend re-fetch every 30 min",
+      "Every 6 hours we read Canada's smoke-forecast model and break its forecast window into roughly 73 hourly snapshots. For each hour we also attach the predicted Kamloops particle level so you see a real number — important because the overlay looks empty when the air is clean, which is good news, not a glitch.",
+    source: "Environment and Climate Change Canada (RAQDPS-FW smoke model)",
+    refresh: "Updated every 6 hours; the map re-checks every 30 minutes",
   },
   risk: {
-    what: "An AI-predicted regional fire-day probability for the Thompson-Okanagan, multiplied by each hex cell's historical fire density. Hexes shaded Low / Moderate / High / Extreme. The cell detail panel also shows the canonical CFFDRS Fire Danger class for comparison.",
+    what: "Our AI's best estimate of wildfire risk across the region today, drawn as coloured hexagons (Low / Moderate / High / Extreme). It blends two things: how fire-prone today's weather is, and how often each specific area has burned in the past. Open a hexagon to also see the official government Fire Danger rating side-by-side, so you can compare our estimate to the standard one.",
     pipeline:
-      "A LightGBM classifier trained on 8,394 days of Open-Meteo ERA5 weather + Van Wagner FWI codes (1999-2021), validated on 2022 and tested held-out on 2023. Test PR-AUC 0.66 beats the FWI-threshold baseline (0.52) by ~15 points. The single regional probability is multiplied by each H3 r=5 cell's sqrt-normalised historical fire count from 15,996 BC incidents. Bucket thresholds are calibrated to our model — the CFFDRS class shown alongside is the deterministic standard BCWS uses.",
-    source: "LightGBM · trained on BCWS 1999-2021 + ERA5 weather",
-    refresh: "daily inference · frontend re-fetch every 30 min",
+      "We trained a machine-learning model on 23 years of BC weather and fire records (1999-2021), then tested it on years it had never seen (2022 and 2023). On that unseen data it correctly ranked fire days clearly better than the traditional weather-threshold method. Today's region-wide risk is then scaled up or down for each hexagon based on that area's documented fire history.",
+    source: "In-house AI model trained on 23 years of BC Wildfire Service + weather data",
+    refresh: "Recalculated daily on the latest weather; the map re-checks every 30 minutes",
     caveat:
-      "Per-cell variation comes from historical density, not today's local weather (we use only one weather station). Informational only — not a substitute for BC Wildfire Service or BC Emergency Management.",
+      "The difference between hexagons comes from each area's fire history, not from separate local weather (we use one regional weather signal). This is a planning aid, not an official warning — always follow the BC Wildfire Service and BC Emergency Management.",
   },
 };

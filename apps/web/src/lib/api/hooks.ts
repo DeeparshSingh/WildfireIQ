@@ -45,6 +45,20 @@ export type EvacZone = {
   fetched_at_utc: string;
 };
 
+/** A zone is "past" once it's been rescinded — no longer an active threat. */
+export function isPastEvac(z: EvacZone): boolean {
+  return (z.status ?? "").toLowerCase().includes("rescind");
+}
+
+/** Sort newest → oldest by issued date; nulls sink to the bottom. */
+export function sortEvacByDateDesc(zones: EvacZone[]): EvacZone[] {
+  return [...zones].sort((a, b) => {
+    const ta = a.issued_utc ? Date.parse(a.issued_utc) : -Infinity;
+    const tb = b.issued_utc ? Date.parse(b.issued_utc) : -Infinity;
+    return tb - ta;
+  });
+}
+
 export type FwiStation = {
   station_id: string;
   station_name: string;

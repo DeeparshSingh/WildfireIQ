@@ -160,48 +160,96 @@ class OpenMeteoKamloopsJob(IngestJob):
         )
 
 
+_DAILY_VARS = (
+    "temperature_2m_max,temperature_2m_min,relative_humidity_2m_min,"
+    "precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,"
+    "et0_fao_evapotranspiration,vapour_pressure_deficit_max"
+)
+
+_DAILY_COLMAP = {
+    "temperature_2m_max": "temp_max_c",
+    "temperature_2m_min": "temp_min_c",
+    "relative_humidity_2m_min": "rh_min_pct",
+    "precipitation_sum": "precip_mm",
+    "wind_speed_10m_max": "wind_max_kmh",
+    "wind_gusts_10m_max": "wind_gust_max_kmh",
+    "et0_fao_evapotranspiration": "et0_mm",
+    "vapour_pressure_deficit_max": "vpd_max_kpa",
+}
+
+
+def _daily_frame(daily: dict) -> pd.DataFrame:
+    days = daily.get("time") or []
+    cols = {"day_local": days}
+    for src, dst in _DAILY_COLMAP.items():
+        cols[dst] = daily.get(src) or [None] * len(days)
+    return pd.DataFrame(cols)
+
+
 class OpenMeteoArchiveBootstrapJob(IngestJob):
     name = "open_meteo_archive_kamloops"
-    cadence = None
-    label = "Open-Meteo ERA5 archive · Kamloops bootstrap"
+    # Runs daily so the continuous daily series — and therefore the AI risk
+    # grid, the FWI carryover, and the climate metrics — stays current.
+    # ERA5 reanalysis lags ~5 days, so we splice the recent observed tail
+    # from the forecast endpoint (which reaches today) on top of the deep
+    # ERA5 history. Forecast values win on the ~5-day overlap.
+    cadence = "20 2 * * *"
+    label = "Open-Meteo ERA5 archive + recent tail · Kamloops daily"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        yesterday = (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
-        params = {
+        today = datetime.now(timezone.utc).date()
+        yesterday = (today - timedelta(days=1)).isoformat()
+
+        # ── 1. Deep ERA5 history (1999 → yesterday; trailing ~5 days NaN) ──
+        archive_params = {
             "latitude": KAMLOOPS_LAT,
             "longitude": KAMLOOPS_LON,
             "start_date": "1999-01-01",
             "end_date": yesterday,
-            "daily": (
-                "temperature_2m_max,temperature_2m_min,relative_humidity_2m_min,"
-                "precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,"
-                "et0_fao_evapotranspiration,vapour_pressure_deficit_max"
-            ),
+            "daily": _DAILY_VARS,
             "timezone": "America/Vancouver",
         }
         ctx.log.info("open_meteo.archive.fetch", end_date=yesterday)
-        r = await ctx.client.get(ARCHIVE_URL, params=params, timeout=120.0)
+        r = await ctx.client.get(ARCHIVE_URL, params=archive_params, timeout=120.0)
         r.raise_for_status()
-        data = r.json()
-        daily = data.get("daily") or {}
-        days = daily.get("time") or []
-        df = pd.DataFrame(
-            {
-                "day_local": days,
-                "temp_max_c": daily.get("temperature_2m_max") or [None] * len(days),
-                "temp_min_c": daily.get("temperature_2m_min") or [None] * len(days),
-                "rh_min_pct": daily.get("relative_humidity_2m_min") or [None] * len(days),
-                "precip_mm": daily.get("precipitation_sum") or [None] * len(days),
-                "wind_max_kmh": daily.get("wind_speed_10m_max") or [None] * len(days),
-                "wind_gust_max_kmh": daily.get("wind_gusts_10m_max") or [None] * len(days),
-                "et0_mm": daily.get("et0_fao_evapotranspiration") or [None] * len(days),
-                "vpd_max_kpa": daily.get("vapour_pressure_deficit_max") or [None] * len(days),
-            }
-        )
+        df = _daily_frame(r.json().get("daily") or {})
+
+        # ── 2. Recent observed tail from the forecast endpoint (→ today) ──
+        # `past_days=15` backfills the last 15 days of best-available daily
+        # observations, which fills ERA5's ~5-day gap right up to today.
+        tail_params = {
+            "latitude": KAMLOOPS_LAT,
+            "longitude": KAMLOOPS_LON,
+            "daily": _DAILY_VARS,
+            "past_days": 15,
+            "forecast_days": 1,
+            "timezone": "America/Vancouver",
+        }
+        try:
+            rt = await ctx.client.get(FORECAST_URL, params=tail_params, timeout=60.0)
+            rt.raise_for_status()
+            tail = _daily_frame(rt.json().get("daily") or {})
+            if not tail.empty:
+                # Forecast tail wins on the overlap (it has no ERA5 lag gap).
+                df = pd.concat([df, tail], ignore_index=True)
+                df["day_local"] = df["day_local"].astype(str)
+                df = df.drop_duplicates(subset=["day_local"], keep="last")
+        except Exception as exc:  # noqa: BLE001
+            ctx.log.info("open_meteo.archive.tail_failed", error=str(exc))
+
+        # Drop any rows that are still entirely NaN (ERA5's unfilled tail).
+        df = df.sort_values("day_local").reset_index(drop=True)
+        df = df[df["temp_max_c"].notna()].reset_index(drop=True)
+
         out = PROCESSED_ROOT / "weather_kamloops_archive_daily.parquet"
         out.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(out, compression="zstd", index=False)
-        ctx.log.info("open_meteo.archive.written", rows=len(df), path=str(out))
+        ctx.log.info(
+            "open_meteo.archive.written",
+            rows=len(df),
+            latest=str(df["day_local"].iloc[-1]) if len(df) else None,
+            path=str(out),
+        )
         return IngestReport(
             job_name=self.name,
             status="ok",

@@ -63,7 +63,7 @@ def firms_hotspots(since_hours: int = 24, limit: int = 10000) -> list[dict[str, 
     if "acq_datetime_utc" in df.columns:
         df = df.copy()
         df["_ts"] = pd.to_datetime(df["acq_datetime_utc"], errors="coerce", utc=True)
-        cutoff = pd.Timestamp.utcnow() - pd.Timedelta(hours=since_hours)
+        cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=since_hours)
         df = df[df["_ts"].notna() & (df["_ts"] >= cutoff)]
         df = df.drop(columns=["_ts"])
     return _records(df.head(limit))
@@ -107,7 +107,7 @@ def aqhi_history(days: int = 30) -> list[dict[str, Any]]:
     if "observation_datetime_utc" in df.columns:
         df = df.copy()
         df["_ts"] = pd.to_datetime(df["observation_datetime_utc"], errors="coerce", utc=True)
-        cutoff = pd.Timestamp.utcnow() - pd.Timedelta(days=days)
+        cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days)
         df = df[df["_ts"].notna() & (df["_ts"] >= cutoff)]
         df = df.drop(columns=["_ts"])
     return _records(df)
@@ -186,7 +186,7 @@ def season_context() -> dict[str, Any]:
         df = daily.copy()
         df["day_local"] = pd.to_datetime(df["day_local"], errors="coerce")
         df = df.dropna(subset=["day_local"]).sort_values("day_local")
-        today_ts = pd.Timestamp.utcnow().normalize().tz_localize(None)
+        today_ts = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
         observed = df[(df.get("is_forecast", False) != True) & (df["day_local"] <= today_ts)]
         wet = observed[observed["precip_mm"] >= 5.0]
         if not wet.empty:
