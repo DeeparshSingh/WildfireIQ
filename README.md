@@ -26,6 +26,17 @@ A research artifact built with a TRU Sustainability Research Grant (2025–2026)
 
 The risk model is exported to ONNX with verified float32 parity (max |Δ| 7.89 × 10⁻⁸).
 
+**Wildfire risk, in detail.** Each training row is one day described by ~40 features: current weather (temperature, humidity, wind, rain, vapour-pressure deficit), the six Van Wagner FWI codes, 7- and 30-day lags and rolling means, drought signals, and calendar terms. The label is whether a fire ignited in the region that day. The model is held strictly away from 2022 and 2023 during training; testing on those unseen years is what makes the PR-AUC trustworthy. At serving time the single regional probability is multiplied by each hexagon's square-root-normalised historical fire count to produce the per-cell grid, and the official CFFDRS Fire Danger class is shown alongside for comparison.
+
+**Air quality forecaster, in detail.** Direct multi-horizon quantile regression: one LightGBM model per (horizon, quantile) pair. The median (q50) is the headline forecast; the q10 and q90 form the shaded uncertainty band so the chart widens when the model is unsure instead of pretending to be precise.
+
+| AQ horizon | Model MAE (µg/m³) | Persistence baseline |
+|---:|---:|---:|
+| 6 h | 2.27 | 2.85 |
+| 12 h | 3.20 | 4.06 |
+| 24 h | 3.82 | 3.63 |
+| 48 h | 3.32 | 3.92 |
+
 ---
 
 ## Data sources (every dependency is free)
@@ -49,6 +60,51 @@ The risk model is exported to ONNX with verified float32 parity (max |Δ| 7.89 �
 Three signups are required before running ingest: Cesium Ion, NASA FIRMS, WAQI. See [`documents/api-keys-setup.md`](./documents/api-keys-setup.md).
 
 A per-layer breakdown of source, update cadence, computation method, and accuracy lives in [`documents/data-layer.md`](./documents/data-layer.md).
+
+---
+
+## Data pipeline
+
+Seventeen ingest jobs run on cron cadences inside the FastAPI process (no Celery or Redis). Each job pulls from one upstream source, cleans the response, and writes a zstd-compressed Parquet file that the API serves. A run log is written to SQLite (`ingest_runs`) so failures are visible and retried on the next tick.
+
+| Job | Cadence | Output |
+|---|---|---|
+| Active fires (DataBC) | every 15 min | `fires_current.parquet` |
+| Satellite hotspots (FIRMS) | every 30 min | `firms_hotspots_recent.parquet` |
+| Weather forecast (Open-Meteo) | hourly | `weather_kamloops_{current,hourly,daily}.parquet` |
+| Weather archive + recent tail | daily 02:20 | `weather_kamloops_archive_daily.parquet` |
+| Derived FWI (Van Wagner) | every 30 min | `fwi_stations_today.parquet` |
+| AQHI realtime (ECCC GeoMet) | hourly | `aqhi_kamloops_recent.parquet` |
+| Pollutants (WAQI) | hourly | `aq_pollutants_recent.parquet` |
+| Air quality hourly (CAMS) | hourly | `aq_hourly_kamloops.parquet` |
+| Air quality 365-day archive | daily 02:40 | `aq_hourly_kamloops.parquet` |
+| Smoke forecast (RAQDPS-FW) | every 6 h | `smoke_forecast_metadata.parquet` |
+| Evacuation (BC EMCR) | every 5 min | `evac_active.parquet` |
+| Unified fires (derived) | daily 02:15 | `fires_unified.parquet` |
+| Seasonal metrics (derived) | daily 02:30 | `seasonal_metrics.parquet` |
+
+Bootstrap-only jobs (historical fires, ERA5 archive, CMIP6 placeholder, ECCC climate) run once via `make bootstrap`.
+
+**Always-fresh launch.** On startup the backend checks every source and re-runs anything whose last successful run is older than 30 minutes, so the app (including the AI risk grid) shows current data within seconds of opening rather than waiting for the next cron tick.
+
+---
+
+## API surface
+
+The backend exposes a small REST API; every response uses a `{data, meta}` envelope, and `meta` carries the source, attribution, and freshness. Full schema at `/docs` (OpenAPI).
+
+| Group | Endpoints |
+|---|---|
+| Fires | `/api/fires/current`, `/api/fires/historical`, `/api/fires/hotspots` |
+| Risk | `/api/risk/grid`, `/api/risk/today` |
+| Air quality | `/api/aq/current`, `/api/aq/forecast`, `/api/aq/calendar`, `/api/aq/history`, `/api/aq/smoke-forecast`, `/api/aq/health-guidance` |
+| Weather / FWI | `/api/weather/current`, `/api/weather/forecast`, `/api/fwi/today` |
+| Evacuation | `/api/evac/active`, `/api/evac/check` |
+| Preparedness | `/api/firesmart/checklist`, `/api/firesmart/score`, `/api/firesmart/achievements`, `/api/firesmart/neighbourhoods`, `/api/firesmart/season-context` |
+| Climate | `/api/climate/seasonal`, `/api/climate/trends`, `/api/climate/ribbon`, `/api/climate/projection(s-all)`, `/api/climate/fwi-projection`, `/api/climate/tru-carbon` |
+| Admin / system | `/api/admin/jobs`, `/api/admin/runs`, `/healthz` |
+
+The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Historical and reference endpoints carry a longer `Cache-Control` than live ones.
 
 ---
 
@@ -198,6 +254,16 @@ make build             # production build of the frontend
 make test                  # backend — 47 pytest (ingest, routers, data quality, trends)
 cd apps/web && pnpm test   # frontend — 22 vitest (hooks + utilities)
 ```
+
+---
+
+## Known limitations (honest framing)
+
+- **The AI risk grid uses one regional weather signal.** Differences between hexagons come from each area's fire history, not separate local weather. The grid is a planning aid, not an official warning; the canonical CFFDRS class is shown next to it.
+- **The CMIP6 climate projections are a synthetic placeholder** with the correct shape, not the live ClimateData.ca download. The trend direction is illustrative; absolute values shift once the real ensemble is dropped into `data/processed/climate_projections.parquet` (no code change needed). This is disclosed on the climate page.
+- **The decade-by-decade FWI projection is a coarse one-variable extrapolation**, disclosed in its method note.
+- **Air quality forecasting is single-point (Kamloops).** It cannot see a smoke plume arriving from outside the region until local readings begin to rise.
+- **Historical fires and the risk grid are scoped to the Thompson-Okanagan** by design; live hazard layers (fires, hotspots, evacuation, FWI, AQHI, smoke) cover the whole province.
 
 ---
 
