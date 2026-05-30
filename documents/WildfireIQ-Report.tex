@@ -227,8 +227,10 @@ what makes their accuracy figures trustworthy rather than memorised.
 \subsection{Wildfire risk model}
 
 This model estimates the chance that a fire starts somewhere in the region on a
-given day, using the day's weather and fire-weather conditions. It learned from
-23 years of records, was tuned on 2022, and was tested on a held-out 2023.
+given day, using the day's weather and fire-weather conditions. The 2022 and
+2023 fire seasons were both kept out of training, exactly as the proposal
+committed: 2022 was used for tuning and 2023 for the final test. The model
+learned from the 1999 to 2021 records.
 
 The model is a gradient-boosted decision tree (LightGBM). On the unseen 2023
 test year it scored a precision-recall area of 0.66, clearly ahead of the
@@ -340,14 +342,42 @@ the platform calculates something itself, it uses the recognised standard.}
 % ============================ 7. STATUS ============================
 \section{Status and Summary}
 
-All planned work is complete. The platform covers the four modules, runs two
-validated models, keeps its data current automatically, and passes its full test
-suite (47 back-end and 22 front-end checks) with a clean build. The code,
-documentation, and model cards are organised for handoff.
+The four features and both models are built, connected to live data, and
+working. The platform passes its full test suite (47 back-end and 22 front-end
+checks) with a clean build, and the code, documentation, and model cards are
+organised for handoff.
 
-A few optional items remain for the future: recording a short demo video,
-testing on a physical tablet, and swapping the placeholder climate projections
-for the live download. None of these block use of the platform today.
+The table below maps each proposal commitment to its current state.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}L{7.5cm}L{5.5cm}@{}}
+\toprule
+\textbf{Proposal commitment} & \textbf{Status} \\
+\midrule
+Wildfire Risk Map (daily zones + current and past fires) & Built \\
+Air Quality Monitor (live reading, 48-hour forecast, smoke calendar) & Built \\
+Community Preparedness Hub (checklist, evacuation status, points) & Built \\
+Climate Trend module (history + projections, optional TRU carbon) & Built \\
+Two models validated on held-out 2022 and 2023 & Done \\
+Free and public data only, no personal data stored & Met \\
+Open-source release & Done (MIT) \\
+Final research report & This document \\
+Public online hosting & Ready to deploy; not yet hosted \\
+\bottomrule
+\end{tabular}
+\caption{Proposal commitments and their status.}
+\end{table}
+
+A few items remain before a public launch: hosting the platform online,
+recording a short demo video, on-device tablet testing, and swapping the
+placeholder climate projections for the live download. The climate history
+covers the full record since 1999 (27 years); the round ``30-year'' figure in
+the proposal is reached as more recent seasons are added each year. Two
+proposal ideas were left for future work: adding satellite vegetation health to
+the risk model, and the economic study of smoke and healthcare demand. Neither
+blocks use of the platform today.
 
 WildfireIQ Kamloops shows that a single person, using only free and open data,
 can build a clear and honest wildfire information tool for their community. The
