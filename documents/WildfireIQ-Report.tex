@@ -151,6 +151,53 @@ with clear trend lines, and a look ahead under different emission scenarios. \\
 \caption{The four modules of WildfireIQ Kamloops.}
 \end{table}
 
+\subsection{The Wildfire Risk Map}
+
+The home screen is a three-dimensional globe of British Columbia that opens
+with a short camera fly-in to the Kamloops region. Six data layers can be
+switched on and off from a side rail: active fires, satellite heat detections,
+evacuation zones, fire-weather stations, the smoke forecast, and the AI risk
+grid. Clicking any item opens a detail panel with its full record and a plain
+explanation of what the layer means. The fire and evacuation lists are sorted
+newest first, and the evacuation panel has a control to hide zones that have
+already been called off. A search box and four camera presets let a user jump
+to a place or to the wider region. The smoke layer includes a time slider that
+steps through about three days of forecast, one hour at a time.
+
+\subsection{The Air Quality Monitor}
+
+This page leads with a large dial showing the current Air Quality Health Index
+for Kamloops, colour-coded on Health Canada's scale. Below it, a chart shows the
+48-hour forecast as a shaded band: the middle line is the best estimate, and the
+band widens when the forecast is less certain. The page also breaks down six
+pollutants, shows a province-wide map of nearby monitoring stations, and
+displays a calendar of the last 365 days where each day is coloured by its worst
+air quality. Health guidance is grouped into tabs for the general public,
+at-risk groups, and outdoor workers, and a user can opt in to a browser
+notification when air quality is forecast to cross a threshold they choose.
+
+\subsection{The Community Preparedness Hub}
+
+A short three-step setup asks for a neighbourhood, the type of home, and
+notification preferences. From that, the hub builds a FireSmart checklist drawn
+from the official Home Ignition Zone actions, filtered to the user's situation
+and re-ordered so the most seasonally relevant actions come first. Completing
+actions earns points and unlocks badges, and a user can attach a photo to any
+action as a personal record. A live widget checks whether the chosen
+neighbourhood sits inside an active evacuation zone. Everything is stored in the
+browser only. A share link encodes progress in the web address itself, so it can
+be shared without any data passing through a server.
+
+\subsection{The Climate Trends page}
+
+This page tells the region's fire-season story as the reader scrolls. It opens
+with 27 years of total area burned, marks the landmark seasons, then shows clear
+trend lines for summer temperature, dryness, and fire-weather severity. Later
+sections look ahead under three emission scenarios and estimate how the number
+of extreme fire-weather days per year could change by decade. Every chart lists
+its data source and method and offers a download of the underlying numbers, and
+the page prints cleanly to a short PDF for use as a reference.
+
 \subsection{Key numbers}
 
 \begin{table}[h]
@@ -217,6 +264,28 @@ next scheduled update.
 describes dangerous conditions, not an active fire. The platform spells this out
 on every layer so readers are not misled.}
 
+\subsection{From raw data to the screen}
+
+Each source is handled by a small job that follows the same steps: download the
+latest data, drop anything malformed or out of range, reshape it into a common
+format, and save it as a compressed table on disk. The browser never talks to an
+outside source directly. It only reads these cleaned tables through the
+platform's own interface, which keeps the app fast and means a brief outage at a
+source does not break the screen.
+
+Two pieces of data are calculated by the platform rather than downloaded. The
+Fire Weather Index is computed from daily weather using Canada's official
+equations, because the national service that normally publishes it was
+unreachable for much of the build. The historical fire-and-climate summary, used
+by the Climate Trends page, is rebuilt each night by joining 27 years of fire
+records with matching weather and a full Fire Weather Index run, producing one
+row of metrics per year.
+
+A daily weather record stretching back to 1999 underpins both the risk model and
+the climate page. Because the long-term archive lags real time by a few days,
+the platform stitches the most recent observed days onto the end of it, so the
+record always reaches today and the risk map reflects current conditions.
+
 % ============================ 4. AI ============================
 \section{How the AI Works}
 
@@ -232,18 +301,31 @@ given day, using the day's weather and fire-weather conditions. The 2022 and
 committed: 2022 was used for tuning and 2023 for the final test. The model
 learned from the 1999 to 2021 records.
 
-The model is a gradient-boosted decision tree (LightGBM). On the unseen 2023
-test year it scored a precision-recall area of 0.66, clearly ahead of the
-traditional fire-weather-threshold method at 0.52. The single regional estimate
-is then scaled for each map hexagon by how often that specific area has burned
-in the past.
+The model is a gradient-boosted decision tree (LightGBM). Each day it sees is
+described by about 40 numbers: that day's temperature, humidity, wind, rainfall,
+and dryness; the six Fire Weather Index codes; short and month-long trends in
+those values; how long it has been since meaningful rain; and the time of year.
+The model's raw output is calibrated so that a stated chance of, say, seventy
+percent really does correspond to fires occurring on about seven in ten such
+days, which matters for the colours shown on the map.
+
+On the unseen 2023 test year it scored a precision-recall area of 0.66, clearly
+ahead of the traditional fire-weather-threshold method at 0.52. A precision-recall
+score rewards a model for ranking the genuine fire days above the quiet ones, so
+a higher number means the model is better at telling busy days from calm ones.
+The single regional estimate is then scaled for each map hexagon by how often
+that specific area has burned in the past, which is what gives the map its local
+texture. The official fire-danger class is shown beside it for comparison.
 
 \subsection{Air quality forecaster}
 
 This model predicts fine-particle pollution (the harmful part of smoke) for the
-next 48 hours. Instead of a single guess, it produces a low, middle, and high
-estimate, so the chart can show an honest range that widens when the model is
-less certain.
+next 48 hours. It is built from 21 small models working together: for each of
+seven look-ahead times, three of them learn the low, middle, and high end of the
+likely range. Showing all three turns a single guess into an honest band that
+widens when the model is less certain, rather than a confident line that could
+be wrong. Its inputs are recent pollution readings, the weather, and the time of
+day at Kamloops.
 
 \begin{table}[h]
 \centering
@@ -263,7 +345,45 @@ better). The model beats the ``tomorrow equals today'' baseline at most
 horizons.}
 \end{table}
 
-% ============================ 5. HOW IT IS BUILT ============================
+% ============================ 5. CLIMATE FINDINGS ============================
+\section{What the Climate Record Shows}
+
+Beyond serving live data, the platform produces a small piece of original
+analysis. Using 27 years of records for the Thompson-Okanagan, it measures how
+several fire-season conditions have changed. The trends are calculated with a
+method that is not thrown off by a single extreme year, and each one is tested
+to see whether the change is large enough to be unlikely by chance.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}L{6.2cm}L{4.0cm}L{2.8cm}@{}}
+\toprule
+\textbf{Measure (1999 to today)} & \textbf{Change over the period} & \textbf{Clear trend?} \\
+\midrule
+Average July daytime temperature & about +4.7 degrees C & Yes \\
+Summer dryness of the air & rising & Yes \\
+Peak fire-weather severity & rising & Yes \\
+Days per year of extreme fire weather & about +50 days & Yes \\
+Summer rainfall & no clear change & No \\
+Length of the fire season & no clear change & No \\
+\bottomrule
+\end{tabular}
+\caption{Measured trends for the Thompson-Okanagan. A ``clear trend'' means the
+change is unlikely to be chance.}
+\end{table}
+
+The pattern is consistent and worth stating plainly: summers are getting hotter
+and the air drier, and the number of days with dangerous fire weather has grown
+sharply, even though total rainfall and the calendar length of the season have
+not changed in a measurable way. In other words, the season is not obviously
+longer, but it is more intense. The platform is careful not to overstate this:
+where a trend is not statistically clear, the page says so rather than implying
+a pattern that the data does not support. The future-looking sections are
+labelled as estimates and use a placeholder climate dataset that has the correct
+shape but is not the final download.
+
+% ============================ 6. HOW IT IS BUILT ============================
 \section{How It Is Built}
 
 The platform has two halves: a browser front end that draws the globe and pages,
@@ -315,7 +435,29 @@ database server or task queue, which keeps it easy to run and hand off. The
 front end loads the globe first and fetches the other pages only when needed, so
 the initial page stays small (about 69 kilobytes compressed).
 
-% ============================ 6. ACCURACY & LIMITS ============================
+\subsection{Keeping it fast and current}
+
+A few choices keep the platform responsive. The three secondary pages are loaded
+on demand rather than up front, so the first screen is light. Responses that do
+not change often, such as the climate history, are marked so the browser can
+reuse them instead of asking again. The analytics engine is opened once when the
+app starts so the first request is quick. Most importantly, when the app starts
+it refreshes any data source older than 30 minutes, which means a person opening
+the platform after it has been idle still sees current fires, current air
+quality, and a risk map built on today's weather, without waiting.
+
+\subsection{Testing and quality}
+
+The platform ships with an automated test suite: 47 checks on the back end and
+22 on the front end. These confirm that each data source produces the expected
+shape, that values stay within sensible bounds (for example, no negative
+pollution readings and no fires placed outside the province), that the Fire
+Weather Index calculation behaves correctly, and that the trend statistics
+recover a known answer. The front-end checks cover the air quality colour scale
+and the preparedness hub's save-and-share logic. The whole suite runs in a few
+seconds and passes cleanly.
+
+% ============================ 7. ACCURACY & LIMITS ============================
 \section{Accuracy, Honesty, and Limits}
 
 A core principle of the project was to be clear about what the data and models
@@ -339,7 +481,7 @@ fire weather, air quality, smoke) cover the whole province.
 equations. The air quality health figures follow Health Canada's formula. Where
 the platform calculates something itself, it uses the recognised standard.}
 
-% ============================ 7. STATUS ============================
+% ============================ 8. STATUS ============================
 \section{Status and Summary}
 
 The four features and both models are built, connected to live data, and
