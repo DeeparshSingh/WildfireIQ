@@ -118,6 +118,7 @@ export type RiskRegion = {
   p_region: number;
   p_region_raw: number;
   fwi_today: number;
+  risk_level: "Low" | "Moderate" | "High" | "Extreme";
   cffdrs_class: "Low" | "Moderate" | "High" | "Very High" | "Extreme" | "Unknown";
   observation_day: string;
   n_cells: number;

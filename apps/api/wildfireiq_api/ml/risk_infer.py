@@ -49,6 +49,9 @@ def _load_density() -> pd.DataFrame | None:
     return pd.read_parquet(p)
 
 
+_CLASS_ORDER = ["Low", "Moderate", "High", "Extreme"]
+
+
 def _bucket(prob: float) -> str:
     if prob < 0.05:
         return "Low"
@@ -57,6 +60,21 @@ def _bucket(prob: float) -> str:
     if prob < 0.50:
         return "High"
     return "Extreme"
+
+
+def _region_risk_level(cell_classes: list[str], min_share: float = 0.15) -> str:
+    """Summarise a region by the highest risk class that covers at least
+    `min_share` of its cells. This matches what the map actually shows for
+    that city, so a single outlier hexagon does not flip the whole region."""
+    n = len(cell_classes)
+    if n == 0:
+        return "Low"
+    counts = {c: cell_classes.count(c) for c in set(cell_classes)}
+    level = "Low"
+    for cls in _CLASS_ORDER:
+        if counts.get(cls, 0) / n >= min_share:
+            level = cls
+    return level
 
 
 def cffdrs_class_for(fwi: float | None) -> str:
@@ -132,8 +150,11 @@ def predict_grid() -> dict | None:
         )
 
         region_cells = density[density["region"] == key]
+        region_classes: list[str] = []
         for _, c in region_cells.iterrows():
             cell_risk = p_cal * float(c["weight"])
+            cls = _bucket(cell_risk)
+            region_classes.append(cls)
             cells.append(
                 {
                     "h3_cell": c["h3_cell"],
@@ -144,7 +165,7 @@ def predict_grid() -> dict | None:
                     "hist_fire_count": int(c["hist_fire_count"]),
                     "p_region": p_cal,
                     "p_cell": cell_risk,
-                    "risk_class": _bucket(cell_risk),
+                    "risk_class": cls,
                 }
             )
 
@@ -156,6 +177,10 @@ def predict_grid() -> dict | None:
             "p_region": p_cal,
             "p_region_raw": p_raw,
             "fwi_today": fwi_today,
+            # Map-derived AI risk level for the region (matches the hexagons
+            # the user sees). The raw CFFDRS fire-weather class is kept
+            # separately for reference.
+            "risk_level": _region_risk_level(region_classes),
             "cffdrs_class": cffdrs,
             "observation_day": obs_day,
             "n_cells": int(len(region_cells)),
