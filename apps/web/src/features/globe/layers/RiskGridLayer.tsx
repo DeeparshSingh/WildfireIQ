@@ -10,6 +10,7 @@ import { cellToBoundary } from "h3-js";
 
 import { type RiskCell, useRiskGrid } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
+import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
 
@@ -42,6 +43,7 @@ export function RiskGridLayer() {
   const viewer = useGlobeStore((s) => s.viewer);
   const gate = useGlobeStore((s) => s.dataGateOpen);
   const visible = useLayersStore((s) => s.visible.risk);
+  const hiddenRegions = useFiltersStore((s) => s.risk.hiddenRegions);
   const { data } = useRiskGrid();
 
   const addedRef = useRef<Entity[]>([]);
@@ -67,7 +69,9 @@ export function RiskGridLayer() {
       return cleanup;
     }
 
+    const hidden = new Set(hiddenRegions);
     for (const cell of data.cells) {
+      if (hidden.has(cell.region)) continue;
       // h3-js returns boundary as [[lat, lon], ...]
       const boundary = cellToBoundary(cell.h3_cell);
       const flat: number[] = [];
@@ -118,7 +122,7 @@ export function RiskGridLayer() {
     requestRender(viewer);
 
     return cleanup;
-  }, [viewer, gate, visible, data]);
+  }, [viewer, gate, visible, data, hiddenRegions]);
 
   return null;
 }

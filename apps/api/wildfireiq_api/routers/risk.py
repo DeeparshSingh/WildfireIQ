@@ -27,7 +27,7 @@ async def today(cell: str | None = None) -> dict[str, Any]:
     ).model_dump(mode="json")
 
 
-@router.get("/grid", summary="Full risk grid for the Thompson-Okanagan")
+@router.get("/grid", summary="Full multi-region risk grid")
 async def grid() -> dict[str, Any]:
     payload = predict_grid()
     if payload is None:
@@ -35,12 +35,14 @@ async def grid() -> dict[str, Any]:
             503,
             "Risk model artifacts not found. Run `uv run python -m wildfireiq_api.ml.train_risk`.",
         )
+    n_regions = len(payload.get("regions", []))
+    n_cells = len(payload.get("cells", []))
     return Envelope[dict](
         data=payload,
         meta=Meta(
             source="wildfire_risk_v1",
-            attribution="LightGBM · 1999-2021 train, 2022 val, 2023 test. PR-AUC 0.66, beats FWI-threshold baseline by 14 points.",
+            attribution="LightGBM · pooled multi-region, 1999-2021 train, 2022 val, 2023 test. Per-region held-out PR-AUC reported in the model card.",
             phase="3",
-            note=f"185 H3 r=5 cells, observation day {payload['observation_day'][:10]}",
+            note=f"{n_cells} H3 r=5 cells across {n_regions} regions",
         ),
     ).model_dump(mode="json")

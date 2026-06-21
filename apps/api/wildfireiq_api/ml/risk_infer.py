@@ -1,12 +1,14 @@
-"""Runtime inference for the wildfire risk model.
+"""Runtime inference for the wildfire risk model (multi-region).
 
-The trained model + isotonic calibrator are loaded once at FastAPI startup
-(or lazily on first call). At inference time we:
-  1. Pull today's + tomorrow's weather features (Open-Meteo current / forecast).
-  2. Compute FWI carrying forward yesterday's codes (from cached state).
-  3. Predict P(fire-day) for each day in the window.
-  4. Multiply by each H3 r=5 cell's normalized historical weight.
-  5. Bucket into Low / Moderate / High / Extreme.
+The trained model + isotonic calibrator are loaded once. For each modelled
+region we:
+  1. Read that region's latest daily weather and enrich it (FWI + lags).
+  2. Predict P(fire-day) for the region, then calibrate.
+  3. Multiply by each of the region's H3 cells' historical weight.
+  4. Bucket into Low / Moderate / High / Extreme.
+
+The grid returned to the frontend is the union of every region's cells,
+each tagged with its region so the UI can filter by city.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ import joblib
 import lightgbm as lgb
 import pandas as pd
 
+from ..constants import REGIONS
 from ..paths import MODELS_ROOT, PROCESSED_ROOT
 from .features import _enrich_weather
 from .train_risk import FEATURE_COLS
@@ -57,15 +60,15 @@ def _bucket(prob: float) -> str:
 
 
 def cffdrs_class_for(fwi: float | None) -> str:
-    """Canonical CFFDRS Fire Danger class from today's FWI value.
+    """Canonical CFFDRS Fire Danger class from a region's FWI value.
 
     Standard CFFDRS thresholds (Van Wagner 1987; BC Wildfire Service public
     Fire Danger Rating uses the same boundaries):
-        FWI ≤ 1     → Low
-        FWI 2-4     → Moderate
-        FWI 5-12    → High
-        FWI 13-20   → Very High
-        FWI ≥ 21    → Extreme
+        FWI <= 1   -> Low
+        FWI 2-4    -> Moderate
+        FWI 5-12   -> High
+        FWI 13-20  -> Very High
+        FWI >= 21  -> Extreme
     """
     if fwi is None or (isinstance(fwi, float) and fwi != fwi):  # NaN
         return "Unknown"
@@ -80,70 +83,99 @@ def cffdrs_class_for(fwi: float | None) -> str:
     return "Extreme"
 
 
-def _today_features() -> pd.DataFrame | None:
-    """Enrich the archive weather and return the latest observed day (which
-    drives the daily risk score). Forecast-fed risk for future days will
-    land in a Phase 4 stretch — needs schema reconciliation between the
-    Open-Meteo current/forecast columns and the ERA5 archive columns."""
-    arch_path = PROCESSED_ROOT / "weather_kamloops_archive_daily.parquet"
-    if not arch_path.exists():
+def _region_today_row(weather_file: str, region_fire_rate: float) -> pd.DataFrame | None:
+    """Enrich a region's daily weather and return its latest usable day."""
+    path = PROCESSED_ROOT / weather_file
+    if not path.exists():
         return None
-    df = pd.read_parquet(arch_path)
-    return _enrich_weather(df)
+    enriched = _enrich_weather(pd.read_parquet(path))
+    if enriched.empty:
+        return None
+    enriched["region_fire_rate"] = region_fire_rate
+    row = enriched.iloc[[-1]].dropna(subset=FEATURE_COLS)
+    return row if not row.empty else None
 
 
 def predict_grid() -> dict | None:
-    """Compute the current risk grid: one row per H3 r=5 cell with
-    bucketed risk class + raw probability."""
+    """Compute the current risk grid across every region."""
     art = _load_artifacts()
     density = _load_density()
     if art is None or density is None:
         return None
     booster, calibrator, _ = art
 
-    enriched = _today_features()
-    if enriched is None or enriched.empty:
-        return None
-    today_row = enriched.iloc[[-1]]
-    today_row = today_row.dropna(subset=FEATURE_COLS)
-    if today_row.empty:
-        return None
-
-    X = today_row[FEATURE_COLS]
-    p_raw = float(booster.predict(X)[0])
-    p_cal = float(calibrator.predict([p_raw])[0])
-
-    # Canonical CFFDRS class from today's FWI (Kamloops, derived via
-    # Van Wagner). This is what BCWS publishes as the official Fire Danger.
-    today_fwi = float(today_row.iloc[0].get("fwi", float("nan")))
-    cffdrs = cffdrs_class_for(today_fwi)
+    # Base rate per region (constant) from the density table.
+    rate_by_region = (
+        density.groupby("region")["region_fire_rate"].first().to_dict()
+        if "region_fire_rate" in density.columns
+        else {}
+    )
 
     cells: list[dict] = []
-    for _, c in density.iterrows():
-        cell_risk = p_cal * float(c["weight"])
-        cells.append(
-            {
-                "h3_cell": c["h3_cell"],
-                "centroid_lat": float(c["centroid_lat"]),
-                "centroid_lon": float(c["centroid_lon"]),
-                "hist_fire_count": int(c["hist_fire_count"]),
-                "p_region": p_cal,
-                "p_cell": cell_risk,
-                "risk_class": _bucket(cell_risk),
-            }
+    region_summaries: list[dict] = []
+    primary: dict | None = None  # Thompson-Okanagan, for backward-compatible top level
+
+    for reg in REGIONS:
+        key = reg["key"]
+        row = _region_today_row(reg["weather_file"], float(rate_by_region.get(key, 0.0)))
+        if row is None:
+            continue
+
+        p_raw = float(booster.predict(row[FEATURE_COLS])[0])
+        p_cal = float(calibrator.predict([p_raw])[0])
+        fwi_today = float(row.iloc[0].get("fwi", float("nan")))
+        cffdrs = cffdrs_class_for(fwi_today)
+        obs_day = (
+            row.iloc[0]["day_local"].isoformat()
+            if hasattr(row.iloc[0]["day_local"], "isoformat")
+            else str(row.iloc[0]["day_local"])
         )
 
-    obs_day = (
-        today_row.iloc[0]["day_local"].isoformat()
-        if hasattr(today_row.iloc[0]["day_local"], "isoformat")
-        else str(today_row.iloc[0]["day_local"])
-    )
+        region_cells = density[density["region"] == key]
+        for _, c in region_cells.iterrows():
+            cell_risk = p_cal * float(c["weight"])
+            cells.append(
+                {
+                    "h3_cell": c["h3_cell"],
+                    "region": key,
+                    "region_label": reg["label"],
+                    "centroid_lat": float(c["centroid_lat"]),
+                    "centroid_lon": float(c["centroid_lon"]),
+                    "hist_fire_count": int(c["hist_fire_count"]),
+                    "p_region": p_cal,
+                    "p_cell": cell_risk,
+                    "risk_class": _bucket(cell_risk),
+                }
+            )
+
+        summary = {
+            "key": key,
+            "label": reg["label"],
+            "lat": reg["lat"],
+            "lon": reg["lon"],
+            "p_region": p_cal,
+            "p_region_raw": p_raw,
+            "fwi_today": fwi_today,
+            "cffdrs_class": cffdrs,
+            "observation_day": obs_day,
+            "n_cells": int(len(region_cells)),
+        }
+        region_summaries.append(summary)
+        if key == "thompson_okanagan":
+            primary = summary
+
+    if not cells:
+        return None
+
+    head = primary or region_summaries[0]
     return {
-        "observation_day": obs_day,
-        "p_region": p_cal,
-        "p_region_raw": p_raw,
-        "fwi_today": today_fwi,
-        "cffdrs_class": cffdrs,
+        # Top-level fields mirror the primary region for backward compatibility.
+        "observation_day": head["observation_day"],
+        "p_region": head["p_region"],
+        "p_region_raw": head["p_region_raw"],
+        "fwi_today": head["fwi_today"],
+        "cffdrs_class": head["cffdrs_class"],
+        "regions": region_summaries,
         "cells": cells,
     }
 

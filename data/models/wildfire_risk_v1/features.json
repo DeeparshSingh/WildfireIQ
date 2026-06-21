@@ -39,5 +39,6 @@
   "dry_spell_days",
   "doy_sin",
   "doy_cos",
-  "month"
+  "month",
+  "region_fire_rate"
 ]

@@ -31,5 +31,49 @@ KAMLOOPS_LON: Final[float] = -120.3273
 KAMLOOPS_A_STATION_ID: Final[int] = 1163780  # Kamloops A (current)
 KAMLOOPS_OLD_STATION_ID: Final[int] = 1163781  # historical companion
 
+# ─── Risk-model regions ──────────────────────────────────────────────
+# Each region is modelled with its own local weather point and its own
+# fire history, following the identical methodology. Bounding boxes are
+# chosen so they do not overlap; any residual H3-cell overlap is resolved
+# by region order (the first region in this list claims a shared cell).
+#
+# Fields: key, label, anchor city (lat, lon), bbox (west, south, east,
+# north), and the weather archive file the region reads.
+
+REGIONS: Final[list[dict]] = [
+    {
+        "key": "thompson_okanagan",
+        "label": "Thompson-Okanagan (Kamloops)",
+        "lat": 50.6745,
+        "lon": -120.3273,
+        "bbox": (-121.5, 50.0, -118.5, 51.5),
+        "weather_file": "weather_kamloops_archive_daily.parquet",
+    },
+    {
+        "key": "central_okanagan",
+        "label": "Central Okanagan (Kelowna)",
+        "lat": 49.8880,
+        "lon": -119.4960,
+        "bbox": (-120.6, 49.0, -118.5, 50.0),
+        "weather_file": "weather_kelowna_archive_daily.parquet",
+    },
+    {
+        "key": "lower_mainland",
+        "label": "Lower Mainland (Vancouver)",
+        "lat": 49.2497,
+        "lon": -123.1193,
+        "bbox": (-123.6, 49.0, -121.6, 49.9),
+        "weather_file": "weather_vancouver_archive_daily.parquet",
+    },
+    {
+        "key": "prince_george",
+        "label": "Prince George (Cariboo)",
+        "lat": 53.9171,
+        "lon": -122.7497,
+        "bbox": (-124.2, 53.0, -121.5, 54.6),
+        "weather_file": "weather_prince_george_archive_daily.parquet",
+    },
+]
+
 # Cesium camera default
 CAMERA_DEFAULT_HEIGHT_M: Final[int] = 180_000

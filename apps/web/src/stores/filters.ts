@@ -34,15 +34,22 @@ export type FwiFilter = {
   minFwi: number;
 };
 
+export type RiskFilter = {
+  /** Region keys to hide from the grid. Empty = show every region. */
+  hiddenRegions: string[];
+};
+
 type FiltersState = {
   fires: FiresFilter;
   hotspots: HotspotsFilter;
   evac: EvacFilter;
   fwi: FwiFilter;
+  risk: RiskFilter;
   setFires: (p: Partial<FiresFilter>) => void;
   setHotspots: (p: Partial<HotspotsFilter>) => void;
   setEvac: (p: Partial<EvacFilter>) => void;
   setFwi: (p: Partial<FwiFilter>) => void;
+  setRisk: (p: Partial<RiskFilter>) => void;
 };
 
 export const useFiltersStore = create<FiltersState>((set) => ({
@@ -63,8 +70,12 @@ export const useFiltersStore = create<FiltersState>((set) => ({
   fwi: {
     minFwi: 0,
   },
+  risk: {
+    hiddenRegions: [],
+  },
   setFires: (p) => set((s) => ({ fires: { ...s.fires, ...p } })),
   setHotspots: (p) => set((s) => ({ hotspots: { ...s.hotspots, ...p } })),
   setEvac: (p) => set((s) => ({ evac: { ...s.evac, ...p } })),
   setFwi: (p) => set((s) => ({ fwi: { ...s.fwi, ...p } })),
+  setRisk: (p) => set((s) => ({ risk: { ...s.risk, ...p } })),
 }));

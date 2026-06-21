@@ -100,6 +100,8 @@ export type SmokeTimestep = {
 
 export type RiskCell = {
   h3_cell: string;
+  region: string;
+  region_label: string;
   centroid_lat: number;
   centroid_lon: number;
   hist_fire_count: number;
@@ -108,12 +110,26 @@ export type RiskCell = {
   risk_class: "Low" | "Moderate" | "High" | "Extreme";
 };
 
+export type RiskRegion = {
+  key: string;
+  label: string;
+  lat: number;
+  lon: number;
+  p_region: number;
+  p_region_raw: number;
+  fwi_today: number;
+  cffdrs_class: "Low" | "Moderate" | "High" | "Very High" | "Extreme" | "Unknown";
+  observation_day: string;
+  n_cells: number;
+};
+
 export type RiskGrid = {
   observation_day: string;
   p_region: number;
   p_region_raw: number;
   fwi_today?: number;
   cffdrs_class?: "Low" | "Moderate" | "High" | "Very High" | "Extreme" | "Unknown";
+  regions: RiskRegion[];
   cells: RiskCell[];
 };
 

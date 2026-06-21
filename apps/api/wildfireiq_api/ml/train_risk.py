@@ -50,6 +50,8 @@ FEATURE_COLS = [
     "precip_sum7", "precip_sum30", "dry_spell_days",
     # calendar
     "doy_sin", "doy_cos", "month",
+    # region base-rate prior (geographic constant per region)
+    "region_fire_rate",
 ]
 TARGET_COL = "had_fire"
 
@@ -120,6 +122,27 @@ def main() -> None:
         "test_brier_calibrated": float(brier_score_loss(y_test, p_test_cal)),
         "test_logloss_calibrated": float(log_loss(y_test, p_test_cal)),
     }
+
+    # Per-region held-out 2023 PR-AUC, so we can confirm pooling did not
+    # regress any single region (and disclose low-event regions honestly).
+    if "region" in test.columns:
+        ev = test[["region"]].copy()
+        ev["_y"] = y_test.to_numpy()
+        ev["_p"] = p_test_raw
+        per_region: dict[str, dict] = {}
+        for key, grp in ev.groupby("region"):
+            n_fire = int(grp["_y"].sum())
+            per_region[str(key)] = {
+                "n_test": int(len(grp)),
+                "n_fire_days": n_fire,
+                "pr_auc": (
+                    float(average_precision_score(grp["_y"], grp["_p"]))
+                    if n_fire > 0
+                    else None
+                ),
+                "base_rate": float(grp["_y"].mean()),
+            }
+        metrics["per_region_test"] = per_region
 
     # Baselines for comparison.
     fwi_threshold = (X_test["fwi"].fillna(0) >= 19).astype(float)

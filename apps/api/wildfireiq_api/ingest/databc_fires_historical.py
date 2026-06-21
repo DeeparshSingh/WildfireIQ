@@ -13,7 +13,12 @@ from datetime import UTC
 import pandas as pd
 from shapely.geometry import box, shape
 
-from ..constants import BBOX_EAST, BBOX_NORTH, BBOX_SOUTH, BBOX_WEST
+from ..constants import (
+    BC_BBOX_EAST,
+    BC_BBOX_NORTH,
+    BC_BBOX_SOUTH,
+    BC_BBOX_WEST,
+)
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport, kvs, parse_iso
 
@@ -60,7 +65,9 @@ def _row_from_feature(feat: dict, layer_label: str, kind: str, bbox_poly) -> dic
             if kind == "polygon":
                 keep = g.intersects(bbox_poly)
             else:
-                keep = (BBOX_WEST <= lon <= BBOX_EAST) and (BBOX_SOUTH <= lat <= BBOX_NORTH)
+                keep = (BC_BBOX_WEST <= lon <= BC_BBOX_EAST) and (
+                    BC_BBOX_SOUTH <= lat <= BC_BBOX_NORTH
+                )
         except Exception:
             return None
     if not keep:
@@ -160,7 +167,7 @@ class DataBCFiresHistoricalJob(IngestJob):
     label = "BC Wildfire Service · historical fires (bootstrap)"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        bbox_poly = box(BBOX_WEST, BBOX_SOUTH, BBOX_EAST, BBOX_NORTH)
+        bbox_poly = box(BC_BBOX_WEST, BC_BBOX_SOUTH, BC_BBOX_EAST, BC_BBOX_NORTH)
         notes: list[str] = []
 
         # Perimeters: try zip → fallback to WFS

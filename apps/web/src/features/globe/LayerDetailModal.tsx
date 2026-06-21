@@ -807,10 +807,29 @@ function FwiBrowser() {
   );
 }
 
+function riskClassColor(k: string): string {
+  return k === "Extreme"
+    ? "var(--risk-extreme)"
+    : k === "High"
+    ? "var(--risk-high)"
+    : k === "Moderate"
+    ? "var(--risk-moderate)"
+    : "var(--risk-low)";
+}
+
 function RiskBrowser() {
   const { data, isLoading } = useRiskGrid();
+  const hiddenRegions = useFiltersStore((s) => s.risk.hiddenRegions);
+  const setRisk = useFiltersStore((s) => s.setRisk);
+  const setLayerOn = useLayersStore((s) => s.set);
+  const riskVisible = useLayersStore((s) => s.visible.risk);
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState<string | null>("Extreme");
+  const [classFilter, setClassFilter] = useState<string | null>(null);
+
+  // Turn the layer on when this panel opens so selections are visible.
+  useEffect(() => {
+    if (!riskVisible) setLayerOn("risk", true);
+  }, [setLayerOn, riskVisible]);
 
   if (isLoading || !data) {
     return (
@@ -820,17 +839,151 @@ function RiskBrowser() {
     );
   }
 
+  const regions = data.regions ?? [];
+  const hidden = new Set(hiddenRegions);
+  const isShown = (key: string) => !hidden.has(key);
+  const allShown = regions.every((r) => isShown(r.key));
+
+  const toggleRegion = (key: string) =>
+    setRisk({
+      hiddenRegions: hidden.has(key)
+        ? hiddenRegions.filter((k) => k !== key)
+        : [...hiddenRegions, key],
+    });
+  const selectAll = () => setRisk({ hiddenRegions: [] });
+  const clearAll = () => setRisk({ hiddenRegions: regions.map((r) => r.key) });
+
   const items = data.cells.filter((c) => {
+    if (!isShown(c.region)) return false;
     if (classFilter && c.risk_class !== classFilter) return false;
     if (search && !c.h3_cell.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const counts: Record<string, number> = { Low: 0, Moderate: 0, High: 0, Extreme: 0 };
-  for (const c of data.cells) counts[c.risk_class] += 1;
+  for (const c of data.cells) if (isShown(c.region)) counts[c.risk_class] += 1;
 
   return (
     <>
+      {/* City selector */}
+      <div style={{ padding: "4px 4px 12px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-data)",
+              fontSize: 11,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--color-text-mid)",
+            }}
+          >
+            Cities · pick which to display
+          </span>
+          <button
+            type="button"
+            onClick={allShown ? clearAll : selectAll}
+            style={{
+              background: "hsl(200 80% 50% / 0.12)",
+              color: "var(--color-text-hi)",
+              border: "1px solid hsl(200 80% 50% / 0.3)",
+              borderRadius: 999,
+              padding: "4px 12px",
+              fontSize: 11,
+              fontFamily: "var(--font-body)",
+              cursor: "pointer",
+            }}
+          >
+            {allShown ? "Clear all" : "Select all"}
+          </button>
+        </div>
+        <div style={{ display: "grid", gap: 6 }}>
+          {regions.map((r) => {
+            const shown = isShown(r.key);
+            const color = riskClassColor(r.cffdrs_class);
+            return (
+              <div
+                key={r.key}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr auto",
+                  gap: 10,
+                  alignItems: "center",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  background: shown ? "hsl(200 80% 50% / 0.08)" : "hsl(220 30% 10% / 0.5)",
+                  border: `1px solid ${shown ? "hsl(200 80% 50% / 0.3)" : "hsl(200 80% 50% / 0.1)"}`,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleRegion(r.key)}
+                  aria-label={shown ? `Hide ${r.label}` : `Show ${r.label}`}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    border: `1.5px solid ${shown ? "hsl(200 80% 55%)" : "hsl(200 50% 60% / 0.5)"}`,
+                    background: shown ? "hsl(200 80% 50%)" : "transparent",
+                    color: "white",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {shown ? "✓" : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => flyAndClose(r.lon, r.lat, 140_000)}
+                  style={{
+                    textAlign: "left",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    color: "var(--color-text-hi)",
+                  }}
+                >
+                  <div style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 500 }}>
+                    {r.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-data)",
+                      fontSize: 11,
+                      color: "var(--color-text-mid)",
+                      marginTop: 2,
+                    }}
+                  >
+                    P(fire today) {(r.p_region * 100).toFixed(0)}% · FWI {r.fwi_today.toFixed(1)} · {r.n_cells} cells
+                  </div>
+                </button>
+                <span
+                  style={{
+                    fontFamily: "var(--font-data)",
+                    fontSize: 11,
+                    color,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    border: `1px solid ${color}`,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {r.cffdrs_class}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <Toolbar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search cell id…" />
         {(["Extreme", "High", "Moderate", "Low"] as const).map((k) => (
@@ -843,46 +996,22 @@ function RiskBrowser() {
           </FilterChip>
         ))}
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
-          P(fire today) · region {(data.p_region * 100).toFixed(0)}%
-          {data.cffdrs_class && (
-            <>
-              <span style={{ color: "var(--color-stroke-strong)" }}> · </span>
-              CFFDRS{" "}
-              <span style={{ color: "var(--color-text-hi)" }}>
-                {data.cffdrs_class}
-              </span>
-              {data.fwi_today != null && (
-                <span style={{ color: "var(--color-text-low)" }}>
-                  {" "}(FWI {data.fwi_today.toFixed(1)})
-                </span>
-              )}
-            </>
-          )}
+          {items.length} cell{items.length === 1 ? "" : "s"} shown
         </span>
       </Toolbar>
       <ResultsList
         items={items}
-        empty="No cells match the current filter."
-        render={(c) => {
-          const color =
-            c.risk_class === "Extreme"
-              ? "var(--risk-extreme)"
-              : c.risk_class === "High"
-              ? "var(--risk-high)"
-              : c.risk_class === "Moderate"
-              ? "var(--risk-moderate)"
-              : "var(--risk-low)";
-          return (
-            <Row
-              key={c.h3_cell}
-              onClick={() => flyAndClose(c.centroid_lon, c.centroid_lat, 35_000)}
-              primary={`${c.h3_cell.slice(0, 8)}… · ${c.centroid_lat.toFixed(3)}, ${c.centroid_lon.toFixed(3)}`}
-              secondary={`P(cell) ${(c.p_cell * 100).toFixed(1)}% · historical fires ${c.hist_fire_count}`}
-              badge={c.risk_class}
-              badgeColor={color}
-            />
-          );
-        }}
+        empty="No cells match the current filters. Select a city above."
+        render={(c) => (
+          <Row
+            key={c.h3_cell}
+            onClick={() => flyAndClose(c.centroid_lon, c.centroid_lat, 35_000)}
+            primary={`${c.region_label} · ${c.centroid_lat.toFixed(3)}, ${c.centroid_lon.toFixed(3)}`}
+            secondary={`P(cell) ${(c.p_cell * 100).toFixed(1)}% · historical fires ${c.hist_fire_count}`}
+            badge={c.risk_class}
+            badgeColor={riskClassColor(c.risk_class)}
+          />
+        )}
       />
     </>
   );

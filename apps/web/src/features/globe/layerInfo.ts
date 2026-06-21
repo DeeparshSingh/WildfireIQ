@@ -56,12 +56,12 @@ export const LAYER_INFO: Record<LayerId, LayerInfo> = {
     refresh: "Updated every 6 hours; the map re-checks every 30 minutes",
   },
   risk: {
-    what: "Our AI's best estimate of wildfire risk across the region today, drawn as coloured hexagons (Low / Moderate / High / Extreme). It blends two things: how fire-prone today's weather is, and how often each specific area has burned in the past. Open a hexagon to also see the official government Fire Danger rating side-by-side, so you can compare our estimate to the standard one.",
+    what: "Our AI's best estimate of wildfire risk today, drawn as coloured hexagons (Low / Moderate / High / Extreme). It now covers four areas: Thompson-Okanagan (Kamloops), Central Okanagan (Kelowna), the Lower Mainland (Vancouver), and Prince George. Open this panel to choose which cities to show, or show all of them. Each area blends two things: how fire-prone its own weather is today, and how often each spot has burned in the past. Open a hexagon to also see the official government Fire Danger rating beside it.",
     pipeline:
-      "We trained a machine-learning model on 23 years of BC weather and fire records (1999-2021), then tested it on years it had never seen (2022 and 2023). On that unseen data it correctly ranked fire days clearly better than the traditional weather-threshold method. Today's region-wide risk is then scaled up or down for each hexagon based on that area's documented fire history.",
-    source: "In-house AI model trained on 23 years of BC Wildfire Service + weather data",
+      "One machine-learning model was trained on all four areas together, using 23 years of BC weather and fire records (1999-2021) and tested on years it had never seen (2022 and 2023). Each area uses its own local weather, so Kelowna is scored on Kelowna's conditions and Prince George on its own. Today's area-wide risk is then scaled for each hexagon by that spot's documented fire history.",
+    source: "In-house AI model trained on BC Wildfire Service + weather data, four regions",
     refresh: "Recalculated daily on the latest weather; the map re-checks every 30 minutes",
     caveat:
-      "The difference between hexagons comes from each area's fire history, not from separate local weather (we use one regional weather signal). This is a planning aid, not an official warning — always follow the BC Wildfire Service and BC Emergency Management.",
+      "Within an area, the difference between hexagons comes from fire history, not separate local weather. The Lower Mainland sees few wildfires, so its risk reads low and is harder to score than the drier Interior. This is a planning aid, not an official warning — always follow the BC Wildfire Service and BC Emergency Management.",
   },
 };
