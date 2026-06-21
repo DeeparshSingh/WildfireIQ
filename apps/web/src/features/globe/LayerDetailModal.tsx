@@ -823,8 +823,6 @@ function RiskBrowser() {
   const setRisk = useFiltersStore((s) => s.setRisk);
   const setLayerOn = useLayersStore((s) => s.set);
   const riskVisible = useLayersStore((s) => s.visible.risk);
-  const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState<string | null>(null);
 
   // Turn the layer on when this panel opens so selections are visible.
   useEffect(() => {
@@ -833,7 +831,15 @@ function RiskBrowser() {
 
   if (isLoading || !data) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+      <div
+        style={{
+          padding: 48,
+          textAlign: "center",
+          color: "var(--color-text-low)",
+          fontFamily: "var(--font-body)",
+          fontSize: 14,
+        }}
+      >
         Loading risk grid…
       </div>
     );
@@ -841,8 +847,7 @@ function RiskBrowser() {
 
   const regions = data.regions ?? [];
   const hidden = new Set(hiddenRegions);
-  const isShown = (key: string) => !hidden.has(key);
-  const allShown = regions.every((r) => isShown(r.key));
+  const allShown = regions.every((r) => !hidden.has(r.key));
 
   const toggleRegion = (key: string) =>
     setRisk({
@@ -853,209 +858,154 @@ function RiskBrowser() {
   const selectAll = () => setRisk({ hiddenRegions: [] });
   const clearAll = () => setRisk({ hiddenRegions: regions.map((r) => r.key) });
 
-  const items = data.cells.filter((c) => {
-    if (!isShown(c.region)) return false;
-    if (classFilter && c.risk_class !== classFilter) return false;
-    if (search && !c.h3_cell.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
-  const counts: Record<string, number> = { Low: 0, Moderate: 0, High: 0, Extreme: 0 };
-  for (const c of data.cells) if (isShown(c.region)) counts[c.risk_class] += 1;
-
   return (
     <>
-      {/* City selector — the primary control */}
-      <div style={{ padding: "2px 2px 10px" }}>
-        <div
+      <Toolbar>
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-data)",
-              fontSize: 11,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--color-text-mid)",
-            }}
-          >
-            Show cities
-          </span>
-          <button
-            type="button"
-            onClick={allShown ? clearAll : selectAll}
-            style={{
-              background: "transparent",
-              color: "var(--color-cyan-glow)",
-              border: "none",
-              fontSize: 12,
-              fontFamily: "var(--font-body)",
-              cursor: "pointer",
-            }}
-          >
-            {allShown ? "Clear all" : "Select all"}
-          </button>
-        </div>
-        <div style={{ display: "grid", gap: 6 }}>
-          {regions.map((r) => {
-            const shown = isShown(r.key);
-            const color = riskClassColor(r.risk_level);
-            return (
-              <div
-                key={r.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "9px 12px",
-                  borderRadius: 10,
-                  background: shown ? "hsl(220 28% 12% / 0.7)" : "hsl(220 30% 9% / 0.5)",
-                  border: `1px solid ${shown ? "hsl(200 80% 50% / 0.25)" : "hsl(220 20% 22% / 0.6)"}`,
-                  opacity: shown ? 1 : 0.55,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleRegion(r.key)}
-                  aria-label={shown ? `Hide ${r.label}` : `Show ${r.label}`}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    flexShrink: 0,
-                    borderRadius: 5,
-                    border: `1.5px solid ${shown ? "hsl(200 80% 55%)" : "hsl(200 50% 60% / 0.5)"}`,
-                    background: shown ? "hsl(200 80% 50%)" : "transparent",
-                    color: "white",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    lineHeight: 1,
-                  }}
-                >
-                  {shown ? "✓" : ""}
-                </button>
-                {/* Risk-level dot matching the map colour */}
-                <span
-                  style={{
-                    width: 9,
-                    height: 9,
-                    borderRadius: 999,
-                    background: color,
-                    flexShrink: 0,
-                    boxShadow: `0 0 6px ${color}`,
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => flyAndClose(r.lon, r.lat, 140_000)}
-                  title="Fly to this city"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    textAlign: "left",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    color: "var(--color-text-hi)",
-                    fontFamily: "var(--font-body)",
-                    fontSize: 14,
-                    fontWeight: 500,
-                  }}
-                >
-                  {r.label}
-                </button>
-                <span
-                  style={{
-                    fontFamily: "var(--font-data)",
-                    fontSize: 11,
-                    color: "var(--color-text-mid)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {(r.p_region * 100).toFixed(0)}%
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-data)",
-                    fontSize: 10,
-                    letterSpacing: "0.04em",
-                    color,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    border: `1px solid ${color}`,
-                    whiteSpace: "nowrap",
-                    minWidth: 64,
-                    textAlign: "center",
-                  }}
-                >
-                  {r.risk_level}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: 11,
-            color: "var(--color-text-low)",
-            marginTop: 8,
-            lineHeight: 1.5,
-          }}
-        >
-          The percentage is the model's chance of a fire somewhere in that
-          area today. The dot and label show the overall map risk level.
-        </div>
-      </div>
-
-      {/* Individual cells — collapsed by default to keep this tidy */}
-      <details>
-        <summary
-          style={{
-            cursor: "pointer",
             fontFamily: "var(--font-data)",
-            fontSize: 11,
+            fontSize: 10,
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             color: "var(--color-text-mid)",
-            padding: "8px 2px",
           }}
         >
-          Browse individual cells ({items.length})
-        </summary>
-        <Toolbar>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search cell id…" />
-          {(["Extreme", "High", "Moderate", "Low"] as const).map((k) => (
-            <FilterChip
-              key={k}
-              active={classFilter === k}
-              onClick={() => setClassFilter(classFilter === k ? null : k)}
+          Show cities
+        </span>
+        <button
+          type="button"
+          onClick={allShown ? clearAll : selectAll}
+          style={{
+            marginLeft: "auto",
+            background: "transparent",
+            color: "var(--color-cyan-glow)",
+            border: "none",
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          {allShown ? "Clear all" : "Select all"}
+        </button>
+      </Toolbar>
+
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {regions.map((r) => {
+          const shown = !hidden.has(r.key);
+          const color = riskClassColor(r.risk_level);
+          return (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => toggleRegion(r.key)}
+              aria-pressed={shown}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                width: "100%",
+                padding: "16px 24px",
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px solid var(--color-stroke)",
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "var(--font-body)",
+                opacity: shown ? 1 : 0.5,
+                transition: "background var(--dur-fast) var(--ease-out-expo)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-3)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              {k} · {counts[k]}
-            </FilterChip>
-          ))}
-        </Toolbar>
-        <ResultsList
-          items={items}
-          empty="No cells match the current filters. Select a city above."
-          render={(c) => (
-            <Row
-              key={c.h3_cell}
-              onClick={() => flyAndClose(c.centroid_lon, c.centroid_lat, 35_000)}
-              primary={`${c.region_label} · ${c.centroid_lat.toFixed(3)}, ${c.centroid_lon.toFixed(3)}`}
-              secondary={`P(cell) ${(c.p_cell * 100).toFixed(1)}% · historical fires ${c.hist_fire_count}`}
-              badge={c.risk_class}
-              badgeColor={riskClassColor(c.risk_class)}
-            />
-          )}
-        />
-      </details>
+              <span
+                aria-hidden
+                style={{
+                  width: 22,
+                  height: 22,
+                  flexShrink: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  borderRadius: 6,
+                  border: `1.5px solid ${shown ? "var(--color-cyan-glow)" : "var(--color-stroke-strong)"}`,
+                  background: shown ? "var(--color-cyan-glow)" : "transparent",
+                  color: "var(--color-bg-0)",
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                {shown ? "✓" : ""}
+              </span>
+              <span
+                aria-hidden
+                style={{
+                  width: 10,
+                  height: 10,
+                  flexShrink: 0,
+                  borderRadius: 999,
+                  background: color,
+                  boxShadow: shown ? `0 0 8px ${color}` : "none",
+                }}
+              />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 15,
+                    fontWeight: 500,
+                    color: "var(--color-text-hi)",
+                  }}
+                >
+                  {r.label}
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    color: "var(--color-text-low)",
+                    fontFamily: "var(--font-data)",
+                    letterSpacing: "0.06em",
+                    marginTop: 4,
+                  }}
+                >
+                  {(r.p_region * 100).toFixed(0)}% chance today · FWI {r.fwi_today.toFixed(0)} · {r.n_cells} zones
+                </span>
+              </span>
+              <span
+                className="tabular"
+                style={{
+                  fontSize: 11,
+                  padding: "4px 12px",
+                  borderRadius: "var(--radius-pill)",
+                  border: `1px solid ${color}`,
+                  color,
+                  background: `color-mix(in oklab, ${color} 12%, transparent)`,
+                  fontFamily: "var(--font-data)",
+                  letterSpacing: "0.08em",
+                  flexShrink: 0,
+                }}
+              >
+                {r.risk_level}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        style={{
+          padding: "14px 24px",
+          borderTop: "1px solid var(--color-stroke)",
+          background: "var(--color-bg-2)",
+          fontFamily: "var(--font-body)",
+          fontSize: 12,
+          lineHeight: 1.6,
+          color: "var(--color-text-low)",
+        }}
+      >
+        Tap a city to show or hide its risk grid on the map. The percentage is
+        the model&apos;s chance of a fire somewhere in that area today; the dot
+        and label show the area&apos;s overall risk level.
+      </div>
     </>
   );
 }
