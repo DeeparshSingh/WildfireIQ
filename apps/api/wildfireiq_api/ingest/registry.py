@@ -56,3 +56,41 @@ def scheduled_jobs() -> list[IngestJob]:
 def bootstrap_jobs() -> list[IngestJob]:
     """One-shot bootstrap jobs (cadence is None)."""
     return [j for j in all_jobs().values() if j.cadence is None]
+
+
+def dependency_waves(jobs: list[IngestJob]) -> list[list[IngestJob]]:
+    """Group `jobs` into waves that can each run fully in parallel.
+
+    Wave 0 holds everything with no unmet dependency inside the selection;
+    wave 1 holds jobs whose dependencies all landed in wave 0, and so on.
+    Dependencies on jobs outside the selection (a bootstrap, or a job that
+    is already fresh) are treated as satisfied.
+
+    Raises ValueError on an unknown dependency name or a cycle, so a typo
+    surfaces at startup rather than as silently reordered data.
+    """
+    known = all_jobs()
+    for j in jobs:
+        for dep in j.depends_on:
+            if dep not in known:
+                raise ValueError(f"job {j.name!r} depends on unknown job {dep!r}")
+
+    pending = {j.name: j for j in jobs}
+    waves: list[list[IngestJob]] = []
+    settled: set[str] = set()
+
+    while pending:
+        ready = [
+            j
+            for j in pending.values()
+            if all(dep in settled or dep not in pending for dep in j.depends_on)
+        ]
+        if not ready:
+            raise ValueError(f"dependency cycle among ingest jobs: {sorted(pending)}")
+        ready.sort(key=lambda j: j.name)
+        waves.append(ready)
+        for j in ready:
+            settled.add(j.name)
+            del pending[j.name]
+
+    return waves

@@ -22,7 +22,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROCESSED = REPO_ROOT / "data" / "processed"
 
@@ -197,6 +196,7 @@ def test_theil_sen_recovers_known_slope() -> None:
     """Feed the estimator a perfect linear series and verify it
     recovers the slope to within tolerance, with a tight CI."""
     import numpy as np
+
     from wildfireiq_api.ml.trends import theil_sen_with_ci
 
     rng = np.random.default_rng(0)
@@ -211,6 +211,7 @@ def test_theil_sen_recovers_known_slope() -> None:
 def test_theil_sen_handles_nan() -> None:
     """NaN rows must be dropped pairwise, not poison the slope."""
     import numpy as np
+
     from wildfireiq_api.ml.trends import theil_sen_with_ci
 
     x = np.array([0, 1, 2, 3, 4, 5], dtype=float)

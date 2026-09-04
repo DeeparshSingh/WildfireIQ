@@ -17,6 +17,7 @@ class DerivedFiresUnifiedJob(IngestJob):
     name = "derived_fires_unified"
     label = "Derived · unified fires (historical + current)"
     cadence = "15 2 * * *"
+    depends_on = ("databc_fires_historical", "databc_fires_current")
 
     async def run(self, ctx: IngestContext) -> IngestReport:
         ctx.log.info("fires_unified.build.start")

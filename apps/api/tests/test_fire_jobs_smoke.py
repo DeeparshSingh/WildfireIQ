@@ -2,12 +2,13 @@
 
 import asyncio
 
+from sqlalchemy import text
+
 from wildfireiq_api.db import get_engine
 from wildfireiq_api.ingest.base import run_job
 from wildfireiq_api.ingest.databc_fires_current import DataBCFiresCurrentJob
 from wildfireiq_api.ingest.databc_fires_historical import DataBCFiresHistoricalJob
 from wildfireiq_api.ingest.firms_hotspots import FIRMSHotspotsJob
-from sqlalchemy import text
 
 
 async def _init_db() -> None:

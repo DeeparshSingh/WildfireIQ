@@ -17,6 +17,7 @@ class DerivedSeasonalMetricsJob(IngestJob):
     name = "derived_seasonal_metrics"
     label = "Derived · seasonal climate+fire metrics"
     cadence = "30 2 * * *"  # 02:30 UTC daily
+    depends_on = ("databc_fires_historical", "open_meteo_archive_kamloops")
 
     async def run(self, ctx: IngestContext) -> IngestReport:
         ctx.log.info("seasonal_metrics.build.start")

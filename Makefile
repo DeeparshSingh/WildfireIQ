@@ -91,7 +91,8 @@ research-assets:
 
 .PHONY: lint
 lint:
-	cd apps/api && uv run ruff check wildfireiq_api
+	cd apps/api && uv run ruff check wildfireiq_api tests
+	cd apps/api && uv run ruff format --check wildfireiq_api tests
 
 .PHONY: test
 test:

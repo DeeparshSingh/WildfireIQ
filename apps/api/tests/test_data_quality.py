@@ -7,11 +7,11 @@ clone passes the suite before bootstrapping.
 
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 import pandas as pd
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROCESSED = REPO_ROOT / "data" / "processed"
@@ -101,7 +101,7 @@ def test_aq_hourly_pm25_non_negative() -> None:
 def test_seasonal_metrics_years_contiguous() -> None:
     df = _load("seasonal_metrics.parquet")
     yrs = df.year.tolist()
-    gaps = [b - a for a, b in zip(yrs, yrs[1:])]
+    gaps = [b - a for a, b in pairwise(yrs)]
     assert all(g == 1 for g in gaps), f"non-contiguous year set: gaps {gaps}"
 
 

@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from .db import session_scope
 from .ingest.base import IngestJob, run_job
-from .ingest.registry import scheduled_jobs
+from .ingest.registry import dependency_waves, scheduled_jobs
 
 log = structlog.get_logger()
 _scheduler: AsyncIOScheduler | None = None
@@ -63,18 +63,16 @@ def stop_scheduler() -> None:
         log.info("scheduler.stopped")
 
 
-async def refresh_stale_jobs(max_age_minutes: int) -> None:
-    """Run every recurring job whose latest successful run is older than the
-    threshold. Called at uvicorn startup so cold-start = fresh data even when
-    APScheduler hasn't yet fired its first tick of the day.
+#: Startup catch-up parallelism. Five keeps a cold start quick without
+#: hammering any single upstream (most of them are Open-Meteo or DataBC).
+_REFRESH_CONCURRENCY = 5
 
-    Runs jobs concurrently to keep startup fast. Errors are logged, never
-    raised — a failed upstream shouldn't block the API from booting.
-    """
-    cutoff = datetime.now(UTC) - timedelta(minutes=max_age_minutes)
-    cutoff_iso = cutoff.isoformat()
 
-    to_run: list[IngestJob] = []
+async def _stale_jobs(max_age_minutes: int) -> list[IngestJob]:
+    """Recurring jobs whose latest successful run is older than the threshold."""
+    cutoff_iso = (datetime.now(UTC) - timedelta(minutes=max_age_minutes)).isoformat()
+
+    stale: list[IngestJob] = []
     async with session_scope() as session:
         for job in scheduled_jobs():
             result = await session.execute(
@@ -88,32 +86,50 @@ async def refresh_stale_jobs(max_age_minutes: int) -> None:
             row = result.first()
             last_iso = row[0] if row else None
             if last_iso is None or last_iso < cutoff_iso:
-                to_run.append(job)
+                stale.append(job)
+    return stale
 
+
+async def refresh_stale_jobs(max_age_minutes: int) -> None:
+    """Bring stale data up to date at uvicorn startup, in dependency order.
+
+    Cold start, or a laptop that has been closed for a week, leaves the
+    processed parquets behind. APScheduler will not fire until its next tick,
+    so this catches up immediately.
+
+    Ordering matters: `derived_risk_features` reads the region weather
+    archives, and `derived_seasonal_metrics` reads the Kamloops archive. The
+    nightly cron times are staggered to respect that, but a catch-up run has
+    no clock to lean on, so jobs are grouped into dependency waves and each
+    wave finishes before the next begins. Within a wave, jobs run in
+    parallel. Errors are logged, never raised: a dead upstream must not stop
+    the API from booting.
+    """
+    to_run = await _stale_jobs(max_age_minutes)
     if not to_run:
         log.info("startup_refresh.nothing_to_run")
         return
 
+    waves = dependency_waves(to_run)
     log.info(
         "startup_refresh.running",
         count=len(to_run),
-        jobs=[j.name for j in to_run],
+        waves=[[j.name for j in w] for w in waves],
     )
 
-    async def _safe(j: IngestJob):
-        try:
-            await run_job(j)
-        except Exception as exc:
-            log.warning("startup_refresh.job_failed", job=j.name, error=str(exc))
+    sem = asyncio.Semaphore(_REFRESH_CONCURRENCY)
 
-    # Cap parallelism at 5 so we don't hammer a single upstream.
-    sem = asyncio.Semaphore(5)
-
-    async def _gated(j: IngestJob):
+    async def _gated(j: IngestJob) -> None:
         async with sem:
-            await _safe(j)
+            try:
+                await run_job(j)
+            except Exception as exc:
+                log.warning("startup_refresh.job_failed", job=j.name, error=str(exc))
 
-    await asyncio.gather(*[_gated(j) for j in to_run])
+    for i, wave in enumerate(waves):
+        await asyncio.gather(*[_gated(j) for j in wave])
+        log.info("startup_refresh.wave_complete", wave=i, jobs=len(wave))
+
     log.info("startup_refresh.complete")
 
 

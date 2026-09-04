@@ -67,6 +67,12 @@ class IngestJob(ABC):
     #: Human-readable label for logs and the ingest_runs table.
     label: str = ""
 
+    #: Names of jobs whose output this job reads. Cron cadences are staggered
+    #: to respect these, but the startup catch-up has no clock to lean on, so
+    #: it orders jobs by this graph instead. Naming a bootstrap job is fine:
+    #: it is treated as already satisfied once the bootstrap has run.
+    depends_on: tuple[str, ...] = ()
+
     @abstractmethod
     async def run(self, ctx: IngestContext) -> IngestReport:
         """Run a single execution of this job."""

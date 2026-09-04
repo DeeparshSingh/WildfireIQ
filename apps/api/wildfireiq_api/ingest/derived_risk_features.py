@@ -25,6 +25,11 @@ from .base import IngestContext, IngestJob, IngestReport
 class DerivedRiskFeaturesJob(IngestJob):
     name = "derived_risk_features"
     cadence = "35 2 * * *"
+    depends_on = (
+        "databc_fires_historical",
+        "open_meteo_archive_kamloops",
+        "derived_region_weather",
+    )
     label = "Derived · wildfire-risk features + cell density"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
