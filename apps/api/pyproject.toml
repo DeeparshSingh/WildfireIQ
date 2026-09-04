@@ -22,14 +22,12 @@ dependencies = [
     "python-dotenv>=1.0",
     "structlog>=24.4",
     "tenacity>=9.0",
-    "orjson>=3.10",
-    # Phase 1 — geo + parsing
+    # Geo, parsing, and ML
     "shapely>=2.0",
     "pyarrow>=17.0",
     "h3>=4.1",
     "scikit-learn>=1.8.0",
     "lightgbm>=4.6.0",
-    "shap>=0.51.0",
     "joblib>=1.5.3",
     "onnxmltools>=1.16.0",
     "onnxruntime>=1.26.0",
@@ -44,9 +42,6 @@ dev = [
     "ruff>=0.7",
     "mypy>=1.13",
 ]
-
-# Geo + ML deps deferred to Phase 1 / Phase 3 to keep Phase 0 install fast.
-# uv add geopandas shapely rasterio xarray scikit-learn lightgbm xgboost shap onnxmltools
 
 [build-system]
 requires = ["hatchling"]

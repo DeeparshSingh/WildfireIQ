@@ -10,7 +10,6 @@ from typing import Any
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
@@ -116,7 +115,6 @@ def create_app() -> FastAPI:
             "Backend for the WildfireIQ Kamloops platform — wildfire risk, air quality, "
             "preparedness, and climate trend data for the Thompson-Okanagan region."
         ),
-        default_response_class=ORJSONResponse,
         lifespan=lifespan,
         openapi_tags=[
             {"name": "system", "description": "Health, version, metadata."},
