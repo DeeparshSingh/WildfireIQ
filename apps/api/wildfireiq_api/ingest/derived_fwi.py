@@ -13,9 +13,7 @@ stations by:
      the existing /api/fwi/today route + the Cesium FWIStationsLayer +
      LayerDetailModal FwiBrowser all work unchanged.
 
-This is the "Phase 3 stretch" listed in the wildfire risk model card and
-called out in logic.md (`cffdrs-py` port).  We use our own pure-pandas
-port so there's no new dependency.
+The port is pure pandas, so this adds no new dependency.
 
 Cron: every 30 min (cheap, ~3 s to run).
 """

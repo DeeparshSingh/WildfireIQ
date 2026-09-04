@@ -18,7 +18,6 @@ async def current(include_extinguished: bool = False) -> dict[str, Any]:
         meta=Meta(
             source="databc_fires_current",
             attribution="BC Wildfire Service · DataBC · Open Government Licence – British Columbia",
-            phase="1",
             note=None if rows else "No fires_current.parquet yet — run `uv run python scripts/ingest/bootstrap.py --only databc_fires_current`",
         ),
     ).model_dump(mode="json")
@@ -35,7 +34,6 @@ async def hotspots(since: str = "24h") -> dict[str, Any]:
         meta=Meta(
             source="firms_hotspots",
             attribution="NASA FIRMS · VIIRS + MODIS Near-Real-Time fire data",
-            phase="1",
             note=None if rows else "No firms_hotspots_recent.parquet yet — needs FIRMS_MAP_KEY in .env then re-run ingest",
         ),
     ).model_dump(mode="json")
@@ -49,7 +47,6 @@ async def historical(year: int | None = None) -> dict[str, Any]:
         meta=Meta(
             source="databc_fires_historical",
             attribution="BC Wildfire Service · DataBC · 1999–today",
-            phase="1",
             note=None if rows else "Run bootstrap to ingest historical fires",
         ),
     ).model_dump(mode="json")

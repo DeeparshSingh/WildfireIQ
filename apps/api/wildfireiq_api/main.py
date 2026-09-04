@@ -123,13 +123,13 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "system", "description": "Health, version, metadata."},
             {"name": "fires", "description": "Active + historical fire incidents and FIRMS hotspots."},
-            {"name": "risk", "description": "AI-derived wildfire risk grid (Phase 3)."},
+            {"name": "risk", "description": "AI-derived wildfire risk grid."},
             {"name": "weather", "description": "Current + forecast weather for Kamloops."},
             {"name": "fwi", "description": "Fire Weather Index station readings."},
-            {"name": "aq", "description": "Air quality realtime + 48h forecast (Phase 3)."},
+            {"name": "aq", "description": "Air quality realtime + 48-hour forecast."},
             {"name": "evac", "description": "Active evacuation orders and alerts."},
-            {"name": "firesmart", "description": "Personalized FireSmart checklist (Phase 5)."},
-            {"name": "climate", "description": "Historical climate + projections (Phase 6)."},
+            {"name": "firesmart", "description": "Personalized FireSmart checklist."},
+            {"name": "climate", "description": "Historical climate + projections."},
             {"name": "admin", "description": "Trigger ingest jobs + inspect runs."},
         ],
     )

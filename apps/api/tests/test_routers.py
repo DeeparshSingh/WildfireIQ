@@ -79,7 +79,7 @@ def test_envelope_shape(client: TestClient, path: str) -> None:
     assert "data" in body, f"{path} missing `data`"
     assert "meta" in body, f"{path} missing `meta`"
     meta = body["meta"]
-    assert "phase" in meta
+    assert "cached_at" in meta
     assert "source" in meta
 
 

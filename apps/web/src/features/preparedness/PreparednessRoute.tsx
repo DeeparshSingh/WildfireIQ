@@ -1,5 +1,5 @@
 /**
- * /preparedness — Phase 5 orchestrator.
+ * /preparedness — Community Preparedness Hub orchestrator.
  *
  * Layout (12-col):
  *   ┌──────────┬───────────────────┬──────────┐

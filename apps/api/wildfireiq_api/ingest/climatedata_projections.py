@@ -1,6 +1,6 @@
 """ClimateData.ca CMIP6 projections bootstrap (one-shot, synthetic).
 
-SYNTHETIC PLACEHOLDER DATA. To be replaced in Phase 6 with real CMIP6
+SYNTHETIC PLACEHOLDER DATA, to be replaced with the real CMIP6
 ensembles from ClimateData.ca (the public data API is undocumented). This
 job linearly extrapolates the locally-observed ECCC trend so the rest of
 the stack has something to render against until then.
@@ -186,6 +186,6 @@ class ClimateDataProjectionsJob(IngestJob):
             rows_in=len(rows),
             rows_written=len(df),
             bytes_written=out_path.stat().st_size,
-            note="SYNTHETIC placeholder — replace in Phase 6 with real CMIP6",
+            note="SYNTHETIC placeholder; replace with the real CMIP6 ensemble",
             artifacts=[out_path],
         )

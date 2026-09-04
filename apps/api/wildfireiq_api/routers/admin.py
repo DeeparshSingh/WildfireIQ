@@ -21,7 +21,7 @@ async def list_jobs() -> dict[str, Any]:
     ]
     return Envelope[list](
         data=rows,
-        meta=Meta(source="ingest.registry", attribution="WildfireIQ", phase="1"),
+        meta=Meta(source="ingest.registry", attribution="WildfireIQ"),
     ).model_dump(mode="json")
 
 
@@ -41,7 +41,7 @@ async def trigger_job(name: str) -> dict[str, Any]:
             "note": report.note,
             "error": report.error,
         },
-        meta=Meta(source="ingest.run_job", attribution="WildfireIQ", phase="1"),
+        meta=Meta(source="ingest.run_job", attribution="WildfireIQ"),
     ).model_dump(mode="json")
 
 
@@ -64,5 +64,5 @@ async def list_runs(limit: int = 50, job: str | None = None) -> dict[str, Any]:
 
     return Envelope[list](
         data=rows,
-        meta=Meta(source="sqlite.ingest_runs", attribution="WildfireIQ", phase="1"),
+        meta=Meta(source="sqlite.ingest_runs", attribution="WildfireIQ"),
     ).model_dump(mode="json")

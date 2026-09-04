@@ -1,5 +1,5 @@
 /**
- * Shown when no Cesium Ion token is configured. Phase 0 graceful fallback.
+ * Shown when no Cesium Ion token is configured.
  */
 export function GlobeSetupNotice() {
   return (
@@ -33,7 +33,7 @@ export function GlobeSetupNotice() {
             marginBottom: 12,
           }}
         >
-          Setup required · Phase 0
+          Setup required
         </div>
         <h1
           style={{

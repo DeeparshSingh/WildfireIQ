@@ -1,5 +1,5 @@
 /**
- * /climate — Climate Trend Module (Phase 6).
+ * /climate — Climate Trend Module.
  *
  * A six-section scrollytelling page that opens with the historical record
  * and closes with projected fire-weather days. Each section is wrapped in

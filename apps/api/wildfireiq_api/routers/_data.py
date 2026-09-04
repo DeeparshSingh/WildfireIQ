@@ -161,13 +161,13 @@ def climate_projections(ssp: str | None = None, var: str | None = None) -> list[
 
 
 def seasonal_metrics() -> list[dict[str, Any]]:
-    """Per-year joined fire+weather+FWI metrics (Phase 6)."""
+    """Per-year joined fire + weather + FWI metrics."""
     df = _read_parquet_safe(PROCESSED_ROOT / "seasonal_metrics.parquet")
     return _records(df)
 
 
 def season_context() -> dict[str, Any]:
-    """Derived metrics for the Phase 5 right-column ticker.
+    """Derived metrics for the preparedness hub's season ticker.
 
     Returns:
       days_since_5mm_rain : last day with ≥5 mm precip in Kamloops daily wx

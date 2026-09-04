@@ -20,7 +20,6 @@ async def active() -> dict[str, Any]:
         meta=Meta(
             source="bcem_evac",
             attribution="BC Emergency Management Climate Readiness (EMCR)",
-            phase="1",
         ),
     ).model_dump(mode="json")
 
@@ -54,6 +53,5 @@ async def check(lat: float, lon: float) -> dict[str, Any]:
         meta=Meta(
             source="bcem_evac",
             attribution="BC Emergency Management Climate Readiness (EMCR)",
-            phase="1",
         ),
     ).model_dump(mode="json")

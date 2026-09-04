@@ -1,11 +1,11 @@
-"""Historical climate + CMIP6 projections (Phase 6).
+"""Historical climate + CMIP6 projections.
 
 Backed by:
   • `data/processed/seasonal_metrics.parquet` — built by
     `wildfireiq_api.ml.seasonal_metrics`. Per-year joined fire + weather +
     Van Wagner FWI metrics for the Thompson-Okanagan.
   • `data/processed/climate_projections.parquet` — CMIP6 ensemble
-    placeholder (observed + ssp126 + ssp245 + ssp585) shipped from Phase 1.
+    placeholder (observed + ssp126 + ssp245 + ssp585).
 
 Every endpoint accepts `?format=csv` to return a `text/csv` body — that's
 what powers the "Download CSV" buttons in the Climate Trend page.
@@ -58,7 +58,7 @@ def _envelope_or_csv(
         )
     return Envelope[list](
         data=rows,
-        meta=Meta(source=source, attribution=attribution, phase="6", note=note),
+        meta=Meta(source=source, attribution=attribution, note=note),
     ).model_dump(mode="json")
 
 
@@ -83,8 +83,7 @@ async def trends() -> dict[str, Any]:
     if not rows:
         return Envelope[dict](
             data={},
-            meta=Meta(source="seasonal_metrics", attribution="", phase="6",
-                       note="No seasonal metrics yet."),
+            meta=Meta(source="seasonal_metrics", attribution="", note="No seasonal metrics yet."),
         ).model_dump(mode="json")
 
     import numpy as np
@@ -120,7 +119,6 @@ async def trends() -> dict[str, Any]:
         meta=Meta(
             source="seasonal_metrics",
             attribution="Theil-Sen slope · 1000-bootstrap 95% CI",
-            phase="6",
         ),
     ).model_dump(mode="json")
 
@@ -158,7 +156,7 @@ async def projection(
         rows,
         fmt=format,
         source="climatedata_projections",
-        attribution="CMIP6 ensemble placeholder (Phase 1) · ClimateData.ca structure",
+        attribution="CMIP6 ensemble placeholder · ClimateData.ca structure",
         note="Synthetic CMIP6 ensemble — wired for shape; real ensemble swap is a parquet replace.",
     )
 
@@ -173,8 +171,7 @@ async def projections_all(var: str = "tasmean") -> dict[str, Any]:
         meta=Meta(
             source="climatedata_projections",
             attribution="CMIP6 ensemble placeholder · ClimateData.ca structure",
-            phase="6",
-            note="Phase 1 synthetic placeholder; real CMIP6 ensemble drop-in is a parquet replace.",
+            note="Synthetic placeholder; the real CMIP6 ensemble is a drop-in parquet replace.",
         ),
     ).model_dump(mode="json")
 
@@ -191,7 +188,7 @@ async def fwi_projection() -> dict[str, Any]:
     if not rows:
         return Envelope[dict](
             data={},
-            meta=Meta(source="fwi_projection", attribution="", phase="6", note="No data"),
+            meta=Meta(source="fwi_projection", attribution="", note="No data"),
         ).model_dump(mode="json")
 
     T = np.array([r.get("mean_jul_temp_c", np.nan) for r in rows], dtype=float)
@@ -202,7 +199,7 @@ async def fwi_projection() -> dict[str, Any]:
     if len(T) < 5:
         return Envelope[dict](
             data={},
-            meta=Meta(source="fwi_projection", attribution="", phase="6", note="Not enough data"),
+            meta=Meta(source="fwi_projection", attribution="", note="Not enough data"),
         ).model_dump(mode="json")
 
     A = np.vstack([T, np.ones_like(T)]).T
@@ -246,7 +243,6 @@ async def fwi_projection() -> dict[str, Any]:
         meta=Meta(
             source="fwi_projection_heuristic",
             attribution="WildfireIQ derived · disclosed as coarse extrapolation",
-            phase="6",
         ),
     ).model_dump(mode="json")
 
@@ -257,13 +253,12 @@ async def tru_carbon() -> dict[str, Any]:
     if not p.exists():
         return Envelope[dict](
             data={"available": False, "rows": []},
-            meta=Meta(source="tru_carbon", attribution="TRU Sustainability Office", phase="6",
-                      note="data/tru_carbon.csv not present"),
+            meta=Meta(source="tru_carbon", attribution="TRU Sustainability Office", note="data/tru_carbon.csv not present"),
         ).model_dump(mode="json")
     import pandas as pd
 
     df = pd.read_csv(p)
     return Envelope[dict](
         data={"available": True, "rows": df.to_dict(orient="records")},
-        meta=Meta(source="tru_carbon", attribution="TRU Sustainability Office", phase="6"),
+        meta=Meta(source="tru_carbon", attribution="TRU Sustainability Office"),
     ).model_dump(mode="json")

@@ -1,4 +1,4 @@
-"""Build the per-year `seasonal_metrics.parquet` for Phase 6.
+"""Build the per-year `seasonal_metrics.parquet` for the climate module.
 
 One row per year (1999–today) joining:
   • Historical fires (DataBC PROT_HISTORICAL_FIRE_POLYS / current registry)

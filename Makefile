@@ -22,8 +22,11 @@ help:
 	@echo "  make ingest-all        Run every recurring ingest job once"
 	@echo "  make train-risk        Train the LightGBM wildfire-risk classifier"
 	@echo "  make train-aq          Train the 21-model AQ quantile forecaster"
-	@echo "  make seasonal-metrics  Rebuild data/processed/seasonal_metrics.parquet (Phase 6)"
+	@echo "  make seasonal-metrics  Rebuild data/processed/seasonal_metrics.parquet"
 	@echo "  make fires-unified     Rebuild data/processed/fires_unified.parquet (current + historical)"
+	@echo "  make region-weather    Rebuild each region's daily weather archive"
+	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
+	@echo "  make lint              Ruff check the backend"
 	@echo "  make research-assets   Mirror model cards + plots into apps/web/public/research/"
 	@echo "  make test              Run the Python test suite"
 	@echo "  make typecheck         Run TypeScript typecheck for the frontend"
@@ -49,6 +52,14 @@ seasonal-metrics:
 .PHONY: fires-unified
 fires-unified:
 	$(PY_MOD) wildfireiq_api.ml.fires_unified
+
+.PHONY: region-weather
+region-weather:
+	$(PY_MOD) wildfireiq_api.scheduler run derived_region_weather
+
+.PHONY: risk-features
+risk-features:
+	$(PY_MOD) wildfireiq_api.ml.features
 
 # ────────────────────────────────────────────────────────────────────────
 # Training
@@ -77,6 +88,10 @@ research-assets:
 # ────────────────────────────────────────────────────────────────────────
 # Tests & build
 # ────────────────────────────────────────────────────────────────────────
+
+.PHONY: lint
+lint:
+	cd apps/api && uv run ruff check wildfireiq_api
 
 .PHONY: test
 test:

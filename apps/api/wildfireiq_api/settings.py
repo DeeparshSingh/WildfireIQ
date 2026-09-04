@@ -39,7 +39,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # ── Required for Phase 1+ ingestion (Phase 0 tolerates missing) ──
+    # ── Upstream API keys (ingest degrades gracefully when unset) ──
     firms_map_key: str = Field(default="", description="NASA FIRMS API key")
     waqi_token: str = Field(default="", description="WAQI / AQICN token")
 

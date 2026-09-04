@@ -7,7 +7,7 @@ import "./app.css";
 
 // NOTE: React.StrictMode is intentionally OFF. Cesium's imperative camera
 // API doesn't tolerate double-mount (cleanup races flyTo). We can re-enable
-// StrictMode in Phase 7 once we've audited every imperative effect.
+// StrictMode once every imperative Cesium effect has been audited.
 
 const queryClient = new QueryClient({
   defaultOptions: {

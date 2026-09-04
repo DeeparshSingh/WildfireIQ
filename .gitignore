@@ -17,9 +17,10 @@ apps/web/public/cesium/
 # Local data (large, regenerable)
 data/raw/
 data/processed/
-data/models/*.pkl
-data/models/*.onnx
-data/models/*.joblib
+# Trained model artifacts ARE tracked (the app needs them to serve without
+# retraining). Only ignore scratch exports at the top level.
+data/models/*.tmp
+data/models/scratch/
 data/logs/
 data/wildfireiq.db
 data/analytics.duckdb

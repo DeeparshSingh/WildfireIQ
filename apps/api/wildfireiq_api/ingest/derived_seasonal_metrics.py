@@ -1,4 +1,4 @@
-"""Nightly rebuild of `data/processed/seasonal_metrics.parquet` for Phase 6.
+"""Nightly rebuild of `data/processed/seasonal_metrics.parquet`.
 
 Joins historical fires + Open-Meteo archive daily wx + a fresh Van Wagner
 FWI run, producing one row per fire-season year. Runs after the upstream

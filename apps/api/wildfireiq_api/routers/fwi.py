@@ -18,7 +18,6 @@ async def today() -> dict[str, Any]:
         meta=Meta(
             source="cwfis_fwi_daily",
             attribution="Natural Resources Canada · CWFIS (Canadian Wildland Fire Information System)",
-            phase="1",
             note=None if rows else "CWFIS upstream may be transiently unavailable — re-run ingest",
         ),
     ).model_dump(mode="json")

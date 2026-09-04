@@ -3,7 +3,7 @@
 Concatenates the 1999-2024 historical record (`fires_historical.parquet`)
 with the 2025+ active/recent rows (`fires_current.parquet`) into a single
 union table, so downstream consumers — model training, the climate
-analytics in Phase 6, and a future "what's burned in BC ever?" view —
+climate analytics, and any future province-wide fire view,
 don't need to know which feed any given row came from.
 
 Idempotent. Re-run via `make fires-unified` or

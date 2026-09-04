@@ -1,5 +1,5 @@
 /**
- * Phase 5 state layer — localStorage + IndexedDB, no network.
+ * Preparedness state layer: localStorage + IndexedDB, no network.
  *
  *   localStorage `wildfireiq.profile.v1`  : PrepProfile (lightweight)
  *   localStorage `wildfireiq.progress.v1` : ProgressV1 metadata (no photos)

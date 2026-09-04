@@ -1,6 +1,6 @@
 """Convert trained LightGBM models to ONNX for portability.
 
-Phase 3 spec verification step:
+Verification requirement:
   > Both ONNX exports load in `onnxruntime` and produce identical
   > predictions to Python pickles within float32 tolerance.
 

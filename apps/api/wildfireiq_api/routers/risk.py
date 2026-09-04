@@ -1,4 +1,4 @@
-"""AI wildfire risk grid — Phase 3 ships the real LightGBM classifier."""
+"""AI wildfire risk grid, served by the pooled multi-region LightGBM model."""
 
 from typing import Any
 
@@ -22,7 +22,6 @@ async def today(cell: str | None = None) -> dict[str, Any]:
         meta=Meta(
             source="wildfire_risk_v1",
             attribution="LightGBM, trained on BC Wildfire Service 1999-2021 + ERA5 weather. Validated against held-out 2022 + 2023 fire seasons.",
-            phase="3",
         ),
     ).model_dump(mode="json")
 
@@ -42,7 +41,6 @@ async def grid() -> dict[str, Any]:
         meta=Meta(
             source="wildfire_risk_v1",
             attribution="LightGBM · pooled multi-region, 1999-2021 train, 2022 val, 2023 test. Per-region held-out PR-AUC reported in the model card.",
-            phase="3",
             note=f"{n_cells} H3 r=5 cells across {n_regions} regions",
         ),
     ).model_dump(mode="json")

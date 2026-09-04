@@ -1,6 +1,6 @@
 /**
  * /air-quality — the AQ Monitor route.
- * Replaces the Phase 0 placeholder. Mounted via App's route map.
+ * Mounted via the app's route map.
  *
  * Composition:
  *   ┌───────────────────────────────────────────┐

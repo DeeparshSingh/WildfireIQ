@@ -76,13 +76,13 @@ class CWFISFWIDailyJob(IngestJob):
 
         # NRCan's CWFIS GeoServer goes down with 502 errors regularly. Their
         # flat-file datamart at /data/fwi/ now returns HTML wrappers instead
-        # of CSVs. Phase 3 will replace this dependency entirely by computing
+        # of CSVs. The derived_fwi_stations job removes this dependency by computing
         # FWI from Open-Meteo weather data with the cffdrs-py port.
         if fc is None:
             return IngestReport(
                 job_name=self.name,
                 status="fail",
-                error="CWFIS GeoServer unreachable (HTTP 502). Will retry on next cron; Phase 3 replaces with derived FWI from Open-Meteo.",
+                error="CWFIS GeoServer unreachable. Will retry on the next cron; the derived_fwi_stations job covers this in the meantime.",
             )
 
         features = fc.get("features", []) or []

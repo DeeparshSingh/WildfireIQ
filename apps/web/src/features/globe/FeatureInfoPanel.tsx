@@ -131,6 +131,13 @@ function RiskDetail({ id }: { id: string }) {
     () => data?.cells.find((c) => c.h3_cell === id),
     [data, id],
   );
+  // Each region is scored on its own weather, so read the fire-weather
+  // figures from the region that owns this cell rather than the payload's
+  // primary region.
+  const region = useMemo(
+    () => data?.regions?.find((r) => r.key === cell?.region),
+    [data, cell?.region],
+  );
   if (!cell) return <Empty label="Cell not in current risk grid" />;
 
   const color =
@@ -146,12 +153,12 @@ function RiskDetail({ id }: { id: string }) {
     <div>
       <Title>{cell.risk_class} risk</Title>
       <Subtitle style={{ color, textShadow: `0 0 12px ${color}55` }}>
-        Cell {cell.h3_cell.slice(0, 10)}…
+        {cell.region_label}
       </Subtitle>
       <Stats
         rows={[
           ["P(cell)", `${(cell.p_cell * 100).toFixed(1)}%`],
-          ["P(region today)", `${(cell.p_region * 100).toFixed(1)}%`],
+          ["P(area today)", `${(cell.p_region * 100).toFixed(1)}%`],
           ["Historical fires", String(cell.hist_fire_count)],
           [
             "Centroid",
@@ -160,17 +167,19 @@ function RiskDetail({ id }: { id: string }) {
           ["—", ""],
           [
             "CFFDRS",
-            data?.cffdrs_class
-              ? `${data.cffdrs_class}${data.fwi_today != null ? ` (FWI ${data.fwi_today.toFixed(1)})` : ""}`
+            region
+              ? `${region.cffdrs_class} (FWI ${region.fwi_today.toFixed(1)})`
               : "—",
           ],
-          ["Observation day", fmtDate(data?.observation_day)],
+          ["Observation day", fmtDate(region?.observation_day)],
         ]}
       />
       <Attribution>
-        LightGBM trained on BC Wildfire Service 1999-2021 + ERA5 weather · validated against 2022-2023 · PR-AUC 0.66 (FWI baseline 0.52).
-        CFFDRS row shows the canonical BCWS Fire Danger class from today's FWI for comparison.
-        Informational only — not a substitute for BC Wildfire Service guidance.
+        LightGBM trained on BC Wildfire Service records 1999-2021 + ERA5 weather, pooled across four regions and
+        validated on held-out 2022-2023. Held-out 2023 PR-AUC 0.72 in the Thompson-Okanagan, ahead of the
+        FWI-threshold baseline (0.37). Each area is scored on its own local weather.
+        The CFFDRS row is the canonical BCWS Fire Danger class from that area&apos;s FWI, for comparison.
+        Informational only, not a substitute for BC Wildfire Service guidance.
       </Attribution>
     </div>
   );

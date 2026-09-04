@@ -1,4 +1,4 @@
-"""Robust trend estimation utilities for Phase 6 climate charts.
+"""Robust trend estimation utilities for the climate charts.
 
 `theil_sen_with_ci` computes the Theil-Sen median slope of `y ~ x` plus a
 bootstrap-derived 95% confidence interval. Theil-Sen is the canonical

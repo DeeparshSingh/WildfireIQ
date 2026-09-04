@@ -1,8 +1,8 @@
 """ECCC FireWork PM2.5 smoke-forecast metadata ingest (every 6h).
 
-Phase 1: scrape the MSC GeoMet WMS GetCapabilities for the
+Scrapes the MSC GeoMet WMS GetCapabilities document for the
 RAQDPS-FW.SFC_PM2.5 layer's available timesteps and emit ready-to-use
-GetMap URLs for the frontend. Decoding GRIB2 deferred to Phase 4.
+GetMap URLs for the frontend. GRIB2 decoding is not required for this.
 """
 
 from __future__ import annotations

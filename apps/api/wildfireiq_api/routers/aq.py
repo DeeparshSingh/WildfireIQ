@@ -26,7 +26,6 @@ async def current() -> dict[str, Any]:
         meta=Meta(
             source="geomet_aqhi + waqi_kamloops",
             attribution="ECCC GeoMet · WAQI / AQICN",
-            phase="4",
         ),
     ).model_dump(mode="json")
 
@@ -47,7 +46,6 @@ async def forecast(hours: int = 48) -> dict[str, Any]:
             attribution="LightGBM quantile, trained on Open-Meteo air quality archive "
             "(92 days hourly) + co-located weather. Per-horizon models for "
             "+1/+3/+6/+12/+24/+36/+48 h.",
-            phase="4",
             note=f"issued at {payload['issued_at_utc'][:16]}; quantile bands are q10–q90",
         ),
     ).model_dump(mode="json")
@@ -61,7 +59,6 @@ async def history(days: int = 30) -> dict[str, Any]:
         meta=Meta(
             source="geomet_aqhi",
             attribution="ECCC GeoMet · AQHI observations",
-            phase="4",
         ),
     ).model_dump(mode="json")
 
@@ -74,7 +71,6 @@ async def smoke_forecast() -> dict[str, Any]:
         meta=Meta(
             source="firework_smoke_forecast",
             attribution="ECCC · RAQDPS-FW Wildfire Smoke (via MSC GeoMet WMS)",
-            phase="4",
             note="URLs are WMS GetMap requests — pass directly to Cesium WebMapServiceImageryProvider",
         ),
     ).model_dump(mode="json")
@@ -90,7 +86,6 @@ async def calendar(days: int = 90) -> dict[str, Any]:
         meta=Meta(
             source="aq_hourly_kamloops",
             attribution="Open-Meteo CAMS air quality · daily aggregation",
-            phase="4",
         ),
     ).model_dump(mode="json")
 
@@ -106,6 +101,5 @@ async def health_guidance() -> dict[str, Any]:
         meta=Meta(
             source="health_guidance.json",
             attribution=payload.get("source", "Health Canada AQHI"),
-            phase="4",
         ),
     ).model_dump(mode="json")

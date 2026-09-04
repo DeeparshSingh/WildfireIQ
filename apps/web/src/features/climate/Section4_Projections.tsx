@@ -50,7 +50,7 @@ export function Section4_Projections() {
       info={
         <InfoChip
           source="ClimateData.ca CMIP6 multi-model ensemble (placeholder in this build)"
-          method="Per-scenario q10/q50/q90 members from the projection parquet. Phase 1 ships a synthetic placeholder with realistic shape; the real CMIP6 ensemble is a drop-in parquet replace."
+          method="Per-scenario q10/q50/q90 members from the projection parquet. This build ships a synthetic placeholder with realistic shape; the real CMIP6 ensemble is a drop-in parquet replace."
         />
       }
     >

@@ -193,7 +193,7 @@ export function useRiskGrid() {
   });
 }
 
-// ── Phase 4 · Air Quality dashboard ─────────────────────────────────
+// ── Air Quality dashboard ───────────────────────────────────────────
 
 export type AqForecastPoint = {
   horizon_h: number;
@@ -292,7 +292,7 @@ export function useHealthGuidance() {
   });
 }
 
-// ─── FireSmart (Phase 5) ──────────────────────────────────────────────
+// ─── FireSmart preparedness ───────────────────────────────────────────
 
 export type FireSmartGroupId =
   | "immediate"
@@ -395,7 +395,7 @@ export type SeasonContext = {
   peak_basis: string;
 };
 
-// ─── Climate Trend (Phase 6) ──────────────────────────────────────────
+// ─── Climate trends ───────────────────────────────────────────────────
 
 export type SeasonalRow = {
   year: number;

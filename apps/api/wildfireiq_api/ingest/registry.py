@@ -11,6 +11,7 @@ from .databc_fires_historical import DataBCFiresHistoricalJob
 from .derived_fires_unified import DerivedFiresUnifiedJob
 from .derived_fwi import DerivedFWIStationsJob
 from .derived_region_weather import DerivedRegionWeatherJob
+from .derived_risk_features import DerivedRiskFeaturesJob
 from .derived_seasonal_metrics import DerivedSeasonalMetricsJob
 from .eccc_climate import ECCCClimateBulkJob
 from .firework_smoke import FireWorkSmokeForecastJob
@@ -42,6 +43,7 @@ def all_jobs() -> dict[str, IngestJob]:
         DerivedFiresUnifiedJob(),
         DerivedRegionWeatherJob(),
         DerivedSeasonalMetricsJob(),
+        DerivedRiskFeaturesJob(),
     ]
     return {j.name: j for j in instances}
 

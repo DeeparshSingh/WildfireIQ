@@ -18,7 +18,6 @@ async def current() -> dict[str, Any]:
         meta=Meta(
             source="open_meteo_kamloops",
             attribution="Open-Meteo · ECCC GEM-HRDPS",
-            phase="1",
         ),
     ).model_dump(mode="json")
 
@@ -31,6 +30,5 @@ async def forecast(hours: int = 72) -> dict[str, Any]:
         meta=Meta(
             source="open_meteo_kamloops",
             attribution="Open-Meteo · GEM-HRDPS continental",
-            phase="1",
         ),
     ).model_dump(mode="json")

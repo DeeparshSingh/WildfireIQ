@@ -1,4 +1,4 @@
-"""Personalized FireSmart Hub (Phase 5).
+"""Personalized FireSmart Hub.
 
 Reads two static reference files (no upstream calls):
 
@@ -181,7 +181,6 @@ async def checklist(
         meta=Meta(
             source="firesmart_canada",
             attribution="FireSmart Canada — Home Ignition Zone Assessment",
-            phase="5",
         ),
     ).model_dump(mode="json")
 
@@ -194,7 +193,6 @@ async def neighbourhoods() -> dict[str, Any]:
         meta=Meta(
             source="kamloops_open_data",
             attribution="WildfireIQ — curated from City of Kamloops neighbourhood descriptions",
-            phase="5",
         ),
     ).model_dump(mode="json")
 
@@ -205,8 +203,7 @@ async def achievements() -> dict[str, Any]:
         data={"achievements": ACHIEVEMENTS},
         meta=Meta(
             source="firesmart_canada",
-            attribution="WildfireIQ — Phase 5",
-            phase="5",
+            attribution="WildfireIQ",
         ),
     ).model_dump(mode="json")
 
@@ -219,7 +216,6 @@ async def season_context() -> dict[str, Any]:
         meta=Meta(
             source="wildfireiq_derived",
             attribution="Open-Meteo daily wx + BC Wildfire Service historical fires",
-            phase="5",
         ),
     ).model_dump(mode="json")
 
@@ -276,6 +272,5 @@ async def score(payload: dict[str, Any]) -> dict[str, Any]:
         meta=Meta(
             source="firesmart_canada",
             attribution="FireSmart Canada",
-            phase="5",
         ),
     ).model_dump(mode="json")

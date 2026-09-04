@@ -1,5 +1,5 @@
 /**
- * Phase 5 state helpers — share encoder + streak rollover. Pure
+ * Preparedness state helpers: share encoder + streak rollover. Pure
  * functions, run in jsdom (no IndexedDB needed).
  */
 import { describe, expect, it } from "vitest";
