@@ -387,6 +387,15 @@ Moisture and drying dominate, seasonality follows, and the base-rate term
 lands seventh — exactly where it should: informative about which region
 you are in, not a shortcut that lets the model ignore the weather.
 
+### Identical probabilities between regions are a calibration artifact
+
+The isotonic calibrator is a step function with 48 output levels, so two
+regions whose raw scores land inside one step report the same calibrated
+probability exactly. Verified not to be a modelling failure: across the
+last 60 days the mean same-day spread between the four regions is 0.53
+and they were never all equal, with 60-day means of 0.74 (TO), 0.60
+(CO), 0.25 (LM) and 0.22 (PG).
+
 ### Bucket thresholds (cell-risk score `p_cell = p_region × weight`)
 
 | p_cell | Class |

@@ -108,6 +108,22 @@ Two serving details are worth recording because both were bugs first:
 ## Calibration (test set, quantile bins)
 Reliability-diagram bin centres versus observed positive frequency are written to `data/models/wildfire_risk_v1/metrics.json` (7 populated bins). Isotonic-calibrated probabilities track empirical frequencies closely from 0.1 to 0.45 and run slightly underconfident above 0.5, consistent with 2023 being a higher-prior year than the 2022 calibration year.
 
+### Why two regions sometimes show the identical probability
+
+Isotonic calibration is a step function, and this one has 48 distinct output
+levels. Regions whose *raw* scores fall inside one step come out with the same
+calibrated probability to full precision. On 2026-09-04, for instance, Central
+Okanagan, the Lower Mainland and Prince George had raw scores of 0.2557, 0.2575
+and 0.2582 and all three reported 0.265.
+
+That looks like a bug and is not one. Over the last 60 days the mean
+same-day spread between the four regions is 0.53, they were never all equal on
+any day, and their 60-day means are far apart (Thompson-Okanagan 0.74, Central
+Okanagan 0.60, Lower Mainland 0.25, Prince George 0.22). The collapse only
+happens between regions that genuinely scored within a few thousandths of each
+other, and it is the price of calibrated probabilities, which a four-colour risk
+scale needs more than it needs fine-grained ordering between regions.
+
 ## Known limitations
 1. **One weather series per region, not per cell.** Each region reads its own anchor-city ERA5 series, but cells within a region share it, so per-cell variation comes entirely from historical density. A per-cell display should be read as "this region's fire-day probability today, modulated by where fires have historically been most common."
 2. **The Lower Mainland underperforms its own FWI baseline** (0.29 vs 0.37). It is a genuinely low-event area — 35 fire-days in the test year against Thompson-Okanagan's 106 — which makes it both correctly low-risk and the hardest region to rank. This is disclosed in the UI rather than averaged away, and it is the clearest candidate for a region-specific model if coastal coverage becomes a priority.
