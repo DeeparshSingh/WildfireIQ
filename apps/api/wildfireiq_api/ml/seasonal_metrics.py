@@ -39,13 +39,19 @@ def _fires_by_year(bbox: tuple[float, float, float, float]) -> pd.DataFrame:
     df["discovery_date_utc"] = pd.to_datetime(df["discovery_date_utc"], errors="coerce")
     df["doy"] = df["discovery_date_utc"].dt.dayofyear
     g = df.groupby("fire_year")
-    agg = pd.DataFrame({
-        "area_burned_ha": g["hectares"].sum(min_count=1),
-        "fire_count": g["fire_id"].count(),
-        "largest_fire_ha": g["hectares"].max(),
-        "season_start_doy": g["doy"].min(),
-        "season_end_doy": g["doy"].max(),
-    }).reset_index().rename(columns={"fire_year": "year"})
+    agg = (
+        pd.DataFrame(
+            {
+                "area_burned_ha": g["hectares"].sum(min_count=1),
+                "fire_count": g["fire_id"].count(),
+                "largest_fire_ha": g["hectares"].max(),
+                "season_start_doy": g["doy"].min(),
+                "season_end_doy": g["doy"].max(),
+            }
+        )
+        .reset_index()
+        .rename(columns={"fire_year": "year"})
+    )
     agg["season_length_days"] = agg["season_end_doy"] - agg["season_start_doy"]
     return agg
 
@@ -60,13 +66,15 @@ def _weather_metrics_by_year() -> pd.DataFrame:
     jul = wx[wx.month == 7]
     julaug = wx[wx.month.isin([7, 8])]
 
-    by_year = pd.DataFrame({
-        "mean_jul_temp_c": jul.groupby("year")["temp_max_c"].mean(),
-        "julaug_precip_mm": julaug.groupby("year")["precip_mm"].sum(min_count=1),
-        "mean_julaug_vpd_kpa": julaug.groupby("year")["vpd_max_kpa"].mean()
+    by_year = pd.DataFrame(
+        {
+            "mean_jul_temp_c": jul.groupby("year")["temp_max_c"].mean(),
+            "julaug_precip_mm": julaug.groupby("year")["precip_mm"].sum(min_count=1),
+            "mean_julaug_vpd_kpa": julaug.groupby("year")["vpd_max_kpa"].mean()
             if "vpd_max_kpa" in julaug.columns
             else pd.Series(dtype=float),
-    }).reset_index()
+        }
+    ).reset_index()
     return by_year
 
 
@@ -89,10 +97,12 @@ def _fwi_metrics_by_year() -> pd.DataFrame:
     fwi["month"] = fwi["day_local"].dt.month
     season = fwi[fwi.month.isin([7, 8])]
 
-    out = pd.DataFrame({
-        "max_julaug_fwi": season.groupby("year")["fwi"].max(),
-        "days_fwi_ge_19": fwi[fwi["fwi"] >= 19].groupby("year").size(),
-    }).reset_index()
+    out = pd.DataFrame(
+        {
+            "max_julaug_fwi": season.groupby("year")["fwi"].max(),
+            "days_fwi_ge_19": fwi[fwi["fwi"] >= 19].groupby("year").size(),
+        }
+    ).reset_index()
     # Years that never crossed 19: fill with 0 not NaN.
     out["days_fwi_ge_19"] = out["days_fwi_ge_19"].fillna(0).astype(int)
     return out

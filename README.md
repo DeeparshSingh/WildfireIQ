@@ -74,7 +74,7 @@ Seventeen ingest jobs run on cron cadences inside the FastAPI process (no Celery
 | Weather forecast (Open-Meteo) | hourly | `weather_kamloops_{current,hourly,daily}.parquet` |
 | Weather archive + recent tail | daily 02:20 | `weather_kamloops_archive_daily.parquet` |
 | Derived FWI (Van Wagner) | every 30 min | `fwi_stations_today.parquet` |
-| AQHI realtime (ECCC GeoMet) | hourly | `aqhi_kamloops_recent.parquet` |
+| AQHI realtime (ECCC GeoMet) | hourly | `aqhi_stations_recent.parquet` |
 | Pollutants (WAQI) | hourly | `aq_pollutants_recent.parquet` |
 | Air quality hourly (CAMS) | hourly | `aq_hourly_kamloops.parquet` |
 | Air quality 365-day archive | daily 02:40 | `aq_hourly_kamloops.parquet` |

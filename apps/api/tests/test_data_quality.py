@@ -30,9 +30,7 @@ def _load(name: str) -> pd.DataFrame:
 def test_fires_historical_in_canada() -> None:
     df = _load("fires_historical.parquet")
     df = df.dropna(subset=["latitude", "longitude"])
-    in_bc_ish = (
-        df.latitude.between(48.0, 60.5) & df.longitude.between(-140.5, -114.0)
-    )
+    in_bc_ish = df.latitude.between(48.0, 60.5) & df.longitude.between(-140.5, -114.0)
     bad = (~in_bc_ish).sum()
     assert bad / len(df) < 0.005, f"{bad} fires outside BC bounding box (> 0.5%)"
 
@@ -78,7 +76,7 @@ def test_weather_precip_non_negative() -> None:
 
 
 def test_aqhi_realtime_within_band() -> None:
-    df = _load("aqhi_kamloops_recent.parquet")
+    df = _load("aqhi_stations_recent.parquet")
     if "aqhi" not in df.columns:
         pytest.skip("aqhi column not present")
     a = df.aqhi.dropna()

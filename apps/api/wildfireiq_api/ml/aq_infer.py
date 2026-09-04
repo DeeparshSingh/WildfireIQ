@@ -30,7 +30,7 @@ def _load_boosters() -> dict[tuple[int, int], lgb.Booster] | None:
     boosters: dict[tuple[int, int], lgb.Booster] = {}
     for h in HORIZONS_H:
         for q in QUANTILES:
-            path = ART / f"h{h}" / f"q{int(q*100):02d}.txt"
+            path = ART / f"h{h}" / f"q{int(q * 100):02d}.txt"
             if not path.exists():
                 return None
             boosters[(h, int(q * 100))] = lgb.Booster(model_file=str(path))
@@ -90,18 +90,15 @@ def predict_forecast() -> dict | None:
     # Also return the trailing 12 observed hours so the chart has context
     # before "now".
     obs_recent = obs.tail(12)[["time_utc", "pm2_5"]].copy()
-    obs_recent["time_utc"] = obs_recent["time_utc"].dt.tz_convert("UTC").dt.strftime(
-        "%Y-%m-%dT%H:%M:%S%z"
+    obs_recent["time_utc"] = (
+        obs_recent["time_utc"].dt.tz_convert("UTC").dt.strftime("%Y-%m-%dT%H:%M:%S%z")
     )
     observations = [
-        {"time_utc": r["time_utc"], "pm2_5": float(r["pm2_5"])}
-        for _, r in obs_recent.iterrows()
+        {"time_utc": r["time_utc"], "pm2_5": float(r["pm2_5"])} for _, r in obs_recent.iterrows()
     ]
 
     metrics_path = ART / "metrics.json"
-    metrics = (
-        json.loads(metrics_path.read_text()) if metrics_path.exists() else {}
-    )
+    metrics = json.loads(metrics_path.read_text()) if metrics_path.exists() else {}
 
     return {
         "issued_at_utc": base_time.isoformat(),

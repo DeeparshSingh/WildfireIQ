@@ -76,7 +76,9 @@ async def smoke_forecast() -> dict[str, Any]:
     ).model_dump(mode="json")
 
 
-@router.get("/calendar", summary="Per-day max PM2.5 + AQHI for the last N days (smoke event heatmap)")
+@router.get(
+    "/calendar", summary="Per-day max PM2.5 + AQHI for the last N days (smoke event heatmap)"
+)
 async def calendar(days: int = 90) -> dict[str, Any]:
     payload = predict_calendar(days=days)
     if payload is None:

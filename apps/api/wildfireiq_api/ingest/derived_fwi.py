@@ -55,24 +55,24 @@ OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
 OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 
 
-async def _pull_station_weather(
-    client, name: str, lat: float, lon: float
-) -> pd.DataFrame | None:
+async def _pull_station_weather(client, name: str, lat: float, lon: float) -> pd.DataFrame | None:
     """Pull last 30 days of daily weather at this station."""
     # Use the forecast endpoint with `past_days=30` so we always get
     # the most up-to-date rows including yesterday (Archive lags ~5 days).
     params = {
         "latitude": str(lat),
         "longitude": str(lon),
-        "daily": ",".join([
-            "temperature_2m_max",
-            "temperature_2m_min",
-            "relative_humidity_2m_min",
-            "wind_speed_10m_max",
-            "precipitation_sum",
-            "vapour_pressure_deficit_max",
-            "et0_fao_evapotranspiration",
-        ]),
+        "daily": ",".join(
+            [
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "relative_humidity_2m_min",
+                "wind_speed_10m_max",
+                "precipitation_sum",
+                "vapour_pressure_deficit_max",
+                "et0_fao_evapotranspiration",
+            ]
+        ),
         "past_days": "30",
         "forecast_days": "1",
         "timezone": "UTC",

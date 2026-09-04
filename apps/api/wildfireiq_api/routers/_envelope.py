@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Generic, TypeVar
 
 from pydantic import BaseModel, Field
-
-T = TypeVar("T")
 
 
 class Meta(BaseModel):
@@ -24,6 +21,6 @@ class Meta(BaseModel):
     note: str | None = None
 
 
-class Envelope(BaseModel, Generic[T]):
+class Envelope[T](BaseModel):
     data: T
     meta: Meta

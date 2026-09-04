@@ -15,10 +15,7 @@ router = APIRouter()
 
 @router.get("/jobs", summary="List all ingest jobs and their cadences")
 async def list_jobs() -> dict[str, Any]:
-    rows = [
-        {"name": j.name, "label": j.label, "cadence": j.cadence}
-        for j in all_jobs().values()
-    ]
+    rows = [{"name": j.name, "label": j.label, "cadence": j.cadence} for j in all_jobs().values()]
     return Envelope[list](
         data=rows,
         meta=Meta(source="ingest.registry", attribution="WildfireIQ"),

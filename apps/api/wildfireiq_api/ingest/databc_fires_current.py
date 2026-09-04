@@ -108,8 +108,7 @@ class DataBCFiresCurrentJob(IngestJob):
                         "hectares": float(
                             kvs(props, "CURRENT_SIZE", "FIRE_SIZE_HECTARES", "SIZE_HA") or 0.0
                         )
-                        if kvs(props, "CURRENT_SIZE", "FIRE_SIZE_HECTARES", "SIZE_HA")
-                        is not None
+                        if kvs(props, "CURRENT_SIZE", "FIRE_SIZE_HECTARES", "SIZE_HA") is not None
                         else None,
                         "discovery_date_utc": disc_dt.astimezone(UTC).isoformat()
                         if disc_dt

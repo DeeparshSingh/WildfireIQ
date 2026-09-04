@@ -96,9 +96,7 @@ async def lifespan(app: FastAPI):
     # Refresh anything stale before serving — fires the cron jobs that would
     # otherwise wait for their next scheduled tick. Backgrounded so the
     # event loop is free to accept the first request immediately.
-    refresh_task = asyncio.create_task(
-        refresh_stale_jobs(settings.startup_refresh_minutes)
-    )
+    refresh_task = asyncio.create_task(refresh_stale_jobs(settings.startup_refresh_minutes))
     if settings.scheduler_enabled:
         start_scheduler()
     else:
@@ -122,7 +120,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         openapi_tags=[
             {"name": "system", "description": "Health, version, metadata."},
-            {"name": "fires", "description": "Active + historical fire incidents and FIRMS hotspots."},
+            {
+                "name": "fires",
+                "description": "Active + historical fire incidents and FIRMS hotspots.",
+            },
             {"name": "risk", "description": "AI-derived wildfire risk grid."},
             {"name": "weather", "description": "Current + forecast weather for Kamloops."},
             {"name": "fwi", "description": "Fire Weather Index station readings."},

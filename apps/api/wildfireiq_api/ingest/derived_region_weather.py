@@ -9,19 +9,19 @@ job (open_meteo_archive_kamloops); this job covers the other regions.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
 from ..constants import REGIONS
 from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
-from .open_meteo import ARCHIVE_URL, FORECAST_URL, _DAILY_VARS, _daily_frame
+from .open_meteo import _DAILY_VARS, ARCHIVE_URL, FORECAST_URL, _daily_frame
 
 
 async def build_region_weather(client, lat: float, lon: float, out_path) -> int:
     """Pull ERA5 history + recent observed tail for one point; write parquet."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     yesterday = (today - timedelta(days=1)).isoformat()
 
     archive_params = {
@@ -82,7 +82,7 @@ class DerivedRegionWeatherJob(IngestJob):
                 n = await build_region_weather(ctx.client, reg["lat"], reg["lon"], out)
                 built[reg["key"]] = n
                 ctx.log.info("region_weather.built", region=reg["key"], rows=n)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 ctx.log.warning("region_weather.failed", region=reg["key"], error=str(exc))
 
         total = sum(built.values())

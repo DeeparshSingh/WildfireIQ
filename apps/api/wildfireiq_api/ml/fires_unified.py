@@ -30,8 +30,8 @@ UNIFIED_COLS = [
     "longitude",
     "geom_wkt",
     "geom_kind",
-    "source",          # "historical" | "current"
-    "status",          # only set for current rows
+    "source",  # "historical" | "current"
+    "status",  # only set for current rows
     "stage_of_control",  # only set for current rows
 ]
 

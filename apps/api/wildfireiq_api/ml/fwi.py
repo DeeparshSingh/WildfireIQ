@@ -38,12 +38,8 @@ import pandas as pd
 
 # Day-length factors from Van Wagner (1987), for ~50° N latitude (lat 46–54).
 # Index 0 unused; 1–12 = Jan–Dec.
-DAYLENGTH_DMC = np.array(
-    [0, 6.5, 7.5, 9.0, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8.0, 7.0, 6.0]
-)
-DAYLENGTH_DC = np.array(
-    [0, -1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6]
-)
+DAYLENGTH_DMC = np.array([0, 6.5, 7.5, 9.0, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8.0, 7.0, 6.0])
+DAYLENGTH_DC = np.array([0, -1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6])
 
 
 def _ffmc_one(ffmc_prev: float, t: float, rh: float, w: float, p: float) -> float:
@@ -62,9 +58,7 @@ def _ffmc_one(ffmc_prev: float, t: float, rh: float, w: float, p: float) -> floa
         + 0.18 * (21.1 - t) * (1.0 - np.exp(-0.115 * rh))
     )
     if mo > ed:
-        ko = 0.424 * (1.0 - (rh / 100.0) ** 1.7) + 0.0694 * np.sqrt(w) * (
-            1.0 - (rh / 100.0) ** 8
-        )
+        ko = 0.424 * (1.0 - (rh / 100.0) ** 1.7) + 0.0694 * np.sqrt(w) * (1.0 - (rh / 100.0) ** 8)
         kd = ko * 0.581 * np.exp(0.0365 * t)
         m = ed + (mo - ed) * 10.0 ** (-kd)
     else:
@@ -208,9 +202,8 @@ def compute_fwi(
         p = float(row.get(precip_col, 0.0) or 0.0)
 
         if np.isnan(t) or np.isnan(rh) or np.isnan(w):
-            ffmc_out.append(np.nan); dmc_out.append(np.nan); dc_out.append(np.nan)
-            isi_out.append(np.nan); bui_out.append(np.nan); fwi_out.append(np.nan)
-            dsr_out.append(np.nan)
+            for out in (ffmc_out, dmc_out, dc_out, isi_out, bui_out, fwi_out, dsr_out):
+                out.append(np.nan)
             continue
 
         ffmc = _ffmc_one(ffmc_prev, t, rh, w, p)
@@ -221,14 +214,26 @@ def compute_fwi(
         fwi = _fwi_one(isi, bui)
         dsr = 0.0272 * (fwi**1.77)
 
-        ffmc_out.append(ffmc); dmc_out.append(dmc); dc_out.append(dc)
-        isi_out.append(isi); bui_out.append(bui); fwi_out.append(fwi)
-        dsr_out.append(dsr)
+        for out, value in (
+            (ffmc_out, ffmc),
+            (dmc_out, dmc),
+            (dc_out, dc),
+            (isi_out, isi),
+            (bui_out, bui),
+            (fwi_out, fwi),
+            (dsr_out, dsr),
+        ):
+            out.append(value)
 
         ffmc_prev, dmc_prev, dc_prev = ffmc, dmc, dc
 
     out = df.assign(
-        ffmc=ffmc_out, dmc=dmc_out, dc=dc_out,
-        isi=isi_out, bui=bui_out, fwi=fwi_out, dsr=dsr_out,
+        ffmc=ffmc_out,
+        dmc=dmc_out,
+        dc=dc_out,
+        isi=isi_out,
+        bui=bui_out,
+        fwi=fwi_out,
+        dsr=dsr_out,
     )
     return out

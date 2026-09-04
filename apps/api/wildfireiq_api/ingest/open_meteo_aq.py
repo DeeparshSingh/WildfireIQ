@@ -65,7 +65,9 @@ class OpenMeteoAQArchiveJob(IngestJob):
         return await _run(self, ctx)
 
 
-async def _run(job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestContext) -> IngestReport:
+async def _run(
+    job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestContext
+) -> IngestReport:
     fetched_at = ctx.started_at_utc.isoformat()
 
     # Archive mode uses an explicit date range (past_days is capped at 92 by
@@ -84,15 +86,17 @@ async def _run(job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestCon
     aq_params = {
         "latitude": str(KAMLOOPS_LAT),
         "longitude": str(KAMLOOPS_LON),
-        "hourly": ",".join([
-            "pm2_5",
-            "pm10",
-            "carbon_monoxide",
-            "nitrogen_dioxide",
-            "sulphur_dioxide",
-            "ozone",
-            "european_aqi",
-        ]),
+        "hourly": ",".join(
+            [
+                "pm2_5",
+                "pm10",
+                "carbon_monoxide",
+                "nitrogen_dioxide",
+                "sulphur_dioxide",
+                "ozone",
+                "european_aqi",
+            ]
+        ),
         "timezone": "UTC",
         **range_params,
     }
@@ -107,14 +111,16 @@ async def _run(job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestCon
     wx_params = {
         "latitude": str(KAMLOOPS_LAT),
         "longitude": str(KAMLOOPS_LON),
-        "hourly": ",".join([
-            "temperature_2m",
-            "relative_humidity_2m",
-            "wind_speed_10m",
-            "wind_direction_10m",
-            "precipitation",
-            "boundary_layer_height",
-        ]),
+        "hourly": ",".join(
+            [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "precipitation",
+                "boundary_layer_height",
+            ]
+        ),
         "timezone": "UTC",
         **range_params,
     }
@@ -159,9 +165,7 @@ async def _run(job: OpenMeteoAQHourlyJob | OpenMeteoAQArchiveJob, ctx: IngestCon
             prev = pd.read_parquet(out_path)
             prev["time_utc"] = pd.to_datetime(prev["time_utc"], utc=True)
             df = pd.concat([prev, df], ignore_index=True)
-            df = df.sort_values("time_utc").drop_duplicates(
-                subset=["time_utc"], keep="last"
-            )
+            df = df.sort_values("time_utc").drop_duplicates(subset=["time_utc"], keep="last")
         except Exception as exc:
             ctx.log.info("openmeteo_aq.upsert_failed", error=str(exc))
 

@@ -150,9 +150,7 @@ def build_features() -> dict[str, Path]:
         # Per-day features for this region.
         enriched = _enrich_weather(pd.read_parquet(wpath))
         labeled = _label_fires(enriched, region_fires)
-        base_rate = float(
-            labeled.loc[labeled["year"] <= BASE_RATE_MAX_YEAR, "had_fire"].mean()
-        )
+        base_rate = float(labeled.loc[labeled["year"] <= BASE_RATE_MAX_YEAR, "had_fire"].mean())
         labeled["region"] = reg["key"]
         labeled["region_fire_rate"] = base_rate
         feature_frames.append(labeled)

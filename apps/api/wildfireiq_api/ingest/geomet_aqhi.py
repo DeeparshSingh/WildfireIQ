@@ -60,8 +60,7 @@ class GeoMetAQHIRealtimeJob(IngestJob):
                         or props.get("id")
                         or f.get("id", "")
                     ),
-                    "station_name": props.get("aqhi_station_name")
-                    or props.get("location_name_en"),
+                    "station_name": props.get("aqhi_station_name") or props.get("location_name_en"),
                     "latitude": float(lat),
                     "longitude": float(lon),
                     "aqhi": pd.to_numeric(props.get("aqhi"), errors="coerce"),
@@ -83,7 +82,7 @@ class GeoMetAQHIRealtimeJob(IngestJob):
             ],
         )
 
-        out_path = PROCESSED_ROOT / "aqhi_kamloops_recent.parquet"
+        out_path = PROCESSED_ROOT / "aqhi_stations_recent.parquet"
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         if out_path.exists():

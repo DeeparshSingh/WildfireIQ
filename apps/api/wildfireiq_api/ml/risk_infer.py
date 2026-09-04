@@ -183,7 +183,7 @@ def predict_grid() -> dict | None:
             "risk_level": _region_risk_level(region_classes),
             "cffdrs_class": cffdrs,
             "observation_day": obs_day,
-            "n_cells": int(len(region_cells)),
+            "n_cells": len(region_cells),
         }
         region_summaries.append(summary)
         if key == "thompson_okanagan":

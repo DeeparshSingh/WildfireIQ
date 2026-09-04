@@ -170,7 +170,7 @@ stations.
 
 **Pipeline**:
 1. GeoMet job hourly → 134-146 stations within bbox →
-   `aqhi_kamloops_recent.parquet` (append + dedupe).
+   `aqhi_stations_recent.parquet` (append + dedupe).
 2. WAQI job hourly → single Kamloops pollutant row →
    `aq_pollutants_recent.parquet`.
 

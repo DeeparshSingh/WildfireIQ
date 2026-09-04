@@ -18,9 +18,7 @@ from ..paths import PROCESSED_ROOT
 from .base import IngestContext, IngestJob, IngestReport
 
 # ISO 8601 duration parsing — minimal subset covering ECCC's PT<H>H / PT<M>M / P<D>D / PT<H>H<M>M.
-_DUR_RE = re.compile(
-    r"^P(?:(?P<d>\d+)D)?(?:T(?:(?P<h>\d+)H)?(?:(?P<m>\d+)M)?(?:(?P<s>\d+)S)?)?$"
-)
+_DUR_RE = re.compile(r"^P(?:(?P<d>\d+)D)?(?:T(?:(?P<h>\d+)H)?(?:(?P<m>\d+)M)?(?:(?P<s>\d+)S)?)?$")
 
 
 def _parse_iso(s: str) -> datetime | None:
@@ -45,10 +43,7 @@ def _parse_iso8601_duration(s: str) -> timedelta | None:
     )
 
 
-CAPS_URL = (
-    "https://geo.weather.gc.ca/geomet"
-    "?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.3.0"
-)
+CAPS_URL = "https://geo.weather.gc.ca/geomet?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.3.0"
 # Spec called for "RAQDPS-FW.SFC_PM2.5"; that exact name is not currently
 # advertised by GeoMet. We probe several plausible names in priority order —
 # the FireWork wildfire-smoke surface PM2.5 product moves around between
@@ -185,9 +180,7 @@ class FireWorkSmokeForecastJob(IngestJob):
                         for _ in range(256):
                             if cur > end:
                                 break
-                            timesteps.append(
-                                cur.strftime("%Y-%m-%dT%H:%M:%SZ")
-                            )
+                            timesteps.append(cur.strftime("%Y-%m-%dT%H:%M:%SZ"))
                             cur = cur + step
                         continue
                 # Fallback: just keep endpoints if we can't parse period.

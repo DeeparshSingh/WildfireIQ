@@ -73,7 +73,9 @@ async def seasonal(format: str = "json") -> Any:
         fmt=format,
         source="seasonal_metrics",
         attribution="BC Wildfire Service · Open-Meteo ERA5 · WildfireIQ Van Wagner FWI",
-        note=None if rows else "Run `uv run python -m wildfireiq_api.ml.seasonal_metrics` to build.",
+        note=None
+        if rows
+        else "Run `uv run python -m wildfireiq_api.ml.seasonal_metrics` to build.",
     )
 
 
@@ -210,14 +212,18 @@ async def fwi_projection() -> dict[str, Any]:
     decades = [2000, 2010, 2020, 2030, 2040]
 
     def days_for(T_july: float) -> int:
-        return max(0, int(round(float(slope) * T_july + float(intercept))))
+        return max(0, round(float(slope) * T_july + float(intercept)))
 
     out: dict[str, list[dict[str, Any]]] = {}
     for scn, dT in deltas.items():
         scn_rows: list[dict[str, Any]] = []
         for dec in decades:
             if dec <= 2020:
-                yrs_in = [r for r in rows if dec <= r["year"] < dec + 10 and r.get("mean_jul_temp_c") is not None]
+                yrs_in = [
+                    r
+                    for r in rows
+                    if dec <= r["year"] < dec + 10 and r.get("mean_jul_temp_c") is not None
+                ]
                 if not yrs_in:
                     continue
                 Td = float(np.mean([r["mean_jul_temp_c"] for r in yrs_in]))
@@ -226,7 +232,9 @@ async def fwi_projection() -> dict[str, Any]:
                 frac = (dec - 2020) / 20.0
                 Td = baseline_T + dT * frac
                 obs = False
-            scn_rows.append({"decade": dec, "july_temp_c": Td, "days_fwi_ge_19": days_for(Td), "observed": obs})
+            scn_rows.append(
+                {"decade": dec, "july_temp_c": Td, "days_fwi_ge_19": days_for(Td), "observed": obs}
+            )
         out[scn] = scn_rows
 
     return Envelope[dict](
@@ -253,7 +261,11 @@ async def tru_carbon() -> dict[str, Any]:
     if not p.exists():
         return Envelope[dict](
             data={"available": False, "rows": []},
-            meta=Meta(source="tru_carbon", attribution="TRU Sustainability Office", note="data/tru_carbon.csv not present"),
+            meta=Meta(
+                source="tru_carbon",
+                attribution="TRU Sustainability Office",
+                note="data/tru_carbon.csv not present",
+            ),
         ).model_dump(mode="json")
     import pandas as pd
 

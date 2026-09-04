@@ -1,6 +1,8 @@
 """DataBC historical wildfire bootstrap (one-time).
 
-Tries the bulk zip download first; on failure falls back to paginated WFS.
+Pulls province-wide BC fire records from 1999 onward, so every modelled
+region has its own fire history. Tries the bulk zip download first; on
+failure falls back to paginated WFS.
 """
 
 from __future__ import annotations
@@ -85,16 +87,12 @@ def _row_from_feature(feat: dict, layer_label: str, kind: str, bbox_poly) -> dic
     hectares_raw = kvs(props, "FIRE_SIZE_HECTARES", "SIZE_HA", "CURRENT_SIZE")
 
     return {
-        "fire_id": str(
-            kvs(props, "FIRE_NUMBER", "FIRE_NUM", "FIRE_ID", "OBJECTID") or ""
-        ),
+        "fire_id": str(kvs(props, "FIRE_NUMBER", "FIRE_NUM", "FIRE_ID", "OBJECTID") or ""),
         "fire_year": int(kvs(props, "FIRE_YEAR") or 0) or None,
         "fire_name": str(kvs(props, "FIRE_NAME", "INCIDENT_NAME") or ""),
         "hectares": float(hectares_raw) if hectares_raw is not None else None,
         "discovery_date_utc": disc_dt.astimezone(UTC).isoformat() if disc_dt else "",
-        "ignition_cause": str(
-            kvs(props, "FIRE_CAUSE", "GENERAL_CAUSE", "IGNITION_CAUSE") or ""
-        ),
+        "ignition_cause": str(kvs(props, "FIRE_CAUSE", "GENERAL_CAUSE", "IGNITION_CAUSE") or ""),
         "latitude": lat,
         "longitude": lon,
         "geom_wkt": wkt,
@@ -195,9 +193,7 @@ class DataBCFiresHistoricalJob(IngestJob):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(out_path, compression="zstd", index=False)
 
-        notes.append(
-            "current-year fires not included (live layer covers them)"
-        )
+        notes.append("current-year fires not included (live layer covers them)")
 
         return IngestReport(
             job_name=self.name,

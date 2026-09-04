@@ -119,7 +119,7 @@ Open-Meteo ERA5 reanalysis archive for Kamloops, **1999-01-01 → today**. 9,992
 
 ---
 
-## `aqhi_kamloops_recent.parquet`
+## `aqhi_stations_recent.parquet`
 
 ECCC GeoMet AQHI station readings within ~100 km of Kamloops.
 

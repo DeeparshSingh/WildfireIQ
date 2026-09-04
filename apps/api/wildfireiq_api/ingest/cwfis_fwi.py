@@ -44,8 +44,6 @@ def _in_bbox(lat: float | None, lon: float | None) -> bool:
     return BBOX_SOUTH <= lat <= BBOX_NORTH and BBOX_WEST <= lon <= BBOX_EAST
 
 
-
-
 class CWFISFWIDailyJob(IngestJob):
     name = "cwfis_fwi_daily"
     cadence = "0 18 * * *"

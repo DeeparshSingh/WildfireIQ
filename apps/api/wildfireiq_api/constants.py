@@ -2,8 +2,8 @@
 
 from typing import Final
 
-# Thompson-Okanagan bounding box.
-# Covers Kamloops, Vernon, Kelowna, Salmon Arm, Merritt, Logan Lake, Sun Peaks, Falkland.
+# Thompson-Okanagan bounding box: the project's home region, used for the
+# climate-trend metrics and as the first entry in REGIONS below.
 BBOX_WEST: Final[float] = -121.5
 BBOX_SOUTH: Final[float] = 50.0
 BBOX_EAST: Final[float] = -118.5
@@ -12,15 +12,18 @@ BBOX_NORTH: Final[float] = 51.5
 # (west, south, east, north) — standard order
 BBOX: Final[tuple[float, float, float, float]] = (BBOX_WEST, BBOX_SOUTH, BBOX_EAST, BBOX_NORTH)
 
-# Province-wide BC bbox for "show me everything BC Wildfire shows" queries
-# (active fires, FIRMS hotspots, FWI stations). Risk modelling stays scoped
-# to the Thompson-Okanagan BBOX above.
+# Province-wide BC bbox for the layers that cover the whole province
+# (active fires, historical fires, FIRMS hotspots, FWI stations, AQHI,
+# evacuation zones, smoke overlay).
 BC_BBOX_WEST: Final[float] = -139.0
 BC_BBOX_SOUTH: Final[float] = 48.3
 BC_BBOX_EAST: Final[float] = -114.0
 BC_BBOX_NORTH: Final[float] = 60.0
 BC_BBOX: Final[tuple[float, float, float, float]] = (
-    BC_BBOX_WEST, BC_BBOX_SOUTH, BC_BBOX_EAST, BC_BBOX_NORTH,
+    BC_BBOX_WEST,
+    BC_BBOX_SOUTH,
+    BC_BBOX_EAST,
+    BC_BBOX_NORTH,
 )
 
 # Kamloops downtown centroid

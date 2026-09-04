@@ -90,7 +90,7 @@ def fwi_today() -> list[dict[str, Any]]:
 
 
 def aqhi_current(within_km: float = 100.0) -> list[dict[str, Any]]:
-    df = _read_parquet_safe(PROCESSED_ROOT / "aqhi_kamloops_recent.parquet")
+    df = _read_parquet_safe(PROCESSED_ROOT / "aqhi_stations_recent.parquet")
     if df is None:
         return []
     if "observation_datetime_utc" in df.columns:
@@ -101,7 +101,7 @@ def aqhi_current(within_km: float = 100.0) -> list[dict[str, Any]]:
 
 
 def aqhi_history(days: int = 30) -> list[dict[str, Any]]:
-    df = _read_parquet_safe(PROCESSED_ROOT / "aqhi_kamloops_recent.parquet")
+    df = _read_parquet_safe(PROCESSED_ROOT / "aqhi_stations_recent.parquet")
     if df is None:
         return []
     if "observation_datetime_utc" in df.columns:
@@ -187,7 +187,13 @@ def season_context() -> dict[str, Any]:
         df["day_local"] = pd.to_datetime(df["day_local"], errors="coerce")
         df = df.dropna(subset=["day_local"]).sort_values("day_local")
         today_ts = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
-        observed = df[(df.get("is_forecast", False) != True) & (df["day_local"] <= today_ts)]
+        # `is_forecast` may be absent; treat missing as "observed".
+        is_forecast = (
+            df["is_forecast"].fillna(False).astype(bool)
+            if "is_forecast" in df.columns
+            else pd.Series(False, index=df.index)
+        )
+        observed = df[~is_forecast & (df["day_local"] <= today_ts)]
         wet = observed[observed["precip_mm"] >= 5.0]
         if not wet.empty:
             last_wet = wet["day_local"].max()

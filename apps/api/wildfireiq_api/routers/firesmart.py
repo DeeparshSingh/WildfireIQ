@@ -52,18 +52,90 @@ def _load_neighbourhoods() -> dict[str, Any]:
 # (e.g. a shared progress view) agree on the rules.
 
 ACHIEVEMENTS: list[dict[str, Any]] = [
-    {"id": "first_steps", "label": "First Steps", "blurb": "Complete your first FireSmart action.", "emoji": "🌱", "rule": "completed>=1"},
-    {"id": "ember_aware", "label": "Ember-Aware", "blurb": "Complete 5 actions across any zones.", "emoji": "🪵", "rule": "completed>=5"},
-    {"id": "zone_one_hero", "label": "Zone 1 Hero", "blurb": "Finish every Immediate Zone action that applies to you.", "emoji": "🛡️", "rule": "all_zone:immediate"},
-    {"id": "defensible_space", "label": "Defensible Space", "blurb": "Earn 25 points across any zones.", "emoji": "🏕️", "rule": "points>=25"},
-    {"id": "halfway", "label": "Halfway There", "blurb": "Tick off 50% of the actions that apply to you.", "emoji": "🚧", "rule": "completed>=total/2"},
-    {"id": "photo_documentarian", "label": "Photo Documentarian", "blurb": "Attach photos to 5 completed actions.", "emoji": "📷", "rule": "photos>=5"},
-    {"id": "smoke_aware", "label": "Smoke-Aware", "blurb": "Open the AQ guidance during a moderate-or-worse smoke day.", "emoji": "💨", "rule": "smoke_aware"},
-    {"id": "streak_7", "label": "Streak: 7", "blurb": "Visit the hub 7 days in a row.", "emoji": "🔥", "rule": "streak>=7"},
-    {"id": "streak_30", "label": "Streak: 30", "blurb": "Visit the hub 30 days in a row.", "emoji": "🗓️", "rule": "streak>=30"},
-    {"id": "storm_ready", "label": "Storm Ready", "blurb": "Finish your Plan & Go-Bag actions before July 1.", "emoji": "🎒", "rule": "all_zone:plan_gobag&before_july"},
-    {"id": "neighbour", "label": "Neighbour", "blurb": "Share your progress link (your data stays in the URL, never on a server).", "emoji": "🤝", "rule": "shared"},
-    {"id": "firesmart_home", "label": "FireSmart Home", "blurb": "Complete every action that applies to you.", "emoji": "🏆", "rule": "completed==total"},
+    {
+        "id": "first_steps",
+        "label": "First Steps",
+        "blurb": "Complete your first FireSmart action.",
+        "emoji": "🌱",
+        "rule": "completed>=1",
+    },
+    {
+        "id": "ember_aware",
+        "label": "Ember-Aware",
+        "blurb": "Complete 5 actions across any zones.",
+        "emoji": "🪵",
+        "rule": "completed>=5",
+    },
+    {
+        "id": "zone_one_hero",
+        "label": "Zone 1 Hero",
+        "blurb": "Finish every Immediate Zone action that applies to you.",
+        "emoji": "🛡️",
+        "rule": "all_zone:immediate",
+    },
+    {
+        "id": "defensible_space",
+        "label": "Defensible Space",
+        "blurb": "Earn 25 points across any zones.",
+        "emoji": "🏕️",
+        "rule": "points>=25",
+    },
+    {
+        "id": "halfway",
+        "label": "Halfway There",
+        "blurb": "Tick off 50% of the actions that apply to you.",
+        "emoji": "🚧",
+        "rule": "completed>=total/2",
+    },
+    {
+        "id": "photo_documentarian",
+        "label": "Photo Documentarian",
+        "blurb": "Attach photos to 5 completed actions.",
+        "emoji": "📷",
+        "rule": "photos>=5",
+    },
+    {
+        "id": "smoke_aware",
+        "label": "Smoke-Aware",
+        "blurb": "Open the AQ guidance during a moderate-or-worse smoke day.",
+        "emoji": "💨",
+        "rule": "smoke_aware",
+    },
+    {
+        "id": "streak_7",
+        "label": "Streak: 7",
+        "blurb": "Visit the hub 7 days in a row.",
+        "emoji": "🔥",
+        "rule": "streak>=7",
+    },
+    {
+        "id": "streak_30",
+        "label": "Streak: 30",
+        "blurb": "Visit the hub 30 days in a row.",
+        "emoji": "🗓️",
+        "rule": "streak>=30",
+    },
+    {
+        "id": "storm_ready",
+        "label": "Storm Ready",
+        "blurb": "Finish your Plan & Go-Bag actions before July 1.",
+        "emoji": "🎒",
+        "rule": "all_zone:plan_gobag&before_july",
+    },
+    {
+        "id": "neighbour",
+        "label": "Neighbour",
+        "blurb": "Share your progress link (your data stays in the URL, never on a server).",
+        "emoji": "🤝",
+        "rule": "shared",
+    },
+    {
+        "id": "firesmart_home",
+        "label": "FireSmart Home",
+        "blurb": "Complete every action that applies to you.",
+        "emoji": "🏆",
+        "rule": "completed==total",
+    },
 ]
 
 
@@ -127,7 +199,9 @@ def _badges_for(
             return
         for a in ACHIEVEMENTS:
             if a["id"] == ach_id:
-                earned.append({"id": a["id"], "label": a["label"], "emoji": a["emoji"], "blurb": a["blurb"]})
+                earned.append(
+                    {"id": a["id"], "label": a["label"], "emoji": a["emoji"], "blurb": a["blurb"]}
+                )
                 return
 
     _has(completed >= 1, "first_steps")

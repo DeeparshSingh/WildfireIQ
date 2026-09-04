@@ -93,9 +93,12 @@ class OpenMeteoKamloopsJob(IngestJob):
             }
         )
         if not df_h.empty:
-            df_h["ts_utc"] = pd.to_datetime(df_h["ts_local"], errors="coerce").dt.tz_localize(
-                "America/Vancouver", ambiguous="NaT", nonexistent="NaT"
-            ).dt.tz_convert("UTC").dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+            df_h["ts_utc"] = (
+                pd.to_datetime(df_h["ts_local"], errors="coerce")
+                .dt.tz_localize("America/Vancouver", ambiguous="NaT", nonexistent="NaT")
+                .dt.tz_convert("UTC")
+                .dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+            )
             df_h["is_forecast"] = df_h["ts_local"] >= now_local_str
         df_h = df_h[
             [

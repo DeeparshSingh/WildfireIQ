@@ -41,8 +41,13 @@ def theil_sen_with_ci(
     y = y[mask]
     n = len(x)
     if n < 3:
-        return TrendResult(slope=float("nan"), intercept=float("nan"),
-                           slope_ci_lo=float("nan"), slope_ci_hi=float("nan"), n=n)
+        return TrendResult(
+            slope=float("nan"),
+            intercept=float("nan"),
+            slope_ci_lo=float("nan"),
+            slope_ci_hi=float("nan"),
+            n=n,
+        )
 
     slope = _theil_sen_slope(x, y)
     intercept = float(np.median(y - slope * x))

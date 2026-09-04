@@ -87,17 +87,27 @@ def test_envelope_shape(client: TestClient, path: str) -> None:
 
 
 def test_firesmart_filters_by_dwelling(client: TestClient) -> None:
-    house = client.get("/api/firesmart/checklist?dwelling=house&season=summer").json()["data"]["actions"]
-    townhome = client.get("/api/firesmart/checklist?dwelling=townhome&season=summer").json()["data"]["actions"]
+    house = client.get("/api/firesmart/checklist?dwelling=house&season=summer").json()["data"][
+        "actions"
+    ]
+    townhome = client.get("/api/firesmart/checklist?dwelling=townhome&season=summer").json()[
+        "data"
+    ]["actions"]
     # Townhome dwellers should see fewer applicable actions than a detached house.
     assert len(townhome) < len(house)
 
 
 def test_firesmart_season_ordering_changes(client: TestClient) -> None:
     """Action ordering must change with the season — that's the headline feature."""
-    spring_top = client.get("/api/firesmart/checklist?dwelling=house&season=spring").json()["data"]["actions"][0]["id"]
-    summer_top = client.get("/api/firesmart/checklist?dwelling=house&season=summer").json()["data"]["actions"][0]["id"]
-    fall_top = client.get("/api/firesmart/checklist?dwelling=house&season=fall").json()["data"]["actions"][0]["id"]
+    spring_top = client.get("/api/firesmart/checklist?dwelling=house&season=spring").json()["data"][
+        "actions"
+    ][0]["id"]
+    summer_top = client.get("/api/firesmart/checklist?dwelling=house&season=summer").json()["data"][
+        "actions"
+    ][0]["id"]
+    fall_top = client.get("/api/firesmart/checklist?dwelling=house&season=fall").json()["data"][
+        "actions"
+    ][0]["id"]
     # At least two of the three seasons should differ.
     assert len({spring_top, summer_top, fall_top}) >= 2
 

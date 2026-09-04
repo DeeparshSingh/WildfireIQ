@@ -32,29 +32,55 @@ PROCESSED = REPO_ROOT / "data" / "processed"
 
 EXPECTED_COLUMNS: dict[str, set[str]] = {
     "fires_historical.parquet": {
-        "fire_id", "fire_year", "fire_name", "hectares",
-        "discovery_date_utc", "ignition_cause", "latitude", "longitude",
-        "geom_wkt", "geom_kind",
+        "fire_id",
+        "fire_year",
+        "fire_name",
+        "hectares",
+        "discovery_date_utc",
+        "ignition_cause",
+        "latitude",
+        "longitude",
+        "geom_wkt",
+        "geom_kind",
     },
     "fires_current.parquet": {
-        "fire_id", "fire_name", "status", "stage_of_control", "hectares",
-        "discovery_date_utc", "latitude", "longitude", "geom_wkt",
-        "geom_kind", "fetched_at_utc",
+        "fire_id",
+        "fire_name",
+        "status",
+        "stage_of_control",
+        "hectares",
+        "discovery_date_utc",
+        "latitude",
+        "longitude",
+        "geom_wkt",
+        "geom_kind",
+        "fetched_at_utc",
     },
     "firms_hotspots_recent.parquet": {
-        "latitude", "longitude", "acq_datetime_utc",
+        "latitude",
+        "longitude",
+        "acq_datetime_utc",
     },
     "weather_kamloops_archive_daily.parquet": {
-        "day_local", "temp_max_c", "temp_min_c", "precip_mm",
+        "day_local",
+        "temp_max_c",
+        "temp_min_c",
+        "precip_mm",
     },
     "aq_hourly_kamloops.parquet": {
-        "time_utc", "pm2_5",
+        "time_utc",
+        "pm2_5",
     },
     "evac_active.parquet": {
-        "event_id", "status", "issuing_agency",
+        "event_id",
+        "status",
+        "issuing_agency",
     },
     "fwi_stations_today.parquet": {
-        "station_id", "latitude", "longitude", "fwi",
+        "station_id",
+        "latitude",
+        "longitude",
+        "fwi",
     },
 }
 
@@ -96,13 +122,15 @@ def test_fwi_port_runs_on_synthetic_year() -> None:
     from wildfireiq_api.ml.fwi import compute_fwi
 
     days = pd.date_range("2020-04-01", "2020-09-30", freq="D")
-    df = pd.DataFrame({
-        "day_local": days,
-        "temp_max_c": 30.0,
-        "rh_min_pct": 25.0,
-        "wind_max_kmh": 15.0,
-        "precip_mm": 0.0,
-    })
+    df = pd.DataFrame(
+        {
+            "day_local": days,
+            "temp_max_c": 30.0,
+            "rh_min_pct": 25.0,
+            "wind_max_kmh": 15.0,
+            "precip_mm": 0.0,
+        }
+    )
     out = compute_fwi(df)
     assert (out["fwi"] >= 0).all()
     assert out["fwi"].max() < 200  # sanity ceiling
@@ -120,8 +148,15 @@ def test_fires_unified_columns() -> None:
     if not p.exists():
         pytest.skip("fires_unified.parquet not yet built — run `make fires-unified`")
     df = pd.read_parquet(p)
-    required = {"fire_id", "fire_year", "hectares", "discovery_date_utc",
-                "latitude", "longitude", "source"}
+    required = {
+        "fire_id",
+        "fire_year",
+        "hectares",
+        "discovery_date_utc",
+        "latitude",
+        "longitude",
+        "source",
+    }
     assert required.issubset(df.columns)
     assert set(df["source"].unique()).issubset({"historical", "current"})
     assert len(df) >= 10_000  # we should never silently drop most rows
@@ -135,10 +170,18 @@ def test_seasonal_metrics_columns() -> None:
     if not p.exists():
         pytest.skip("seasonal_metrics.parquet not yet built — run `make seasonal-metrics`")
     df = pd.read_parquet(p)
-    required = {"year", "area_burned_ha", "mean_jul_temp_c",
-                "julaug_precip_mm", "mean_julaug_vpd_kpa",
-                "max_julaug_fwi", "days_fwi_ge_19",
-                "season_start_doy", "season_end_doy", "season_length_days"}
+    required = {
+        "year",
+        "area_burned_ha",
+        "mean_jul_temp_c",
+        "julaug_precip_mm",
+        "mean_julaug_vpd_kpa",
+        "max_julaug_fwi",
+        "days_fwi_ge_19",
+        "season_start_doy",
+        "season_end_doy",
+        "season_length_days",
+    }
     assert required.issubset(df.columns)
     # Sanity: years are unique and monotonically sorted ascending.
     assert df["year"].is_unique

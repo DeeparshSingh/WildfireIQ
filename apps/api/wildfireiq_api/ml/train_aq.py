@@ -95,12 +95,12 @@ def _build_horizon_targets(df: pd.DataFrame, horizon_h: int) -> pd.DataFrame:
 def main() -> None:
     src = PROCESSED_ROOT / "aq_hourly_kamloops.parquet"
     if not src.exists():
-        raise SystemExit(
-            "Run `--only open_meteo_aq_archive` first to populate hourly AQ data."
-        )
+        raise SystemExit("Run `--only open_meteo_aq_archive` first to populate hourly AQ data.")
     df = _enrich(pd.read_parquet(src))
-    print(f"loaded {len(df)} hourly rows, "
-          f"{df['time_utc'].min().date()} → {df['time_utc'].max().date()}")
+    print(
+        f"loaded {len(df)} hourly rows, "
+        f"{df['time_utc'].min().date()} → {df['time_utc'].max().date()}"
+    )
 
     ART = MODELS_ROOT / "aq_forecaster_v1"
     ART.mkdir(parents=True, exist_ok=True)
@@ -109,7 +109,7 @@ def main() -> None:
 
     for h in HORIZONS_H:
         df_h = _build_horizon_targets(df, h)
-        df_h = df_h.dropna(subset=FEATURE_COLS_BASE + ["y"])
+        df_h = df_h.dropna(subset=[*FEATURE_COLS_BASE, "y"])
         cut = int(len(df_h) * 0.8)
         train = df_h.iloc[:cut]
         test = df_h.iloc[cut:]
@@ -142,10 +142,10 @@ def main() -> None:
                 num_boost_round=500,
                 callbacks=[lgb.log_evaluation(0)],
             )
-            booster.save_model(str(h_dir / f"q{int(q*100):02d}.txt"))
+            booster.save_model(str(h_dir / f"q{int(q * 100):02d}.txt"))
             preds = booster.predict(test[FEATURE_COLS_BASE])
             pinball = mean_pinball_loss(test["y"], preds, alpha=q)
-            h_metrics[f"q{int(q*100):02d}_pinball"] = float(pinball)
+            h_metrics[f"q{int(q * 100):02d}_pinball"] = float(pinball)
             if abs(q - 0.5) < 1e-6:
                 h_metrics["q50_mae"] = float(mean_absolute_error(test["y"], preds))
 
@@ -155,8 +155,7 @@ def main() -> None:
 
         all_metrics[f"h{h}"] = h_metrics
         print(
-            f"  h={h:>2}h  test MAE q50 {h_metrics['q50_mae']:.2f} "
-            f"(persistence {baseline_mae:.2f})"
+            f"  h={h:>2}h  test MAE q50 {h_metrics['q50_mae']:.2f} (persistence {baseline_mae:.2f})"
         )
 
     (ART / "metrics.json").write_text(json.dumps(all_metrics, indent=2))

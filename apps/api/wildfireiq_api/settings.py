@@ -16,7 +16,7 @@ def _resolve_sqlite_url(url: str) -> str:
     prefixes = ("sqlite+aiosqlite:///", "sqlite:///")
     for prefix in prefixes:
         if url.startswith(prefix):
-            path_str = url[len(prefix):]
+            path_str = url[len(prefix) :]
             p = Path(path_str)
             if not p.is_absolute():
                 p = (REPO_ROOT / p).resolve()
