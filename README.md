@@ -178,7 +178,7 @@ WildFire-IQ/
 │   ├── design-tokens/        # CSS variables + Tailwind preset
 │   └── shared-types/         # TS types generated from the OpenAPI schema
 ├── data/
-│   ├── raw/                  # untouched upstream dumps
+│   ├── raw/                  # untouched upstream dumps (newest 24 per job)
 │   ├── processed/            # cleaned parquets the app reads
 │   ├── geo/                  # static GeoJSON (region bbox, neighbourhoods)
 │   ├── firesmart/            # FireSmart checklist JSON
@@ -236,7 +236,11 @@ make train-risk        # train the wildfire risk classifier
 make train-aq          # train the AQ quantile forecaster
 make seasonal-metrics  # rebuild seasonal_metrics.parquet
 make fires-unified     # rebuild fires_unified.parquet
+make region-weather    # rebuild the three non-Kamloops weather archives
+make risk-features     # rebuild features_risk_daily + cell_density
 make research-assets   # mirror model cards into apps/web/public/research/
+make prune-raw         # trim data/raw/ to each job's retention limit
+make lint              # ruff check + format check
 make test              # backend pytest suite
 make typecheck         # frontend TypeScript check
 make build             # production build of the frontend
@@ -262,7 +266,7 @@ make build             # production build of the frontend
 ## Tests
 
 ```bash
-make test                  # backend — 58 pytest (ingest, routers, data quality, trends, risk regions)
+make test                  # backend — 76 pytest (ingest, routers, data quality, trends, risk regions, pipeline)
 cd apps/web && pnpm test   # frontend — 22 vitest (hooks + utilities)
 ```
 

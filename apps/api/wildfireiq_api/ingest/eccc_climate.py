@@ -31,6 +31,8 @@ def _pick(df: pd.DataFrame, *candidates: str) -> pd.Series | None:
 class ECCCClimateBulkJob(IngestJob):
     name = "eccc_climate_kamloops"
     cadence = None
+    # One CSV per year *is* the corpus here, not a snapshot; keep them all.
+    raw_retention = None
     label = "ECCC · Kamloops climate bulk (bootstrap)"
 
     async def run(self, ctx: IngestContext) -> IngestReport:

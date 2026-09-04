@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from .db import session_scope
 from .ingest.base import IngestJob, run_job
-from .ingest.registry import dependency_waves, scheduled_jobs
+from .ingest.registry import dependency_waves, scheduled_jobs, with_dependents
 
 log = structlog.get_logger()
 _scheduler: AsyncIOScheduler | None = None
@@ -97,23 +97,34 @@ async def refresh_stale_jobs(max_age_minutes: int) -> None:
     processed parquets behind. APScheduler will not fire until its next tick,
     so this catches up immediately.
 
-    Ordering matters: `derived_risk_features` reads the region weather
-    archives, and `derived_seasonal_metrics` reads the Kamloops archive. The
-    nightly cron times are staggered to respect that, but a catch-up run has
-    no clock to lean on, so jobs are grouped into dependency waves and each
-    wave finishes before the next begins. Within a wave, jobs run in
-    parallel. Errors are logged, never raised: a dead upstream must not stop
-    the API from booting.
+    Two things matter beyond "what is stale".
+
+    Ordering: `derived_risk_features` reads the region weather archives, and
+    `derived_seasonal_metrics` reads the Kamloops archive. The nightly cron
+    times are staggered to respect that, but a catch-up run has no clock to
+    lean on, so jobs are grouped into dependency waves and each wave finishes
+    before the next begins. Within a wave, jobs run in parallel.
+
+    Completeness: a derived job can be fresh by the clock while the inputs it
+    reads are rebuilt in this same pass, which would leave its output older
+    than its sources. So the stale set is widened to include everything
+    downstream of it before the waves are built.
+
+    Errors are logged, never raised: a dead upstream must not stop the API
+    from booting.
     """
-    to_run = await _stale_jobs(max_age_minutes)
-    if not to_run:
+    stale = await _stale_jobs(max_age_minutes)
+    if not stale:
         log.info("startup_refresh.nothing_to_run")
         return
 
+    to_run = with_dependents(stale)
     waves = dependency_waves(to_run)
     log.info(
         "startup_refresh.running",
         count=len(to_run),
+        stale=len(stale),
+        pulled_in=sorted({j.name for j in to_run} - {j.name for j in stale}),
         waves=[[j.name for j in w] for w in waves],
     )
 

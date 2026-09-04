@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -67,6 +68,13 @@ class IngestJob(ABC):
     #: Human-readable label for logs and the ingest_runs table.
     label: str = ""
 
+    #: How many raw snapshots to keep under data/raw/<name>/. Snapshots are a
+    #: debugging aid — they let you replay exactly what an upstream returned —
+    #: so a couple of dozen is plenty. Without a cap they grow without bound:
+    #: bcem_evac alone writes a GeoJSON every 5 minutes. None keeps everything,
+    #: which is right for a bootstrap whose raw files *are* the corpus.
+    raw_retention: int | None = 24
+
     #: Names of jobs whose output this job reads. Cron cadences are staggered
     #: to respect these, but the startup catch-up has no clock to lean on, so
     #: it orders jobs by this graph instead. Naming a bootstrap job is fine:
@@ -90,6 +98,33 @@ class IngestJob(ABC):
         p = self.raw_dir.joinpath(*parts)
         p.parent.mkdir(parents=True, exist_ok=True)
         return p
+
+    def prune_raw(self) -> int:
+        """Delete all but the newest `raw_retention` snapshots. Returns the
+        count removed.
+
+        A snapshot is one entry directly under data/raw/<name>/ — a file for
+        jobs that write one blob per run, a directory for jobs that write
+        several files per run (databc_fires_current, firms_hotspots). Both
+        shapes are ordered by modification time, newest kept.
+        """
+        keep = self.raw_retention
+        if keep is None:
+            return 0
+
+        d = RAW_ROOT / self.name
+        if not d.is_dir():
+            return 0
+
+        entries = sorted(d.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        removed = 0
+        for entry in entries[keep:]:
+            if entry.is_dir():
+                shutil.rmtree(entry, ignore_errors=True)
+            else:
+                entry.unlink(missing_ok=True)
+            removed += 1
+        return removed
 
 
 # ─── Runner ──────────────────────────────────────────────────────────
@@ -131,6 +166,13 @@ async def run_job(job: IngestJob, *, timeout: float = 60.0) -> IngestReport:
                 status="fail",
                 error=f"{type(exc).__name__}: {exc}",
             )
+
+    try:
+        pruned = job.prune_raw()
+        if pruned:
+            log.info("ingest.raw.pruned", removed=pruned, keep=job.raw_retention)
+    except OSError as exc:
+        log.warning("ingest.raw.prune_failed", error=str(exc))
 
     report.duration_ms = int((time.perf_counter() - started_perf) * 1000)
     finished_at = datetime.now(UTC)

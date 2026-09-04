@@ -794,7 +794,7 @@ four-page research-artifact PDF.
 - **Startup catch-up**: any recurring source older than 30 minutes is
   re-run at boot, in dependency-wave order so a derived job never reads an
   input that is still being rebuilt (`scheduler.refresh_stale_jobs`).
-- **Tests**: 68 backend (pytest) and 22 frontend (Vitest), plus ruff lint
+- **Tests**: 76 backend (pytest) and 22 frontend (Vitest), plus ruff lint
   and format checks and a `tsc --noEmit` typecheck, all wired to `make`.
 
 ---

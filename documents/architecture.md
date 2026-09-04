@@ -38,7 +38,7 @@ apps/api/wildfireiq_api/
 ├── ingest/                  # 16 IngestJob subclasses + registry.py
 ├── routers/                 # 1 router per domain
 ├── ml/                      # FWI port, trainers, inference, ONNX export
-└── tests/                   # pytest — 47 tests
+└── tests/                   # pytest — 76 tests
 ```
 
 ### Data (`data/`)
@@ -46,6 +46,7 @@ apps/api/wildfireiq_api/
 ```
 data/
 ├── raw/                     # untouched upstream dumps, partitioned by job
+│                            #   (newest 24 snapshots per job; older ones pruned)
 ├── processed/               # cleaned parquets the routers + ML read
 ├── geo/                     # static GeoJSON (TO bbox, Kamloops neighbourhoods)
 ├── firesmart/               # 30-action HIZ checklist JSON
@@ -148,6 +149,23 @@ Pydantic Envelope[list]  → JSONResponse
 ```
 
 The wildfire risk path is the same shape but reads `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib}`. It loops the four regions in `constants.REGIONS`, scores each from its own weather archive to get one probability per region per day, then multiplies that by each of the region's H3 cells' historical density. Every cell is claimed by exactly one region, so the 523 hexagons never overlap.
+
+---
+
+## Raw snapshot retention
+
+Every job keeps its untouched upstream response under `data/raw/<job>/`, which
+makes a parse failure reproducible: you can see exactly what the source
+returned. Left alone that grows without bound — `bcem_evac` writes a GeoJSON
+every 5 minutes, and four months of running filled 1.3 GB.
+
+So `IngestJob.raw_retention` caps it, defaulting to the newest 24 snapshots,
+and `run_job` prunes after every run. A snapshot is one entry directly under
+the job's folder: a file for jobs that write one blob per run, a directory for
+jobs that write several (`databc_fires_current`, `firms_hotspots`). A bootstrap
+whose raw files *are* the corpus sets `raw_retention = None`
+(`eccc_climate_kamloops` keeps one CSV per year). `make prune-raw` trims an
+existing checkout in one pass.
 
 ---
 

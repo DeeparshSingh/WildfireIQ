@@ -58,6 +58,29 @@ def bootstrap_jobs() -> list[IngestJob]:
     return [j for j in all_jobs().values() if j.cadence is None]
 
 
+def with_dependents(jobs: list[IngestJob]) -> list[IngestJob]:
+    """Add every recurring job that reads the output of one already selected.
+
+    Freshness is judged per job, which on its own is not enough: a derived job
+    can look fresh while the inputs it reads are being rebuilt in the same
+    pass, leaving its output older than its sources. Whenever a job runs, so
+    must everything downstream of it.
+    """
+    selected = {j.name: j for j in jobs}
+
+    changed = True
+    while changed:
+        changed = False
+        for job in scheduled_jobs():
+            if job.name in selected:
+                continue
+            if any(dep in selected for dep in job.depends_on):
+                selected[job.name] = job
+                changed = True
+
+    return list(selected.values())
+
+
 def dependency_waves(jobs: list[IngestJob]) -> list[list[IngestJob]]:
     """Group `jobs` into waves that can each run fully in parallel.
 

@@ -5,9 +5,8 @@
  *
  * Why not MapLibre: this is a single 280×280 panel meant to show *which*
  * stations exist and *where* they sit relative to Kamloops; a full slippy
- * map for that purpose is overkill and adds 200 KB to the bundle. The
- * Phase-7 polish pass can swap in MapLibre if real basemap context becomes
- * needed.
+ * map for that purpose is overkill and adds 200 KB to the bundle. Swapping
+ * one in only makes sense if real basemap context becomes necessary.
  */
 import type { AqCurrentStation } from "@/lib/api/hooks";
 import { aqhiColor } from "./aqColors";

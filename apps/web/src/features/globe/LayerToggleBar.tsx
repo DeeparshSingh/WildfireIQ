@@ -58,8 +58,8 @@ function useLayerCounts(): LayerDef[] {
 
   const fwiCount = fwi.data?.filter((s) => (s.fwi ?? 0) >= fwiFilter.minFwi).length;
 
-  // Count the highest-severity bucket (Extreme + High) as the headline for the
-  // Risk Grid badge — that's the "useful" subset of the 185 cells.
+  // The badge counts only the Extreme + High cells across every region: with
+  // 523 cells in play, a total would read as noise rather than as a signal.
   const riskCount = risk.data?.cells.filter(
     (c) => c.risk_class === "Extreme" || c.risk_class === "High",
   ).length;

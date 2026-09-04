@@ -94,6 +94,10 @@ lint:
 	cd apps/api && uv run ruff check wildfireiq_api tests
 	cd apps/api && uv run ruff format --check wildfireiq_api tests
 
+.PHONY: prune-raw
+prune-raw:
+	cd apps/api && uv run python -m wildfireiq_api.ingest.prune
+
 .PHONY: test
 test:
 	cd apps/api && uv run pytest -q
