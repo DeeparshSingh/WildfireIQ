@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from . import __version__
+from .assistant.router import router as assistant_router
 from .db import init_db
 from .routers import admin, aq, climate, evac, fires, firesmart, fwi, risk, weather
 from .scheduler import refresh_stale_jobs, start_scheduler, stop_scheduler
@@ -52,8 +53,13 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if not path.startswith("/api/"):
             return response
-        # Don't override an already-set header (e.g. CSV downloads).
+        # Don't override an already-set header (e.g. CSV downloads, SSE).
         if response.headers.get("cache-control"):
+            return response
+        # The assistant's answers are per-question and its stream must not
+        # be held anywhere. Never cache them.
+        if path.startswith("/api/assistant"):
+            response.headers["cache-control"] = "no-store"
             return response
         if any(path.startswith(p) for p in _LONG_CACHE_PREFIXES):
             response.headers["cache-control"] = "public, max-age=300, s-maxage=600"
@@ -118,6 +124,10 @@ def create_app() -> FastAPI:
             {"name": "firesmart", "description": "Personalized FireSmart checklist."},
             {"name": "climate", "description": "Historical climate + projections."},
             {"name": "admin", "description": "Trigger ingest jobs + inspect runs."},
+            {
+                "name": "assistant",
+                "description": "Tool-using assistant over the platform's own data.",
+            },
         ],
     )
 
@@ -153,6 +163,7 @@ def create_app() -> FastAPI:
     app.include_router(firesmart.router, prefix="/api/firesmart", tags=["firesmart"])
     app.include_router(climate.router, prefix="/api/climate", tags=["climate"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+    app.include_router(assistant_router, prefix="/api/assistant", tags=["assistant"])
 
     return app
 

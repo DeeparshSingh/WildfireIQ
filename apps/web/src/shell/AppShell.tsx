@@ -12,6 +12,12 @@ const WildfireGlobe = lazy(() =>
   import("@/features/globe/WildfireGlobe").then((m) => ({ default: m.WildfireGlobe })),
 );
 
+// The assistant lives above every route so a conversation survives being
+// navigated — which it has to, since the assistant can navigate the user.
+const AssistantDock = lazy(() =>
+  import("@/features/assistant/AssistantDock").then((m) => ({ default: m.AssistantDock })),
+);
+
 export function AppShell({ children }: { children: ReactNode }) {
   const showGlobe = hasCesiumIonToken();
 
@@ -67,6 +73,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               default; each overlay re-enables pointer events on itself. */}
           {children}
         </div>
+
+        <ErrorBoundary label="Assistant">
+          <Suspense fallback={null}>
+            <AssistantDock />
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   );

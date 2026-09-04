@@ -38,8 +38,15 @@ apps/api/wildfireiq_api/
 ├── ingest/                  # 16 IngestJob subclasses + registry.py
 ├── routers/                 # 1 router per domain
 ├── ml/                      # FWI port, trainers, inference
-└── tests/                   # pytest — 78 tests
+├── assistant/               # agent harness + 25 tools + OpenRouter transport
+└── tests/                   # pytest — 129 tests
 ```
+
+The `assistant/` package is a deliberate one-way dependency: it imports the
+rest of the backend read-only and nothing imports it back, so the assistant
+can be switched off — or fail outright — without touching the map, the
+dashboards, or the pipeline. Its design is documented separately in
+[`assistant.md`](./assistant.md).
 
 ### Data (`data/`)
 
@@ -202,5 +209,7 @@ There's no Redis, no Celery, no Postgres. That was an explicit early decision: s
 
 - A user accounts system. The preparedness hub is local-first (`localStorage` + IndexedDB) on purpose — no PII ever touches the backend.
 - A separate microservice for ML inference. LightGBM is small; running inference inside the FastAPI process is fine and avoids cross-service serialisation.
+- A vector database or embedding index for the assistant. Its retrieval corpus is eight of our own markdown documents; term-overlap scoring over heading-delimited sections finds the right one, and an embedding pipeline would add a model, an index to keep in step with the docs, and a rebuild step — for a corpus a person could read in an afternoon.
+- Server-side conversation storage for the assistant. The browser owns the transcript and posts it back each turn, which keeps the same "no PII on the backend" property the preparedness hub has.
 - A custom tile server. Cesium Ion's free tier covers terrain + imagery; recreating that would burn the grant budget for no user-facing win.
 - A Postgres / PostGIS layer. At this scale pandas reads the parquets directly in single-digit to low-hundreds of milliseconds, and every dataset is reproducible from its upstream feed, so a database server would add operational weight without buying anything.

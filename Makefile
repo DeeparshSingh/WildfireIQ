@@ -26,6 +26,7 @@ help:
 	@echo "  make fires-unified     Rebuild data/processed/fires_unified.parquet (current + historical)"
 	@echo "  make region-weather    Rebuild each region's daily weather archive"
 	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
+	@echo "  make assistant-smoke   One live assistant call (needs OPENROUTER_API_KEY)"
 	@echo "  make lint              Ruff check the backend"
 	@echo "  make research-assets   Mirror model cards + plots into apps/web/public/research/"
 	@echo "  make test              Run the Python test suite"
@@ -97,6 +98,14 @@ lint:
 .PHONY: prune-raw
 prune-raw:
 	cd apps/api && uv run python -m wildfireiq_api.ingest.prune
+
+# One real call to OpenRouter, to prove the key and the loop work end to end.
+# Everything else about the assistant is covered offline by test_assistant.py,
+# so this is the only target that spends anything. Costs a fraction of a cent.
+# Override the question: make assistant-smoke Q="how smoky is it in Kelowna?"
+.PHONY: assistant-smoke
+assistant-smoke:
+	cd apps/api && uv run python -m wildfireiq_api.assistant.smoke $(if $(Q),"$(Q)",)
 
 .PHONY: test
 test:

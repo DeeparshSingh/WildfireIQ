@@ -70,6 +70,25 @@ class Settings(BaseSettings):
     kamloops_lat: float = constants.KAMLOOPS_LAT
     kamloops_lon: float = constants.KAMLOOPS_LON
 
+    # ── Assistant (OpenRouter-hosted GLM) ────────────────────────────
+    # With no key the assistant endpoints stay mounted but report
+    # `configured: false`, so the frontend can hide its launcher instead
+    # of failing a request. Nothing else in the app depends on it.
+    openrouter_api_key: str = Field(default="", description="OpenRouter API key")
+    assistant_enabled: bool = Field(default=True)
+    assistant_model: str = Field(default="z-ai/glm-5.3-flash")
+    # Budget caps. A step is one model turn; a turn that asks for tools is
+    # followed by another. Five steps is generous — the observed ceiling on
+    # real questions is three — and it bounds the worst case if the model
+    # ever loops asking for the same tool.
+    assistant_max_steps: int = Field(default=5, ge=1, le=10)
+    assistant_max_tool_calls: int = Field(default=12, ge=1, le=40)
+    assistant_timeout_s: float = Field(default=90.0)
+    # Attribution headers OpenRouter shows on its dashboards. Harmless if
+    # the app is never public.
+    assistant_referer: str = Field(default="https://github.com/DeeparshSingh/WildfireIQ")
+    assistant_title: str = Field(default="WildfireIQ Kamloops")
+
 
 @lru_cache
 def get_settings() -> Settings:

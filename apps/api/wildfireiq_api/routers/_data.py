@@ -47,8 +47,18 @@ def fires_current(include_extinguished: bool = False) -> list[dict[str, Any]]:
     return _records(df)
 
 
+def fires_historical_frame() -> pd.DataFrame | None:
+    """The whole 1999-present incident record, as a frame.
+
+    Callers that aggregate (assistant tools, analytics) want pandas, not
+    96,000 dictionaries. `fires_historical` below is the row-oriented view
+    the API serves.
+    """
+    return _read_parquet_safe(PROCESSED_ROOT / "fires_historical.parquet")
+
+
 def fires_historical(year: int | None = None, limit: int = 5000) -> list[dict[str, Any]]:
-    df = _read_parquet_safe(PROCESSED_ROOT / "fires_historical.parquet")
+    df = fires_historical_frame()
     if df is None:
         return []
     if year is not None and "fire_year" in df.columns:
@@ -83,6 +93,22 @@ def weather_forecast(hours: int = 72) -> list[dict[str, Any]]:
     if "is_forecast" in df.columns:
         df = df[df["is_forecast"]]
     return _records(df.head(hours))
+
+
+def weather_daily(days: int = 7) -> list[dict[str, Any]]:
+    """Daily observed + forecast summary rows for Kamloops.
+
+    Open-Meteo pads the table out to the end of its forecast horizon, so
+    trailing rows can be entirely NaN. Those are dropped here rather than in
+    every caller.
+    """
+    df = _read_parquet_safe(PROCESSED_ROOT / "weather_kamloops_daily.parquet")
+    if df is None or df.empty:
+        return []
+    value_cols = [c for c in df.columns if c not in {"day_local", "is_forecast"}]
+    if value_cols:
+        df = df.dropna(subset=value_cols, how="all")
+    return _records(df.head(days))
 
 
 def fwi_today() -> list[dict[str, Any]]:

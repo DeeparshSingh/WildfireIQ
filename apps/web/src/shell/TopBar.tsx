@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { AssistantTrigger } from "@/features/assistant/AssistantTrigger";
+
 function useClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -57,6 +59,7 @@ export function TopBar() {
         <span style={{ color: "var(--color-text-low)" }}>YKA</span>
         <span style={{ color: "var(--color-text-hi)" }}>{fmt(now, "America/Vancouver")}</span>
       </div>
+      <AssistantTrigger />
       <div
         className="tabular"
         style={{

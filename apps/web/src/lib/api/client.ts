@@ -4,6 +4,9 @@
  */
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+/** Exported for the assistant, which streams SSE rather than using apiGet. */
+export const API_BASE = BASE;
+
 type Meta = {
   cached_at: string;
   source: string;

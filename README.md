@@ -16,6 +16,7 @@ A research artifact built with a TRU Sustainability Research Grant (2025–2026)
 | **`/air-quality`** | Live AQHI dial, 48-hour PM2.5 forecast with a q10–q90 uncertainty band, six-pollutant breakdown, a province-wide stations map, a rolling 365-day smoke calendar, Health Canada guidance, and opt-in AQHI-threshold web notifications. |
 | **`/preparedness`** | A three-step onboarding wizard, a personalised FireSmart Home-Ignition-Zone checklist (30 actions, filtered by dwelling and situation, re-ordered by season), per-action photo capture (IndexedDB), a live point-in-polygon evacuation widget, a 12-badge achievement ladder with confetti, streak tracking, and a share-via-URL-hash link. All state is local — no accounts, no PII. |
 | **`/climate`** | A six-section scrollytelling page: 27 years of area burned with landmark annotations, Theil-Sen trends with bootstrap confidence intervals, a fire-season ribbon, CMIP6 SSP projections, a decade-by-decade FWI≥19 estimate, and a feature-flagged TRU campus-carbon section. Every chart carries its source, method, and a CSV download; a print stylesheet emits a clean PDF. |
+| **Assistant (⌘K, every page)** | A tool-using agent over the platform's own data, powered by GLM 5.3 Flash. 25 read-only tools across risk, fires, evacuations, air quality, weather, climate history and the project's documentation; it runs several in parallel per turn, cites what it used, and can fly the globe, toggle layers or open a page as part of an answer. |
 
 ---
 
@@ -111,6 +112,7 @@ The backend exposes a small REST API; every response uses a `{data, meta}` envel
 | Evacuation | `/api/evac/active`, `/api/evac/check` |
 | Preparedness | `/api/firesmart/checklist`, `/api/firesmart/score`, `/api/firesmart/achievements`, `/api/firesmart/neighbourhoods`, `/api/firesmart/season-context` |
 | Climate | `/api/climate/seasonal`, `/api/climate/trends`, `/api/climate/ribbon`, `/api/climate/projection(s-all)`, `/api/climate/fwi-projection`, `/api/climate/tru-carbon` |
+| Assistant | `/api/assistant/chat` (SSE), `/api/assistant/tools`, `/api/assistant/brief`, `/api/assistant/health` |
 | Admin / system | `/api/admin/jobs`, `/api/admin/runs`, `/healthz` |
 
 The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Historical and reference endpoints carry a longer `Cache-Control` than live ones.
@@ -126,9 +128,10 @@ The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Histo
 │  │ React 18 + TS + Vite + Resium + Tailwind v4    │  │
 │  │  • Cesium globe (eager)                        │  │
 │  │  • AQ / Prep / Climate (React.lazy chunks)     │  │
+│  │  • Assistant panel (SSE, applies UI effects)   │  │
 │  │  • localStorage + IndexedDB for the prep hub   │  │
 │  └────────────────────────────────────────────────┘  │
-│           ▲ TanStack Query (REST / JSON)             │
+│           ▲ TanStack Query (REST) · SSE (assistant)  │
 └───────────┼──────────────────────────────────────────┘
             │ http://localhost:8000
 ┌───────────┴──────────────────────────────────────────┐
@@ -136,6 +139,7 @@ The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Histo
 │  ┌────────────────────────────────────────────────┐  │
 │  │ /api/fires /api/risk /api/aq /api/firesmart    │  │
 │  │ /api/evac  /api/fwi  /api/climate /api/weather │  │
+│  │ /api/assistant — agent harness, 25 tools (SSE) │  │
 │  └────────────────────────────────────────────────┘  │
 │  Cache-Control middleware · ordered ingest waves     │
 │  APScheduler (19 ingest jobs)                        │
@@ -168,6 +172,7 @@ WildFire-IQ/
 │   │       └── stores/       # Zustand UI state
 │   └── api/                  # FastAPI backend
 │       ├── wildfireiq_api/
+│       │   ├── assistant/    # agent harness, tools, OpenRouter transport
 │       │   ├── ingest/       # 19 IngestJob subclasses + registry
 │       │   ├── ml/           # FWI port, trainers, inference
 │       │   └── routers/      # one router per domain
@@ -196,6 +201,7 @@ All documentation lives in [`documents/`](./documents):
 |---|---|
 | [`logic.md`](./documents/logic.md) | Canonical end-to-end engineering log — how each feature works and why |
 | [`data-layer.md`](./documents/data-layer.md) | Per-layer source, cadence, computation, and accuracy reference |
+| [`assistant.md`](./documents/assistant.md) | The assistant's harness, toolset, budgets, safety rails, and cost |
 | [`architecture.md`](./documents/architecture.md) | System diagram, request lifecycle, pipeline ordering, raw retention |
 | [`data-dictionary.md`](./documents/data-dictionary.md) | Every column of every processed parquet |
 | [`api-keys-setup.md`](./documents/api-keys-setup.md) | How to obtain the three free API tokens |
@@ -241,6 +247,7 @@ make region-weather    # rebuild the three non-Kamloops weather archives
 make risk-features     # rebuild features_risk_daily + cell_density
 make research-assets   # mirror model cards into apps/web/public/research/
 make prune-raw         # trim data/raw/ to each job's retention limit
+make assistant-smoke   # one live assistant call (needs OPENROUTER_API_KEY)
 make lint              # ruff check + format check
 make test              # backend pytest suite
 make typecheck         # frontend TypeScript check
@@ -261,14 +268,15 @@ make build             # production build of the frontend
 | 5 | Community Preparedness Hub (`/preparedness`) | Complete |
 | 6 | Climate Trend Module (`/climate`) | Complete |
 | 7 | Polish, performance, docs, tests | Complete (demo recording + on-device iPad testing remain) |
+| 8 | In-app assistant — agent harness over the platform's data | Complete |
 
 ---
 
 ## Tests
 
 ```bash
-make test                  # backend — 78 pytest (ingest, routers, data quality, trends, risk regions, pipeline)
-cd apps/web && pnpm test   # frontend — 22 vitest (hooks + utilities)
+make test                  # backend — 129 pytest (ingest, routers, data quality, trends, risk regions, pipeline, assistant)
+cd apps/web && pnpm test   # frontend — 36 vitest (hooks, utilities, assistant stream + renderer)
 ```
 
 ---
@@ -279,6 +287,7 @@ cd apps/web && pnpm test   # frontend — 22 vitest (hooks + utilities)
 - **The CMIP6 climate projections are a synthetic placeholder** with the correct shape, not the live ClimateData.ca download. The trend direction is illustrative; absolute values shift once the real ensemble is dropped into `data/processed/climate_projections.parquet` (no code change needed). This is disclosed on the climate page.
 - **The decade-by-decade FWI projection is a coarse one-variable extrapolation**, disclosed in its method note.
 - **Air quality forecasting is single-point (Kamloops).** It cannot see a smoke plume arriving from outside the region until local readings begin to rise.
+- **The assistant answers only from this platform's data.** It has 25 tools and a live situation brief, and it is instructed never to state a number that did not come from one of them — but it is a language model, and the honest framing is that its tool results are trustworthy while its prose about them is not proof. Every answer shows which sources it consulted so the claim can be checked. It is informational, and it defers to 911, EmergencyInfoBC and the BC Wildfire Service for anything urgent.
 - **The risk grid covers four modelled regions** (Thompson-Okanagan, Central Okanagan, Lower Mainland, Prince George); the climate-trend metrics remain Thompson-Okanagan only. Live hazard layers (fires, hotspots, evacuation, FWI, AQHI, smoke) cover the whole province.
 
 ---
