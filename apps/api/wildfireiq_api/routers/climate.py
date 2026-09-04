@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import csv
 import io
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,28 @@ def _envelope_or_csv(
 # ─── Endpoints ─────────────────────────────────────────────────────────
 
 
+def _seasonal_note(rows: list[dict[str, Any]]) -> str | None:
+    """Say out loud when the in-progress season is being withheld.
+
+    `ml.seasonal_metrics` drops the current year until October so a
+    half-finished season cannot drag a trend line down. That is the right
+    call, but silently ending the series a year early looks like missing
+    data, so the reason travels with the payload.
+    """
+    if not rows:
+        return "Run `uv run python -m wildfireiq_api.ml.seasonal_metrics` to build."
+
+    latest = max(int(r["year"]) for r in rows)
+    this_year = datetime.now(UTC).year
+    if latest < this_year:
+        return (
+            f"Complete seasons only, 1999-{latest}. The {this_year} season is still "
+            "under way and joins the series in October, so a partial year cannot "
+            "distort the trends."
+        )
+    return None
+
+
 @router.get("/seasonal", summary="Per-year fire+climate metrics, 1999-present")
 async def seasonal(format: str = "json") -> Any:
     rows = _data.seasonal_metrics()
@@ -73,9 +96,7 @@ async def seasonal(format: str = "json") -> Any:
         fmt=format,
         source="seasonal_metrics",
         attribution="BC Wildfire Service · Open-Meteo ERA5 · WildfireIQ Van Wagner FWI",
-        note=None
-        if rows
-        else "Run `uv run python -m wildfireiq_api.ml.seasonal_metrics` to build.",
+        note=_seasonal_note(rows),
     )
 
 

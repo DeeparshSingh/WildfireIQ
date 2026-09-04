@@ -38,7 +38,7 @@ apps/api/wildfireiq_api/
 ├── ingest/                  # 16 IngestJob subclasses + registry.py
 ├── routers/                 # 1 router per domain
 ├── ml/                      # FWI port, trainers, inference, ONNX export
-└── tests/                   # pytest — 77 tests
+└── tests/                   # pytest — 78 tests
 ```
 
 ### Data (`data/`)

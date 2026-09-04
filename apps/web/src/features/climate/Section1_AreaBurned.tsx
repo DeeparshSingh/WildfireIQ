@@ -40,15 +40,21 @@ export function Section1_AreaBurned() {
   const q = useSeasonalMetrics();
   const data = (q.data ?? []).filter((d) => d.area_burned_ha != null);
 
+  // The series carries complete seasons only: the backend withholds the
+  // current year until October so a half-finished season cannot drag a trend
+  // line down. Read the span off the data rather than claiming "today".
+  const firstYear = data.length ? data[0].year : 1999;
+  const lastYear = data.length ? data[data.length - 1].year : firstYear;
+
   return (
     <SectionShell
       kicker="Section 1"
       title="Three decades of fire."
-      sub="Total area burned each year inside the Thompson-Okanagan bounding box, 1999 → today. The 1999–2010 baseline mean is the dashed line. Use the Log scale to see smaller seasons next to the catastrophic ones."
+      sub={`Total area burned each year inside the Thompson-Okanagan bounding box, ${firstYear}–${lastYear}. Complete seasons only, so the season under way joins in October. The 1999–2010 baseline mean is the dashed line. Use the Log scale to see smaller seasons next to the catastrophic ones.`}
       info={
         <InfoChip
           source="BC Wildfire Service · DataBC historical fire polygons (PROT_HISTORICAL_FIRE_POLYS_SP)"
-          method="Sum of fire-polygon hectares per fire_year, restricted to the Thompson-Okanagan bounding box (-121.5°→-118.5° W, 50°→51.5° N). Every year 1999–today has data — small bars are real, not missing."
+          method={`Sum of fire-polygon hectares per fire_year, restricted to the Thompson-Okanagan bounding box (-121.5°→-118.5° W, 50°→51.5° N). Every year ${firstYear}–${lastYear} has data, so small bars are real rather than missing. The current season is excluded until October: a part-finished year would understate itself and bend the trend lines.`}
           downloadUrl={`${API_BASE}/api/climate/seasonal?format=csv`}
           downloadName="seasonal_metrics.csv"
         />
@@ -276,7 +282,7 @@ function Chart({ data }: { data: Array<{ year: number; area_burned_ha: number | 
       </svg>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--font-data)", fontSize: 10, color: "var(--color-text-mid)", marginTop: 6 }}>
-        <span>27 years · every year shown · hover a column for the exact hectares</span>
+        <span>{data.length} complete seasons · every year shown · hover a column for the exact hectares</span>
         <span>baseline (1999–2010 mean): {Math.round(baseline).toLocaleString()} ha</span>
       </div>
 

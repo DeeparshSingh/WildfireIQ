@@ -195,3 +195,24 @@ def test_tru_carbon_flag_default_unavailable(client: TestClient) -> None:
     assert r.status_code == 200
     # We don't ship a real TRU CSV, so this must report unavailable.
     assert r.json()["data"]["available"] is False
+
+
+def test_seasonal_note_explains_a_withheld_current_year() -> None:
+    """seasonal_metrics drops the in-progress season until October. Ending the
+    series a year early with no explanation reads as missing data, so the
+    reason has to travel with the payload."""
+    from datetime import UTC, datetime
+
+    from wildfireiq_api.routers.climate import _seasonal_note
+
+    this_year = datetime.now(UTC).year
+
+    withheld = _seasonal_note([{"year": y} for y in range(1999, this_year)])
+    assert withheld is not None
+    assert str(this_year) in withheld
+    assert str(this_year - 1) in withheld
+
+    complete = _seasonal_note([{"year": y} for y in range(1999, this_year + 1)])
+    assert complete is None
+
+    assert "seasonal_metrics" in (_seasonal_note([]) or "")
