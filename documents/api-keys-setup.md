@@ -2,7 +2,7 @@
 
 WildfireIQ runs against free public data sources. Three free signups are required (and one optional) before full functionality is available.
 
-## 1. Cesium Ion (REQUIRED for Phase 0 globe)
+## 1. Cesium Ion (REQUIRED — the 3D globe)
 
 **Purpose**: 3D world terrain, OpenStreetMap buildings, Bing aerial imagery (when zoomed in).
 **Free tier**: 5 GB asset storage + 15 GB streaming/month + unlimited apps.
@@ -18,7 +18,7 @@ WildfireIQ runs against free public data sources. Three free signups are require
 
 If you don't add a token, the app still runs — the globe page just shows a friendly "Add your Cesium Ion token" panel.
 
-## 2. NASA FIRMS (REQUIRED for Phase 1+ satellite hotspots)
+## 2. NASA FIRMS (REQUIRED — satellite hotspots)
 
 **Purpose**: VIIRS / MODIS active fire detections.
 **Free tier**: 5,000 transactions per 10-minute window.
@@ -30,7 +30,7 @@ If you don't add a token, the app still runs — the globe page just shows a fri
    FIRMS_MAP_KEY=00000000000000000000000000000000
    ```
 
-## 3. WAQI / AQICN (REQUIRED for Phase 1+ AQ pollutant breakdown)
+## 3. WAQI / AQICN (REQUIRED — air-quality pollutant breakdown)
 
 **Purpose**: Cross-check for Environment Canada AQHI + per-pollutant (PM2.5/PM10/O3/NO2) split.
 **Free tier**: ~1,000 req/sec.
@@ -42,7 +42,7 @@ If you don't add a token, the app still runs — the globe page just shows a fri
    WAQI_TOKEN=your-token-here
    ```
 
-## 4. MapTiler Cloud (OPTIONAL — Phase 4)
+## 4. MapTiler Cloud (OPTIONAL — unused by the shipped build)
 
 **Purpose**: Terrain-RGB tiles for the AQ Monitor's small inset map.
 **Free tier**: 100,000 tile requests/month.
@@ -53,7 +53,7 @@ If you don't add a token, the app still runs — the globe page just shows a fri
    MAPTILER_KEY=your-key
    ```
 
-## 5. Google Earth Engine (OPTIONAL — stretch, Phase 2)
+## 5. Google Earth Engine (OPTIONAL — unused; an NDVI overlay was never built)
 
 **Purpose**: NDVI vegetation health overlay for the wildfire risk model.
 **Free tier**: Generous for non-commercial / research use.

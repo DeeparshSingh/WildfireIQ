@@ -1,5 +1,5 @@
 /**
- * Section 2 — "Hotter, drier, longer". Three stacked sparkline panels for
+ * Section 2 — "Hotter, drier air." Three stacked sparkline panels for
  * July temp, July-Aug precipitation, July-Aug VPD with Theil-Sen trend
  * lines and bootstrap-CI slope labels.
  */

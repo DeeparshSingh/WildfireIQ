@@ -59,7 +59,7 @@ The chart's shaded band is the empirical q10 → q90 interval. By construction t
 ## Ethical considerations
 - **Health-affecting predictions**: a wrong-and-confident forecast during a smoke event could discourage sensitive individuals from taking precautions. The q10/q90 band is the structural guard against this — when the model is uncertain, it shows uncertainty.
 - **Informational only**: the `/air-quality` page footer and every Health Canada guidance block reiterate that this is not clinical or regulatory guidance. Health Canada's official AQHI remains the canonical source.
-- **No PII**: there is no user-specific input to the forecast. Web Notification subscriptions are local-only (Phase 4 `NotifyMe`).
+- **No PII**: there is no user-specific input to the forecast. Web Notification subscriptions are local-only (`NotifyMe`).
 
 ## Reproducibility
 - Trainer: `apps/api/wildfireiq_api/ml/train_aq.py`. Deterministic given the input parquet (single seed, no parallel non-determinism in LightGBM at our settings).
@@ -69,6 +69,6 @@ The chart's shaded band is the empirical q10 → q90 interval. By construction t
 - Inference: `apps/api/wildfireiq_api/ml/aq_infer.py`, served at `/api/aq/forecast`.
 
 ## Limitations on cards
-- We do not currently ship ONNX exports for the 21-model bundle. Phase 7 will revisit this.
+- We do not ship ONNX exports for the 21-model bundle. The risk classifier has one because a single booster is worth the portability; twenty-one small quantile boosters are not, and LightGBM loads them in milliseconds inside the API process.
 - SHAP feature importance is not currently published — the LightGBM `model.feature_importance("gain")` values are persisted in the model artifact metadata for future use.
 - 1000-bootstrap CIs on the test MAEs are not currently rendered into a static plot. The raw test predictions are persisted; the bootstrap can be re-run from the trainer.

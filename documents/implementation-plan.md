@@ -4,7 +4,12 @@
 > **Build mode**: AI-first, agent-driven implementation in Claude Code (Sonnet 4.6 / Opus 4.7).
 > **Deployment**: Local-only during build. Web app, no cloud cost. Open source on completion.
 > **Author**: Deeparsh Singh Dang — TRU Sustainability Research Grant 2025-2026.
-> **This document is the single source of truth.** Each phase is self-contained — invoke with `go phase N` once the previous phase is verified.
+> **Status: archived.** This is the original build plan, kept for provenance:
+> it records what was scoped and in what order, not what shipped. For the
+> current state of the platform read the [README](../README.md),
+> [`architecture.md`](./architecture.md), [`logic.md`](./logic.md), and
+> [`data-dictionary.md`](./data-dictionary.md), which are maintained. Where
+> this plan and those documents disagree, those documents are right.
 
 ---
 
@@ -122,9 +127,9 @@ Optional: Google Earth Engine signup (only if Phase 2 stretch goal of NDVI overl
 | Phase | Title | Duration | Output you can demo |
 |---|---|---|---|
 | **0** | Foundation, design system, monorepo scaffold | ~1 sitting | Empty but beautifully styled shell with dark theme, design tokens, fonts loaded, FastAPI hello-world, Vite running on localhost:5173 |
-| **1** ✅ | Data ingestion + ETL pipeline | shipped | 12 ingest jobs covering BC fires (current + 1999-2025 historical = 15,996 records), ERA5 + GEM-HRDPS weather, derived FWI, ECCC GeoMet AQHI, WAQI, FireWork smoke (73-step interval-expanded), BC evac, CMIP6 projections placeholder. DuckDB + SQLite + Parquet. |
+| **1** ✅ | Data ingestion + ETL pipeline | shipped | Grew to 19 ingest jobs covering BC fires (current + province-wide 1999-2026 historical), ERA5 + GEM-HRDPS weather for four regions, derived FWI, ECCC GeoMet AQHI, WAQI, FireWork smoke (73-step interval-expanded), BC evac, CMIP6 projections placeholder. DuckDB + SQLite + Parquet. |
 | **2** ✅ | 3D Cesium globe + Wildfire Risk Map | shipped | Live 3D globe, 6 toggleable layers, glassmorphic LayerDetailModal with filterable scrollable list per layer (each row click → flyTo), LocationSearch with Cesium Ion geocoder, 4 camera presets (Globe/Region/Kamloops/TRU), live coordinate readout, ErrorBoundary, single-viewer architecture mounted at AppShell. |
-| **3** ✅ | ML model — wildfire risk classifier | shipped | LightGBM trained on 8,394 days (1999-2021), val 2022, test 2023. PR-AUC 0.66 vs FWI-threshold 0.52 (+14.8 pts). Per-cell H3 r=5 risk grid (185 hexes), CFFDRS class comparison surfaced alongside ML output. Model card published. AQ forecaster moved to Phase 4. |
+| **3** ✅ | ML model — wildfire risk classifier | shipped, later extended | LightGBM, val 2022, test 2023. Shipped single-region (Thompson-Okanagan, 185 hexes, PR-AUC 0.66); later pooled across four regions on 33,576 region-days, which raised Thompson-Okanagan to 0.72 and grew the grid to 523 hexes. CFFDRS class comparison surfaced alongside ML output. Model card published. AQ forecaster moved to Phase 4. |
 | **4** ✅ | Air Quality Monitor + 2nd ML model | shipped | **AQ forecaster**: 21 LightGBM quantile models (7 horizons × q10/q50/q90) trained on 92-day Open-Meteo CAMS hourly data + co-located weather. Beats persistence at 6+/12+/36+/48 h. **Dashboard**: AQHI dial, 48-h forecast chart with q10-q90 band, pollutant bars, AQHI stations minimap, 365-day smoke event calendar, Health Canada guidance with 3 audience tabs, AQHI threshold Web Notifications (localStorage). **Smoke time scrubber** on the globe (73 hourly timesteps from ECCC RAQDPS-FW WMS). |
 | **5** | Community Preparedness Hub | 1-2 sittings | Neighbourhood selector, dynamic FireSmart checklist, evac status widget, points + achievements (localStorage) |
 | **6** | Climate Trend Module | 1 sitting | 30-yr Thompson-Okanagan fire-season severity chart, projected temp/precip overlay, narrative annotations |

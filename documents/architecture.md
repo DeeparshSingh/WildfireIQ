@@ -25,7 +25,7 @@ apps/web/src/
 ```
 
 ### Backend (`apps/api`)
-FastAPI on Python 3.12 inside a uv workspace. APScheduler runs 16 ingest jobs on cron cadences. SQLAlchemy + aiosqlite for ops state (`ingest_runs` log). DuckDB for analytics. Parquet (zstd-compressed) for every cached upstream batch.
+FastAPI on Python 3.12 inside a uv workspace. APScheduler runs 16 recurring ingest jobs on cron cadences, alongside 3 one-shot bootstraps (19 in total). SQLAlchemy + aiosqlite for ops state (`ingest_runs` log). DuckDB for analytics. Parquet (zstd-compressed) for every cached upstream batch.
 
 Layout:
 
@@ -34,7 +34,7 @@ apps/api/wildfireiq_api/
 ├── main.py                  # FastAPI app, lifespan, middleware
 ├── settings.py              # pydantic-settings
 ├── db.py                    # SQLAlchemy engine + session_scope
-├── scheduler.py             # APScheduler + refresh_stale_jobs()
+├── scheduler.py             # APScheduler + dependency-ordered startup catch-up
 ├── ingest/                  # 16 IngestJob subclasses + registry.py
 ├── routers/                 # 1 router per domain
 ├── ml/                      # FWI port, trainers, inference, ONNX export
@@ -80,7 +80,7 @@ data/
    ↓
 10. Filter rows where status != "Out" by default
    ↓
-11. Pydantic Envelope[list] → ORJSONResponse → bytes
+11. Pydantic Envelope[list] → JSONResponse → bytes
    ↓
 12. Cache-Control: public, max-age=60   (set by the middleware)
    ↓
@@ -122,7 +122,9 @@ class FIRMSHotspotsJob(IngestJob):
         return IngestReport(...)
 ```
 
-On uvicorn startup, `refresh_stale_jobs(max_age_minutes=30)` runs any job whose last successful row in `ingest_runs` is older than 30 minutes — so a cold start gives fresh data on the first request instead of waiting for the next cron tick.
+On uvicorn startup, `refresh_stale_jobs(max_age_minutes=30)` runs any job whose last successful row in `ingest_runs` is older than 30 minutes, so a cold start gives fresh data on the first request instead of waiting for the next cron tick.
+
+Order matters there. `derived_risk_features` reads every region's weather archive and `derived_seasonal_metrics` reads the Kamloops archive; the nightly cron times are staggered to respect that (02:20 archive → 02:25 region weather → 02:30 seasonal → 02:35 risk features), but a catch-up run has no clock to lean on. So each job declares `depends_on`, `registry.dependency_waves()` groups a selection into waves, and the catch-up finishes one wave before starting the next while still running the jobs inside a wave in parallel. An unknown dependency name or a cycle raises at startup rather than silently reordering data.
 
 ---
 
@@ -142,10 +144,10 @@ ml/aq_infer.py:
             y_hat = booster.predict(X)
    3. Assemble {horizon, q10, q50, q90} into a forecast trace
    ↓
-Pydantic Envelope[list]  → ORJSONResponse
+Pydantic Envelope[list]  → JSONResponse
 ```
 
-The wildfire risk path is the same shape but reads `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib}` and produces a single regional probability per day, then multiplies it by each H3 cell's historical density.
+The wildfire risk path is the same shape but reads `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib}`. It loops the four regions in `constants.REGIONS`, scores each from its own weather archive to get one probability per region per day, then multiplies that by each of the region's H3 cells' historical density. Every cell is claimed by exactly one region, so the 523 hexagons never overlap.
 
 ---
 
@@ -158,13 +160,13 @@ The whole platform is **local-first** by design:
 - `pnpm build` produces a static `apps/web/dist/` that can be served from any static host.
 - The backend is fine on a single uvicorn process; for production we'd put it behind Caddy with HTTP/2 + gzip + brotli, and pin the parquet dir to a persistent volume.
 
-There's no Redis, no Celery, no Postgres. The Phase-1 architecture decision was explicit: single-process simplicity. Everything in `data/` is reproducible from the upstream feeds, so nothing in the repo is irreplaceable.
+There's no Redis, no Celery, no Postgres. That was an explicit early decision: single-process simplicity. Everything in `data/` is reproducible from the upstream feeds, so nothing in the repo is irreplaceable.
 
 ---
 
 ## What we deliberately did *not* build
 
-- A user accounts system. Phase 5's preparedness hub is local-first (`localStorage` + IndexedDB) on purpose — no PII ever touches the backend.
+- A user accounts system. The preparedness hub is local-first (`localStorage` + IndexedDB) on purpose — no PII ever touches the backend.
 - A separate microservice for ML inference. LightGBM is small; running inference inside the FastAPI process is fine and avoids cross-service serialisation.
 - A custom tile server. Cesium Ion's free tier covers terrain + imagery; recreating that would burn the grant budget for no user-facing win.
 - A Postgres / PostGIS layer. DuckDB queries the parquets directly and is fast enough at our scale.

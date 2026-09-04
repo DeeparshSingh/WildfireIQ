@@ -16,7 +16,7 @@ This doc is what you read when someone asks "how does X actually work?"
 
 ---
 
-## Phase 0 · Foundation
+## Foundation
 
 Not a feature layer — the cinematic intro, AppShell, fonts, design tokens,
 camera presets, location search, and the 3D Cesium globe itself.
@@ -28,14 +28,14 @@ camera presets, location search, and the 3D Cesium globe itself.
 
 ---
 
-## Phase 1 · Live data layers
+## Live data layers
 
 All layers refresh on a TanStack Query interval the layer's logic justifies
 (15 min for current fires, 30 min for FIRMS, hourly for AQ, etc.).
 
 ---
 
-### 1.1 · Active Fires (BC Wildfire Service)
+### Active Fires (BC Wildfire Service)
 
 **What user sees on globe**: Flame-shaped billboards over fire locations; for
 fires with mapped perimeters, a translucent ember-orange polygon outline of
@@ -66,7 +66,7 @@ verbatim re-render of the BCWS feed.
 
 ---
 
-### 1.2 · Satellite Hotspots (NASA FIRMS)
+### Satellite Hotspots (NASA FIRMS)
 
 **What user sees**: Coloured dots scaled by Fire Radiative Power (FRP) — pale
 yellow for low-energy hotspots, ember-red for high-energy. Each dot represents
@@ -94,7 +94,7 @@ Confidence < 30 is filtered out (likely false positives). Even at confidence
 
 ---
 
-### 1.3 · Evacuation Zones (BC Emergency Management)
+### Evacuation Zones (BC Emergency Management)
 
 **What user sees**: Polygons coloured by status — solid extreme-red for
 Evacuation Order, dashed amber for Alert, faint sage for Rescind.
@@ -112,7 +112,7 @@ Evacuation Order, dashed amber for Alert, faint sage for Rescind.
 4. Saved to `data/processed/evac_active.parquet` (overwrite — current
    snapshot only).
 5. Backend `/api/evac/check?lat=&lon=` does point-in-polygon (Shapely) so
-   the Phase 5 preparedness hub can answer "is my address in an evac zone?"
+   the preparedness hub can answer "is my address in an evac zone?"
 
 **Visual encoding logic**:
 - Order: `--risk-extreme` fill 32% + 2.5 px solid stroke.
@@ -125,7 +125,7 @@ and logs which one it successfully hit.
 
 ---
 
-### 1.4 · Fire Weather Index (CWFIS)
+### Fire Weather Index (CWFIS)
 
 **What user sees** (when CWFIS upstream is alive): Billboard circles at FWI
 stations across BC, coloured by FWI value (sage / amber / orange / red /
@@ -158,9 +158,9 @@ stations.
 
 ---
 
-### 1.5 · Air Quality Realtime (ECCC GeoMet + WAQI)
+### Air Quality Realtime (ECCC GeoMet + WAQI)
 
-**What user sees** (Phase 4 surfaces the full dashboard): Stations within
+**What user sees** (the `/air-quality` dashboard surfaces the full picture): Stations within
 100 km of Kamloops with their current AQHI value 1-10+.
 
 **Source**:
@@ -180,7 +180,7 @@ individual pollutant concentrations. WAQI fills that gap.
 
 ---
 
-### 1.6 · Smoke Forecast (ECCC FireWork RAQDPS-FW)
+### Smoke Forecast (ECCC FireWork RAQDPS-FW)
 
 **What user sees**: Translucent PM2.5 plume overlay on the globe.
 
@@ -194,7 +194,7 @@ our job auto-discovers from GetCapabilities).
 2. Frontend uses the first available timestep as a
    `SingleTileImageryProvider` on the Cesium globe (alpha 0.55).
 
-**Time scrubber** (built in Phase 4): the Smoke Forecast LayerDetailModal
+**Time scrubber**: the Smoke Forecast LayerDetailModal
 exposes a range slider + prev/next chips + a scrollable list of every
 forecast timestep (~73 hourly steps over 3 days after we fixed the ISO-8601
 interval parser to expand `start/end/period` properly). Clicking a
@@ -207,7 +207,7 @@ transparent pixels when PM2.5 is low — which makes the layer look "broken"
 to a user who can't see the value being rendered. To fix this without
 needing a WMS GetFeatureInfo call (slow + flaky), the
 `smoke_forecast_metadata` endpoint joins each smoke timestep to our
-existing Open-Meteo CAMS hourly forecast (Phase 4) by floor-to-hour on
+existing Open-Meteo CAMS hourly forecast by floor-to-hour on
 `time_utc`. Every timestep now carries `pm25_at_kamloops` (µg/m³), which
 the modal displays as a colour-graded badge per row (sage < 12 →
 amber 12-35 → orange 35-55 → red 55-150 → magenta > 150, matching US-EPA
@@ -216,7 +216,7 @@ AQI breakpoints). This makes the layer self-evidently useful even on
 
 ---
 
-## Phase 2 · Globe UI
+## Globe UI
 
 Layer system architecture only — not new data. The viewer mounts once at
 AppShell level, layers gate on `dataGateOpen` (set true after intro
@@ -225,40 +225,87 @@ results and what the Cesium layers render.
 
 ---
 
-## Phase 3 · AI Risk Grid (the wildfire risk classifier)
+## AI risk grid (the wildfire risk classifier)
 
 **The most consequential layer**, hence the most detailed explanation.
 
 ### What user sees
-185 H3 r=5 hexagons (~250 km² each) covering the Thompson-Okanagan, each
+523 H3 r=5 hexagons (~250 km² each) across four modelled regions, each
 coloured **Low** (sage), **Moderate** (amber), **High** (orange), or
-**Extreme** (red). Click a hex → P(cell), P(region today), historical
-fire count, model attribution.
+**Extreme** (red). A selector card in the layer modal turns regions on and
+off individually or all at once. Click a hex → P(cell), P(region today),
+historical fire count, that region's CFFDRS class, model attribution.
+
+| Region | Anchor city (weather) | Cells |
+|---|---|---:|
+| Thompson-Okanagan | Kamloops | 185 |
+| Prince George (Cariboo) | Prince George | 166 |
+| Lower Mainland | Vancouver | 87 |
+| Central Okanagan | Kelowna | 85 |
+
+The region list lives in `constants.REGIONS` and is the single source of
+truth: the weather job, the feature builder, inference, and the tests all
+read it, so adding a fifth region is a config change plus one archive
+download.
 
 ### What the model is actually predicting
 > "What is the probability that **at least one wildfire ignites somewhere
-> in the Thompson-Okanagan region today**, given today's weather, today's
-> Fire Weather Index codes, and the recent drought trajectory?"
+> in this region today**, given that region's weather, its Fire Weather
+> Index codes, its recent drought trajectory, and its long-run fire-day
+> rate?"
 
-It is **not** a per-cell ignition probability. That regional probability
-is multiplied by each H3 cell's sqrt-normalised historical fire-day count
-to produce the per-cell display.
+It is **not** a per-cell ignition probability. Each region's probability is
+multiplied by each of its H3 cells' sqrt-normalised historical fire-day
+count to produce the per-cell display.
+
+### One model, four regions
+A single LightGBM classifier is trained on all four regions pooled
+together (33,576 region-days), not four separate models. Two reasons:
+
+1. **More evidence for the same physics.** How dryness turns into ignition
+   risk is the same relationship everywhere; pooling gives the model four
+   times the examples of it. Pooling raised held-out 2023 PR-AUC in the
+   Thompson-Okanagan from 0.66 (single-region) to 0.72, so this is not a
+   trade of accuracy for coverage.
+2. **A base-rate feature keeps regions distinct.** `region_fire_rate` is
+   each region's fire-day frequency over 1999-2021 only. Without it the
+   model would score wet coastal Vancouver as if it were the dry Interior.
+   It computes from training years alone, so no future information leaks
+   backwards.
 
 ### Why not per-cell weather?
-We only have one weather time-series (Kamloops, Open-Meteo ERA5 archive).
-BC has ~250 weather stations and BCWS interpolates between them. We don't
-yet ingest that station network. Until we do, all cells see the same
-weather → per-cell variation is purely historical fire density.
+Each region reads its own ERA5 series at its anchor city, but *within* a
+region all cells still see the same weather. BC has ~250 weather stations
+and BCWS interpolates between them; we don't ingest that station network.
+Until we do, per-cell variation inside a region is purely historical fire
+density.
+
+### Cells belong to exactly one region
+Region bounding boxes touch (Thompson-Okanagan and Central Okanagan share
+an edge at 50.0 °N). The feature builder walks `REGIONS` in order and the
+first region to claim an H3 cell keeps it, so no hexagon is ever drawn
+twice with two different colours. `test_risk_regions.py` asserts zero
+duplicates in `cell_density.parquet`.
+
+### The region badge matches the map
+A region's headline class is **the highest class covering at least 15% of
+its cells** (`risk_infer._region_risk_level`), not the CFFDRS class derived
+from its raw FWI. Those two disagree: Vancouver's FWI of 25.6 is above the
+CFFDRS Extreme threshold of 21, yet almost all its hexagons render Low or
+Moderate because its historical density is small. Deriving the badge from
+the rendered cells keeps the card from contradicting the map.
 
 ### Honest interpretation
-- A cell flagged **Extreme** today means: "regional fire-day probability
-  is high, AND this cell has historically been in the top tier of
-  fire-prone places when the region is active."
-- A cell flagged **Low** can still burn. Especially in cells with no
-  recent history but ample fuel.
-- All cells flagged "Extreme" on a given day are at roughly the same
-  hazard rank; the relative ordering among them comes from historical
-  density, not today's local weather.
+- A cell flagged **Extreme** today means: "this region's fire-day
+  probability is high, AND this cell has historically been in the top tier
+  of fire-prone places when the region is active."
+- A cell flagged **Low** can still burn, especially where there is ample
+  fuel but no recent history.
+- Within a region, the relative ordering among same-class cells comes from
+  historical density, not today's local weather.
+- The Lower Mainland is a genuinely low-event area: 35 fire-days in the
+  2023 test year against Thompson-Okanagan's 106. That is why it reads Low
+  and also why it is the hardest region to score.
 
 ### Comparison to BC Wildfire Service's official Fire Danger Rating
 BCWS uses the **Canadian Forest Fire Danger Rating System (CFFDRS)** — a
@@ -275,54 +322,72 @@ per weather station. Their daily Fire Danger classes are pinned to FWI:
 
 **We surface this CFFDRS class alongside the ML prediction** so users see
 both the canonical metric and the model's refinement (see
-`risk_infer.py::cffdrs_class_for`). The ML adds value (PR-AUC 0.66 vs
-FWI-threshold 0.52 → +14.8 points on held-out 2023) by capturing
-non-linear interactions FWI alone misses.
+`risk_infer.py::cffdrs_class_for`). The ML adds value by capturing
+non-linear interactions FWI alone misses: on held-out 2023 it beats the
+FWI-threshold baseline in three of four regions, by 35 points in the
+Thompson-Okanagan.
 
 ### Pipeline
 
-1. **Historical fires** (`fires_historical.parquet`): 15,996 BC incidents
-   1999-2025 from DataBC bulk WFS. Restricted to Thompson-Okanagan bbox
-   at label time.
-2. **Historical weather** (`weather_kamloops_archive_daily.parquet`): 9,992
-   daily rows from Open-Meteo ERA5 archive at Kamloops centroid.
-3. **Derived FWI** (`wildfireiq_api/ml/fwi.py`): Van Wagner equations port.
-   Inputs: temp_max, RH_min, wind_max, precip. Outputs: FFMC, DMC, DC,
-   ISI, BUI, FWI, DSR. Carryover values reset Dec-Mar (winter pattern).
-4. **Features** (`wildfireiq_api/ml/features.py`): 40 features per day —
-   current weather, 7 FWI codes, 1d/7d lags, 7d/30d rolls, drought
-   signal, calendar (DOY sin/cos, month).
-5. **Cell density**: For each fire 1999-2025, assign H3 r=5 cell. Count
-   per cell → sqrt-normalise → weight in [0, 1].
+1. **Historical fires** (`fires_historical.parquet`): 96,356 BC incidents
+   1999-2026 from DataBC bulk WFS, province-wide. Each region filters to
+   its own bbox at label time. The download was always province-wide, so
+   widening from one region to four cost nothing extra upstream.
+2. **Historical weather**: one ERA5 archive per region
+   (`weather_{kamloops,kelowna,vancouver,prince_george}_archive_daily.parquet`),
+   ~10,100 daily rows each from 1999-01-01, with a spliced 15-day forecast
+   tail so today always has a value. ERA5 itself lags about five days.
+3. **Derived FWI** (`wildfireiq_api/ml/fwi.py`): Van Wagner equations port,
+   run per region. Inputs: temp_max, RH_min, wind_max, precip. Outputs:
+   FFMC, DMC, DC, ISI, BUI, FWI, DSR. Carryover values reset Dec-Mar.
+4. **Features** (`wildfireiq_api/ml/features.py`): 42 features per
+   region-day — current weather, 7 FWI codes, 1d/7d lags, 7d/30d rolls,
+   drought signal, calendar (DOY sin/cos, month), and `region_fire_rate`.
+   40,368 rows total.
+5. **Cell density**: assign every fire an H3 r=5 cell, count per cell,
+   sqrt-normalise within its region → weight in [0, 1].
 6. **Train** (`wildfireiq_api/ml/train_risk.py`): LightGBM binary,
-   train 1999-2021, val 2022, test 2023. Isotonic calibration on val.
-7. **Inference** (`wildfireiq_api/ml/risk_infer.py`): Per request, predict
-   P(fire-day) using yesterday's weather state. Multiply by each cell's
-   weight. Bucket.
+   train 1999-2021, val 2022, test 2023, all regions pooled. Isotonic
+   calibration fitted on val.
+7. **Inference** (`wildfireiq_api/ml/risk_infer.py`): per request, predict
+   P(fire-day) per region from that region's latest weather state.
+   Multiply by each cell's weight. Bucket.
 
 ### Held-out 2023 metrics
 
-| | Our model | FWI threshold | Climatology |
-|---|---|---|---|
-| PR-AUC | **0.663** | 0.515 | 0.290 |
-| ROC-AUC | **0.870** | — | — |
-| Brier | **0.136** | — | — |
+Reported per region rather than as one pooled average, so pooling cannot
+hide a regression in a single area.
+
+| Region | Fire-days | Base rate | PR-AUC | FWI threshold |
+|---|---:|---:|---:|---:|
+| Thompson-Okanagan | 106 | 0.29 | **0.72** | 0.37 |
+| Prince George | 67 | 0.18 | **0.61** | 0.37 |
+| Central Okanagan | 64 | 0.18 | **0.51** | 0.37 |
+| Lower Mainland | 35 | 0.10 | 0.29 | 0.37 |
+
+Pooled across all four regions: PR-AUC 0.58 raw, ROC-AUC 0.87, Brier
+0.108. Climatology baseline 0.19. Note that isotonic calibration lowers
+pooled PR-AUC slightly (0.58 → 0.55) while leaving Brier unchanged: it
+trades a little ranking sharpness for probabilities that mean what they
+say, which is the right trade for a colour scale.
 
 ### Top features (by gain importance)
-1. FFMC (fine fuel moisture)
-2. DC (drought code, long-term drying)
-3. DMC (duff moisture)
-4. FWI (composite)
-5. dry_spell_days
-6. VPD max
-7. temp_max_c
-8. BUI
-9. DOY cos (seasonality)
-10. precip_sum30
+1. DMC (duff moisture, medium-term drying)
+2. BUI (buildup index)
+3. VPD 7-day mean
+4. Reference evapotranspiration (et0)
+5. Wind 30-day mean
+6. DOY cos (seasonality)
+7. `region_fire_rate`
+8. Temp 7-day mean
+9. VPD 30-day mean
+10. RH 7-day mean
 
-Exactly the wildfire-science textbook ranking — good sanity check.
+Moisture and drying dominate, seasonality follows, and the base-rate term
+lands seventh — exactly where it should: informative about which region
+you are in, not a shortcut that lets the model ignore the weather.
 
-### Bucket thresholds (Phase 3 cell-risk score `p_cell = p_region × weight`)
+### Bucket thresholds (cell-risk score `p_cell = p_region × weight`)
 
 | p_cell | Class |
 |---|---|
@@ -337,11 +402,13 @@ shown separately in the cell detail panel.
 
 ### Limitations (also enumerated in the model card)
 
-1. Single Kamloops weather station for the whole region.
+1. One weather series per region, not per cell.
 2. No NDVI / fuel-state per cell.
 3. No lightning data (the dominant natural ignition source).
 4. No human-ignition proxy (population, road density, long-weekends).
 5. Static historical weights — not climate-change adjusted.
+6. Lower Mainland performance is below its own FWI baseline; disclosed in
+   the UI and the model card rather than averaged away.
 
 ### Anti-uses
 - **Do not** use this for evacuation decisions or operational firefighting.
@@ -350,12 +417,12 @@ shown separately in the cell detail panel.
 
 ---
 
-## Phase 4 · Air Quality Monitor
+## Air quality monitor
 
 A dedicated `/air-quality` route plus the proposal's second ML model:
 a 48-hour PM2.5 forecaster with quantile uncertainty bands.
 
-### 4.1 · AQ archive ingest (Open-Meteo CAMS)
+### AQ archive ingest (Open-Meteo CAMS)
 
 **Source**: `air-quality-api.open-meteo.com/v1/air-quality` — hourly
 pollutant concentrations from CAMS European reanalysis + forecast.
@@ -376,7 +443,7 @@ weather in one API call, free, no signup. The BC Archive would give longer
 history but requires FTP + per-station joins. CAMS gets a working
 forecaster shipping today; the BC Archive can extend history later.
 
-### 4.2 · 48-hour PM2.5 forecaster (`aq_forecaster_v1`)
+### 48-hour PM2.5 forecaster (`aq_forecaster_v1`)
 
 **Model**: 21 LightGBM quantile regressors — 7 horizons × 3 quantiles.
 - Horizons: +1, +3, +6, +12, +24, +36, +48 hours
@@ -426,7 +493,7 @@ contexts PM2.5 dominates by an order of magnitude.
 - `data/models/aq_forecaster_v1/h{1,3,6,12,24,36,48}/q{10,50,90}.txt` — boosters
 - `data/models/aq_forecaster_v1/metrics.json` — per-horizon MAE + pinball
 
-### 4.3 · `/air-quality` dashboard route
+### The `/air-quality` dashboard route
 
 **Components** (all under `apps/web/src/features/air-quality/`):
 
@@ -449,8 +516,10 @@ contexts PM2.5 dominates by an order of magnitude.
    stations to Kamloops, projected via local equirectangular math. Three
    concentric range rings, markers sized by AQHI value, coloured by band.
    Not a real basemap — a purpose-built compact panel that shows *which*
-   stations are reporting and how far away. (MapLibre-based version may
-   land in Phase 7 polish if needed.)
+   stations are reporting and how far away. A MapLibre-based version was
+   considered and rejected: a full basemap adds a dependency and a tile
+   budget for a panel whose only job is to answer "how far away is that
+   reading?".
 7. **`NotifyMe`** — Web Notification subscription with AQHI threshold
    slider (4-10). Subscription state lives entirely in `localStorage`;
    when current AQHI ≥ threshold and ≥ 60 minutes since last alert, fires
@@ -482,12 +551,12 @@ WAQI/AQICN (pollutant split) · Health Canada (AQHI bands).
   (e.g., first major smoke event of summer) may degrade accuracy until
   fresh data is ingested.
 - PM2.5-only AQHI approximation — see above.
-- Forecast is for Kamloops centroid only. Multi-point AQ forecasting
-  (per neighbourhood) deferred to Phase 5+.
+- Forecast is for Kamloops centroid only. Per-neighbourhood AQ forecasting
+  would need a station network we do not ingest.
 
 ---
 
-## Phase 5 · Community Preparedness Hub ✅
+## Community preparedness hub
 
 Local-storage + IndexedDB only — no accounts, no PII ever leaves the device.
 Lives at `/preparedness`.
@@ -571,7 +640,7 @@ notification when evac status transitions to Alert or Order. Rate-
 limited by `lastEvacStatus` in progress state so we don't re-notify on
 every poll.
 
-**Backend (Phase 5 endpoints)**
+**Backend endpoints**
 
 - `GET /api/firesmart/checklist?dwelling=&season=&situation=` — the 30
   curated actions, dwelling-gated, situation-gated, season-ordered.
@@ -584,7 +653,7 @@ every poll.
 - `POST /api/firesmart/score` — stateless oracle returning points,
   totals, and the earned-badge list given a completed-ids array, photo
   count, streak, and flags.
-- `GET /api/evac/check?lat=&lon=` — Phase 1 endpoint, Shapely
+- `GET /api/evac/check?lat=&lon=` — Shapely
   point-in-polygon over the live BC EMCR feature collection.
 
 **Privacy contract**
@@ -617,7 +686,7 @@ every poll.
 
 ---
 
-## Phase 6 · Climate Trend Module ✅
+## Climate trend module
 
 A six-section scrollytelling page at `/climate` that tells the story of
 how the Thompson-Okanagan's fire seasons have changed and where they're
@@ -641,33 +710,39 @@ Built by `wildfireiq_api.ml.seasonal_metrics.build()` (run nightly at
   `ml/fwi.py`): max July-Aug FWI, count of days with FWI ≥ 19 (the
   CFFDRS extreme threshold).
 
-**Section 1 — Three decades of fire.** Visx bar chart of annual area
+**Section 1 — "Three decades of fire."** Visx bar chart of annual area
 burned (Thompson-Okanagan BBOX). 1999-2010 baseline mean drawn as a
-dashed reference line. Five landmark seasons (2003 Okanagan Mountain,
-2017 Elephant Hill, 2018, 2021 Lytton, 2023) get amber highlight bars +
+dashed reference line. Five landmark seasons (2003 McLure/Barriere, 2017
+Elephant Hill, 2018, 2021 Lytton, 2023) get amber highlight bars +
 annotation cards below the chart with the area burned and a one-line
-context.
+context. The 2003 annotation names McLure/Barriere rather than the
+better-known Okanagan Mountain Park fire, because the latter sits at
+49.65 °N, south of the Thompson-Okanagan bbox, and so contributes nothing
+to the bar being annotated.
 
-**Section 2 — Hotter, drier, longer.** Three sparkline panels for mean
+**Section 2 — "Hotter, drier air."** Three sparkline panels for mean
 July daily-max temp, July-Aug precipitation, July-Aug VPD. Each carries
 a Theil-Sen trend line (robust median slope, 1000-bootstrap 95% CI)
 plus a slope label like "+4.75 °C since 1999 · CI 0.063 → 0.320
 °C/yr". Slope and CI come from `/api/climate/trends`.
 
-**Section 3 — Fire season starts earlier and ends later.** One
-horizontal bar per year from first-ignition DOY to last-ignition DOY.
-Bar colour scales with sqrt(area_burned / max_area), bucketed sage →
-amber → ember → red. Month gridlines + a legend below.
+**Section 3 — "The shape of a fire season."** One horizontal bar per year
+from first-ignition DOY to last-ignition DOY. Bar colour scales with
+sqrt(area_burned / max_area), bucketed sage → amber → ember → red. Month
+gridlines + a legend below. The title deliberately avoids claiming the
+season starts earlier and ends later: the start-DOY trend CI crosses zero
+and the end DOY trends *earlier* at −1.32 days/yr, so the section shows
+the shape and lets the reader see it.
 
-**Section 4 — What's coming.** CMIP6 ensemble projections to 2100 under
+**Section 4 — "What's coming."** CMIP6 ensemble projections to 2100 under
 SSP1-2.6 / SSP2-4.5 / SSP5-8.5. Variable picker (tasmean / tasmax /
 pr). Each scenario drawn as a q10–q90 shaded band plus the q50 line,
 with a segmented control to toggle scenarios on/off. Observed historical
-overlay in off-white. Currently backed by the Phase 1 synthetic CMIP6
+overlay in off-white. Currently backed by the synthetic CMIP6
 placeholder — drop-in replace with the real ensemble is a single
 parquet swap (no code change).
 
-**Section 5 — What this means for fire weather.** Decade-by-decade
+**Section 5 — "What this means for fire weather."** Decade-by-decade
 projection of `days FWI ≥ 19`. Fits historical `days_fwi_ge_19 ~
 mean_july_temp` linearly, evaluates on each scenario's per-decade July
 temperature (observed pre-2020; baseline + scaled ΔT thereafter, with
@@ -699,7 +774,7 @@ four-page research-artifact PDF.
 
 **Caveats**
 
-- The CMIP6 ensemble shipped in Phase 1 is a structurally-correct
+- The shipped CMIP6 ensemble is a structurally-correct
   synthetic placeholder, not the real ClimateData.ca download. Section 4
   + 5 trend shapes are illustrative; the slope is wired correctly but
   the absolute values move when the real ensemble is dropped in.
@@ -710,9 +785,17 @@ four-page research-artifact PDF.
 
 ---
 
-## Phase 7 · Polish (planned)
+## Engineering polish
 
-Performance, accessibility, OSS release, demo recording.
+- **Frontend**: every non-globe route is code-split behind `React.lazy`;
+  the Cesium viewer mounts once at AppShell level and is never remounted.
+- **Backend**: `Cache-Control` middleware per endpoint class, DuckDB warmed
+  at startup, model and density files held in `lru_cache`.
+- **Startup catch-up**: any recurring source older than 30 minutes is
+  re-run at boot, in dependency-wave order so a derived job never reads an
+  input that is still being rebuilt (`scheduler.refresh_stale_jobs`).
+- **Tests**: 68 backend (pytest) and 22 frontend (Vitest), plus ruff lint
+  and format checks and a `tsc --noEmit` typecheck, all wired to `make`.
 
 ---
 
@@ -761,7 +844,7 @@ without waiting for the next cron tick.
 
 | Endpoint | What it does | Recompute trigger | Frontend polling |
 |---|---|---|---|
-| `/api/risk/grid` | LightGBM wildfire risk classifier → 185 H3 r=5 cells | each request (cached via `lru_cache` for model + density file; features re-derived per call from `weather_kamloops_archive_daily.parquet`) | every 30 min |
+| `/api/risk/grid` | LightGBM wildfire risk classifier → 523 H3 r=5 cells across four regions | each request (cached via `lru_cache` for model + density file; features re-derived per call from each region's weather archive) | every 30 min |
 | `/api/aq/forecast` | LightGBM quantile forecaster → 7 horizons × q10/q50/q90 | each request (model cached; features built from latest `aq_hourly_kamloops.parquet` row) | every 10 min |
 | `/api/aq/calendar` | Daily PM2.5/AQHI aggregation | each request (just a groupby over the archive parquet) | every 60 min |
 | `/api/evac/check?lat=&lon=` | Point-in-polygon over `evac_active.parquet` | each request | — (on-demand) |
@@ -770,11 +853,12 @@ without waiting for the next cron tick.
 
 | Job | Rows | Notes |
 |---|---|---|
-| `databc_fires_historical` | 15,996 incidents (1999-2025) | Spine of the wildfire risk model. Re-run annually. |
-| `open_meteo_archive_kamloops` | 9,992 daily rows (ERA5 1999-today) | Re-run nightly via scheduler tick to extend the trail. |
+| `databc_fires_historical` | 96,356 incidents, province-wide (1999-2026) | Spine of the wildfire risk model. Re-run annually. |
+| `open_meteo_archive_kamloops` | ~10,100 daily rows (ERA5 1999-today + 15-day forecast tail) | Re-run nightly via scheduler tick to extend the trail. |
+| `derived_region_weather` | ~10,100 daily rows × 3 regions (Kelowna, Vancouver, Prince George) | Same shape as the Kamloops archive; feeds the pooled risk model. |
 | `eccc_climate_kamloops` | ECCC bulk CSVs | Same as above. |
 | `open_meteo_aq_archive` | 2,208 hourly rows (CAMS 92-day) | Re-run hourly via the recurring CAMS job. |
-| `climatedata_projections` | 728 synthetic CMIP6 rows | Static; Phase 6 replaces with real CMIP6. |
+| `climatedata_projections` | 728 synthetic CMIP6 rows | Static placeholder; a real CMIP6 pull is a drop-in parquet replace. |
 
 ### Static (never refresh)
 
@@ -806,8 +890,8 @@ without waiting for the next cron tick.
 
 ## Handoff state (current)
 
-All seven phases are implemented. Notable items finalised during the
-polish/handoff pass:
+Every planned feature is implemented. Notable items finalised during the
+polish and audit passes:
 
 - **Always-fresh launch.** On startup the backend refreshes any source
   older than 30 minutes, so fires, hotspots, evac, FWI, smoke, AQHI, the
@@ -816,14 +900,24 @@ polish/handoff pass:
   the recent observed tail from the forecast endpoint, so the daily
   weather series reaches today and the risk grid is computed on today's
   weather (previously it could lag ~18 days).
+- **Multi-region risk grid.** One pooled LightGBM model scores four regions
+  from four ERA5 archives; a `region_fire_rate` prior keeps their base
+  rates distinct, and every H3 cell is claimed by exactly one region.
+  Pooling raised Thompson-Okanagan held-out 2023 PR-AUC from 0.66 to 0.72.
+- **Ordered pipeline.** Jobs declare `depends_on`; the startup catch-up
+  runs them in dependency waves so `derived_risk_features` can never read
+  a region weather archive that is still being rebuilt.
 - **Smoke calendar.** The AQ archive pulls a true rolling 365 days via
   `start_date`/`end_date` (CAMS), so the calendar fills the full year.
 - **FWI stations.** The multi-station pull caps concurrency and retries on
   HTTP 429, so all 18 BC stations populate reliably.
 - **Province-wide coverage.** Active fires, hotspots, evacuation zones,
   FWI stations, AQHI, and the smoke overlay all cover BC. Historical fires
-  and the AI risk grid remain scoped to the Thompson-Okanagan by design
-  (the risk model uses one regional weather signal — a documented limit).
+  are ingested province-wide. The AI risk grid covers four modelled regions
+  (Thompson-Okanagan, Central Okanagan, Lower Mainland, Prince George) with
+  a per-city selector; the climate-trend module stays Thompson-Okanagan
+  only. Within a region the risk model uses one weather signal, which is a
+  documented limit.
 - **Globe panels.** Active-fire and evacuation lists sort newest-first;
   evac has a "hide past" control that removes rescinded zones from both
   the list and the map.
@@ -841,4 +935,4 @@ polish/handoff pass:
 
 ---
 
-*Reflects all phases through handoff. Documentation index is in the project README.*
+*Current as of the September 2026 audit. Documentation index is in the project README.*

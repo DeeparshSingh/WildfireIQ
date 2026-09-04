@@ -1,7 +1,9 @@
 /**
- * Section 3 — "Fire season starts earlier and ends later." A horizontal bar
- * per year from first-ignition DOY to last-ignition DOY, coloured by total
- * area burned.
+ * Section 3 — "The shape of a fire season." A horizontal bar per year from
+ * first-ignition DOY to last-ignition DOY, coloured by total area burned.
+ * Deliberately not titled "starts earlier and ends later": the start-DOY
+ * trend CI crosses zero and the end DOY actually trends earlier, so the
+ * chart shows the shape rather than claiming a direction.
  */
 import { useClimateRibbon } from "@/lib/api/hooks";
 

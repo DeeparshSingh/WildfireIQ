@@ -29,7 +29,7 @@ Active and recently-closed BC fires from the DataBC live feed.
 
 ## `fires_historical.parquet`
 
-Bulk historical BC fire incidents 1999–today (15,996 rows).
+Bulk historical BC fire incidents, province-wide, 1999–today (96,356 rows). Downloaded for all of BC because the risk model now covers four regions; downstream consumers each re-filter to their own bounding box.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -50,7 +50,7 @@ Bulk historical BC fire incidents 1999–today (15,996 rows).
 
 ## `fires_unified.parquet`
 
-Concatenation of `fires_historical` + `fires_current` with dedupe (any fire_id appearing in both keeps the live row). 16,091 rows total.
+Concatenation of `fires_historical` + `fires_current` with dedupe (any fire_id appearing in both keeps the live row). 96,039 rows total.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -108,7 +108,7 @@ Open-Meteo daily forecast (~10 rows ahead) plus the trailing observed days.
 
 ## `weather_kamloops_archive_daily.parquet`
 
-Open-Meteo ERA5 reanalysis archive for Kamloops, **1999-01-01 → today**. 9,992 rows.
+Open-Meteo ERA5 reanalysis archive for Kamloops, **1999-01-01 → today**, with a spliced 15-day forecast tail so the risk model always has a value for today. ~10,100 rows.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -116,6 +116,22 @@ Open-Meteo ERA5 reanalysis archive for Kamloops, **1999-01-01 → today**. 9,992
 | `vpd_max_kpa` | float | derived vapour pressure deficit |
 
 **Producer**: `open_meteo_kamloops` + bootstrap `open_meteo_archive_kamloops`. **Consumer**: `/api/weather/*`, `ml.train_risk`, `ml.seasonal_metrics`, `ml.fwi.compute_fwi`.
+
+---
+
+## `weather_{kelowna,vancouver,prince_george}_archive_daily.parquet`
+
+One file per non-Kamloops modelled region, same schema and same date span as
+the Kamloops archive above (~10,100 rows each, 1999-01-01 → today). Sampled at
+each region's anchor city from `constants.REGIONS`, which is the single source
+of truth for the region list. Kamloops keeps its own filename for historical
+reasons; the other three follow this pattern.
+
+| Column | Type | Notes |
+|---|---|---|
+| `day_local`, `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm`, `vpd_max_kpa` | as `weather_kamloops_archive_daily` | identical schema, so one feature builder handles every region |
+
+**Producer**: `derived_region_weather` (cron `25 2 * * *`). **Consumer**: `ml.features.build_features`, `ml.risk_infer.predict_grid`.
 
 ---
 
@@ -211,7 +227,7 @@ Active BC Emergency Management evacuation orders, alerts, rescinds.
 
 ## `climate_projections.parquet`
 
-CMIP6 ensemble projections — observed + ssp126 / ssp245 / ssp585. **Phase 1 ships a structurally-correct synthetic placeholder; the real ClimateData.ca pull is a drop-in parquet replace.**
+CMIP6 ensemble projections — observed + ssp126 / ssp245 / ssp585. **Ships a structurally-correct synthetic placeholder; the real ClimateData.ca pull is a drop-in parquet replace, and the UI says so where it matters.**
 
 | Column | Type | Notes |
 |---|---|---|
@@ -227,7 +243,7 @@ CMIP6 ensemble projections — observed + ssp126 / ssp245 / ssp585. **Phase 1 sh
 
 ## `seasonal_metrics.parquet`
 
-Per-year joined fire + climate metrics for the Thompson-Okanagan, 1999 → today (27 rows). The headline derived dataset for Phase 6.
+Per-year joined fire + climate metrics for the Thompson-Okanagan, 1999 → today (27 rows). The headline derived dataset behind the climate-trend module. Scoped to the Thompson-Okanagan even though `fires_historical` is province-wide: this job re-filters by the TO bounding box.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -246,19 +262,41 @@ Per-year joined fire + climate metrics for the Thompson-Okanagan, 1999 → today
 
 ## `features_risk_daily.parquet`
 
-Per-day, per-cell feature matrix for the wildfire risk classifier. Built during training and re-used at serving time.
+Per-region, per-day feature matrix for the wildfire risk classifier. 40,368 rows
+(4 regions × ~10,100 days) × 47 columns, of which 42 are model features. Built
+by the nightly job and re-used unchanged at serving time, so training and
+inference can never disagree about how a feature is computed.
 
-(Schema documented in `apps/api/wildfireiq_api/ml/features.py`.)
+| Column group | Count | Notes |
+|---|---:|---|
+| `day_local`, `region` | 2 | row key; `region` matches a `constants.REGIONS` key |
+| Raw daily weather (`temp_max_c` … `vpd_max_kpa`) | 8 | from that region's own archive |
+| Van Wagner FWI codes (`ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr`) | 7 | computed per region |
+| Lags and rolling means (`_lag1`, `_lag7`, `_mean7`, `_mean30`) | 20 | over the five headline weather variables |
+| Drought and calendar (`precip_sum7`, `precip_sum30`, `dry_spell_days`, `doy_sin`, `doy_cos`, `month`, `year`) | 7 | |
+| `region_fire_rate` | 1 | that region's long-run fire-day rate, computed from 1999–2021 only so no future information leaks backwards |
+| `n_fires`, `had_fire` | 2 | labels; `had_fire` is the training target |
+
+**Producer**: `derived_risk_features` (cron `35 2 * * *`). **Consumer**: `ml.train_risk`, `ml.risk_infer.predict_grid`.
+
+---
 
 ## `cell_density.parquet`
 
-Historical fire-day density per H3 r=5 cell — multiplied against the regional probability to produce the per-cell risk grid.
+Historical fire density per H3 r=5 cell, multiplied against its region's
+probability to produce the per-cell risk grid. 523 rows: Thompson-Okanagan 185,
+Prince George 166, Lower Mainland 87, Central Okanagan 85.
 
 | Column | Type | Notes |
 |---|---|---|
-| `h3_cell` | str | H3 index (r=5) |
-| `density` | float | sqrt-normalised fire-day count |
-| `centroid_lat` / `centroid_lon` | float | |
+| `h3_cell` | str | H3 index (r=5, ~250 km² per cell). Unique across the whole file: where two region bounding boxes overlap, the first region in `REGIONS` claims the cell, so no hexagon is ever drawn twice |
+| `region` / `region_label` | str | owning region key and its display name |
+| `hist_fire_count` | int | fire-days recorded in this cell, 1999–today |
+| `weight` | float | `hist_fire_count` square-root-normalised to 0…1 within its region, so a few extreme cells cannot flatten the rest |
+| `region_fire_rate` | float | constant per region; carried here so serving needs only this one file |
+| `centroid_lat` / `centroid_lon` | float | cell centre, used to place the hexagon |
+
+**Producer**: `derived_risk_features` (cron `35 2 * * *`). **Consumer**: `ml.risk_infer.predict_grid`, `/api/risk/grid`.
 
 ---
 
@@ -266,7 +304,7 @@ Historical fire-day density per H3 r=5 cell — multiplied against the regional 
 
 | File | What |
 |---|---|
-| `data/geo/thompson_okanagan.geojson` | TO bbox polygon |
+| `data/geo/thompson_okanagan.geojson` | Thompson-Okanagan bbox polygon (the climate module's scope) |
 | `data/geo/kamloops_neighbourhoods.geojson` | 14 hand-curated neighbourhood polygons |
 | `data/geo/health_guidance.json` | Health Canada AQHI guidance text |
 | `data/firesmart/firesmart_actions.json` | 30 curated HIZ checklist actions |
