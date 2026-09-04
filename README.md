@@ -175,8 +175,7 @@ WildFire-IQ/
 │       │   └── routers/      # one router per domain
 │       └── tests/            # pytest suite
 ├── packages/
-│   ├── design-tokens/        # CSS variables + Tailwind preset
-│   └── shared-types/         # TS types generated from the OpenAPI schema
+│   └── design-tokens/        # CSS variables + Tailwind preset
 ├── data/
 │   ├── raw/                  # untouched upstream dumps (newest 24 per job)
 │   ├── processed/            # cleaned parquets the app reads

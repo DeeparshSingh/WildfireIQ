@@ -152,6 +152,23 @@ The wildfire risk path is the same shape but reads `data/models/wildfire_risk_v1
 
 ---
 
+## How the frontend types API responses
+
+`apps/web/src/lib/api/hooks.ts` declares the response types by hand, next to
+the TanStack Query hook that fetches each one, and every router's Pydantic
+model is the server-side counterpart.
+
+An `openapi-typescript` generator and a `packages/shared-types` package existed
+for this and were removed during the September 2026 audit: nothing imported the
+generated file, so it had drifted (it predated the multi-region risk grid) while
+claiming in its own description to be the single source of API contract truth. A
+stale generated file that nobody reads is worse than none. If the hand-written
+types become a maintenance problem, wire the generator into the build so it
+cannot drift, rather than reintroducing it as an artifact someone has to
+remember to regenerate.
+
+---
+
 ## Raw snapshot retention
 
 Every job keeps its untouched upstream response under `data/raw/<job>/`, which

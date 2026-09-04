@@ -18,8 +18,7 @@
     "lint": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run lint",
     "format": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run format",
     "test": "pnpm --filter \"./apps/web\" run test",
-    "test:api": "cd apps/api && uv run pytest",
-    "gen:types": "cd packages/shared-types && pnpm gen"
+    "test:api": "cd apps/api && uv run pytest"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
