@@ -798,8 +798,8 @@ four-page research-artifact PDF.
 
 - **Frontend**: every non-globe route is code-split behind `React.lazy`;
   the Cesium viewer mounts once at AppShell level and is never remounted.
-- **Backend**: `Cache-Control` middleware per endpoint class, DuckDB warmed
-  at startup, model and density files held in `lru_cache`.
+- **Backend**: `Cache-Control` middleware per endpoint class, model and
+  density files held in `lru_cache`, parquets read directly with pandas.
 - **Startup catch-up**: any recurring source older than 30 minutes is
   re-run at boot, in dependency-wave order so a derived job never reads an
   input that is still being rebuilt (`scheduler.refresh_stale_jobs`).
@@ -933,7 +933,7 @@ polish and audit passes:
 - **Layer copy** rewritten for a non-technical audience; per-layer
   reference in [`data-layer.md`](./data-layer.md).
 - **Frontend** code-splits every non-globe route; the backend sets
-  Cache-Control headers and warms DuckDB at startup.
+  Cache-Control headers on every endpoint class.
 
 ### Remaining (optional, not blocking handoff)
 

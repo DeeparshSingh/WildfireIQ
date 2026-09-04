@@ -308,5 +308,5 @@ Prince George 166, Lower Mainland 87, Central Okanagan 85.
 | `data/geo/kamloops_neighbourhoods.geojson` | 14 hand-curated neighbourhood polygons |
 | `data/geo/health_guidance.json` | Health Canada AQHI guidance text |
 | `data/firesmart/firesmart_actions.json` | 30 curated HIZ checklist actions |
-| `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib, metrics.json, features.json, model.onnx}` | risk classifier artifacts |
+| `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib, metrics.json, features.json}` | risk classifier artifacts |
 | `data/models/aq_forecaster_v1/h{H}/q{Q}.txt`, `features.json`, `metrics.json` | 21 quantile boosters |

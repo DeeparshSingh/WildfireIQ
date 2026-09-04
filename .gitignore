@@ -23,8 +23,6 @@ data/models/*.tmp
 data/models/scratch/
 data/logs/
 data/wildfireiq.db
-data/analytics.duckdb
-data/*.duckdb-wal
 
 # Env / secrets
 .env

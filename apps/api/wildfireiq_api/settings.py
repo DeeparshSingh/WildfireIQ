@@ -26,13 +26,6 @@ def _resolve_sqlite_url(url: str) -> str:
     return url
 
 
-def _resolve_path(p: str) -> str:
-    path = Path(p)
-    if not path.is_absolute():
-        path = (REPO_ROOT / path).resolve()
-    return str(path)
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=REPO_ROOT / ".env",
@@ -47,17 +40,11 @@ class Settings(BaseSettings):
 
     # ── App config ───────────────────────────────────────────────────
     database_url: str = Field(default=f"sqlite+aiosqlite:///{REPO_ROOT / 'data' / 'wildfireiq.db'}")
-    duckdb_path: str = Field(default=str(REPO_ROOT / "data" / "analytics.duckdb"))
 
     @field_validator("database_url", mode="after")
     @classmethod
     def _abs_db_url(cls, v: str) -> str:
         return _resolve_sqlite_url(v)
-
-    @field_validator("duckdb_path", mode="after")
-    @classmethod
-    def _abs_duckdb_path(cls, v: str) -> str:
-        return _resolve_path(v)
 
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]

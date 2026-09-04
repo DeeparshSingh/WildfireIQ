@@ -25,7 +25,7 @@ apps/web/src/
 ```
 
 ### Backend (`apps/api`)
-FastAPI on Python 3.12 inside a uv workspace. APScheduler runs 16 recurring ingest jobs on cron cadences, alongside 3 one-shot bootstraps (19 in total). SQLAlchemy + aiosqlite for ops state (`ingest_runs` log). DuckDB for analytics. Parquet (zstd-compressed) for every cached upstream batch.
+FastAPI on Python 3.12 inside a uv workspace. APScheduler runs 16 recurring ingest jobs on cron cadences, alongside 3 one-shot bootstraps (19 in total). SQLAlchemy + aiosqlite for ops state (`ingest_runs` log). Parquet (zstd-compressed) for every cached upstream batch, read straight off disk with pandas per request.
 
 Layout:
 
@@ -37,7 +37,7 @@ apps/api/wildfireiq_api/
 ├── scheduler.py             # APScheduler + dependency-ordered startup catch-up
 ├── ingest/                  # 16 IngestJob subclasses + registry.py
 ├── routers/                 # 1 router per domain
-├── ml/                      # FWI port, trainers, inference, ONNX export
+├── ml/                      # FWI port, trainers, inference
 └── tests/                   # pytest — 78 tests
 ```
 
@@ -50,9 +50,8 @@ data/
 ├── processed/               # cleaned parquets the routers + ML read
 ├── geo/                     # static GeoJSON (TO bbox, Kamloops neighbourhoods)
 ├── firesmart/               # 30-action HIZ checklist JSON
-├── models/                  # LightGBM weights + ONNX exports + metrics
+├── models/                  # LightGBM weights + metrics
 ├── wildfireiq.db            # SQLite
-└── analytics.duckdb         # DuckDB
 ```
 
 ---
@@ -204,4 +203,4 @@ There's no Redis, no Celery, no Postgres. That was an explicit early decision: s
 - A user accounts system. The preparedness hub is local-first (`localStorage` + IndexedDB) on purpose — no PII ever touches the backend.
 - A separate microservice for ML inference. LightGBM is small; running inference inside the FastAPI process is fine and avoids cross-service serialisation.
 - A custom tile server. Cesium Ion's free tier covers terrain + imagery; recreating that would burn the grant budget for no user-facing win.
-- A Postgres / PostGIS layer. DuckDB queries the parquets directly and is fast enough at our scale.
+- A Postgres / PostGIS layer. At this scale pandas reads the parquets directly in single-digit to low-hundreds of milliseconds, and every dataset is reproducible from its upstream feed, so a database server would add operational weight without buying anything.

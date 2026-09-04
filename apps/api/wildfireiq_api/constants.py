@@ -19,20 +19,13 @@ BC_BBOX_WEST: Final[float] = -139.0
 BC_BBOX_SOUTH: Final[float] = 48.3
 BC_BBOX_EAST: Final[float] = -114.0
 BC_BBOX_NORTH: Final[float] = 60.0
-BC_BBOX: Final[tuple[float, float, float, float]] = (
-    BC_BBOX_WEST,
-    BC_BBOX_SOUTH,
-    BC_BBOX_EAST,
-    BC_BBOX_NORTH,
-)
 
 # Kamloops downtown centroid
 KAMLOOPS_LAT: Final[float] = 50.6745
 KAMLOOPS_LON: Final[float] = -120.3273
 
 # ECCC station IDs
-KAMLOOPS_A_STATION_ID: Final[int] = 1163780  # Kamloops A (current)
-KAMLOOPS_OLD_STATION_ID: Final[int] = 1163781  # historical companion
+KAMLOOPS_A_STATION_ID: Final[int] = 1163780  # Kamloops A
 
 # ─── Risk-model regions ──────────────────────────────────────────────
 # Each region is modelled with its own local weather point and its own
@@ -77,6 +70,3 @@ REGIONS: Final[list[dict]] = [
         "weather_file": "weather_prince_george_archive_daily.parquet",
     },
 ]
-
-# Cesium camera default
-CAMERA_DEFAULT_HEIGHT_M: Final[int] = 180_000

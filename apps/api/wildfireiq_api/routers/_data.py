@@ -216,24 +216,3 @@ def season_context() -> dict[str, Any]:
             out["peak_day"] = int(peak_date.day)
 
     return out
-
-
-def fires_seasonal_summary() -> list[dict[str, Any]]:
-    """Aggregate historical fires by year — used by /api/climate/seasonal."""
-    df = _read_parquet_safe(PROCESSED_ROOT / "fires_historical.parquet")
-    if df is None:
-        return []
-    if "fire_year" not in df.columns or "hectares" not in df.columns:
-        return []
-    grouped = (
-        df.groupby("fire_year")
-        .agg(
-            area_burned_ha=("hectares", "sum"),
-            fire_count=("fire_id", "count"),
-            largest_fire_ha=("hectares", "max"),
-        )
-        .reset_index()
-        .rename(columns={"fire_year": "year"})
-        .sort_values("year")
-    )
-    return _records(grouped)

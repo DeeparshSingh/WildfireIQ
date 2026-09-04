@@ -22,9 +22,6 @@ class TrendResult:
     slope_ci_hi: float
     n: int
 
-    def predict(self, x: np.ndarray) -> np.ndarray:
-        return self.slope * x + self.intercept
-
 
 def theil_sen_with_ci(
     x: np.ndarray,

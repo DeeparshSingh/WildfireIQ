@@ -51,7 +51,6 @@ STATIONS: list[tuple[str, float, float]] = [
     ("Smithers", 54.7804, -127.1772),
 ]
 
-OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
 OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 
 

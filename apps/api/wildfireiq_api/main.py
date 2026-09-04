@@ -79,18 +79,6 @@ async def lifespan(app: FastAPI):
     log = structlog.get_logger()
     log.info("startup", version=__version__)
     await init_db()
-    # DuckDB warm-up: open the analytics DB once at startup so the first
-    # request doesn't pay the cold-open cost (~400 ms → ~20 ms).
-    try:
-        import duckdb
-
-        settings_for_warmup = get_settings()
-        con = duckdb.connect(settings_for_warmup.duckdb_path, read_only=False)
-        con.execute("SELECT 1").fetchall()
-        con.close()
-        log.info("duckdb.warmup.ok")
-    except Exception as exc:
-        log.warning("duckdb.warmup.skip", error=str(exc))
     settings = get_settings()
     # Refresh anything stale before serving — fires the cron jobs that would
     # otherwise wait for their next scheduled tick. Backgrounded so the

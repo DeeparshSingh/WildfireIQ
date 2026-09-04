@@ -86,6 +86,18 @@
 \newpage
 
 \section{Project Overview \& Vision}
+
+\begin{quote}
+\small\itshape Status note, September 2026: this is the plan as written at the
+start of the grant, kept for provenance. Every feature and both models shipped;
+a few technology choices changed during the build. The risk model grew from one
+region to four; DuckDB and ONNX Runtime were scoped here but are not in the
+delivered stack, because pandas reads the Parquet files fast enough at this
+scale and nothing loaded the ONNX artifact at runtime; MapLibre GL was not
+needed; the backend runs on Python 3.12. For what was actually built, read
+\texttt{WildfireIQ-Report.tex} and the repository README.
+\end{quote}
+
 \textbf{WildfireIQ} is an AI-powered wildfire risk, air quality, and community preparedness platform built specifically for the Thompson-Okanagan region of British Columbia. The project serves as an open-source, public-good tool designed to contextualise the increasing threat of wildfires through machine learning, rich data visualisation, and 3D geospatial mapping.
 
 \subsection*{Core Non-Negotiables}

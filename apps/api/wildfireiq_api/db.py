@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import duckdb
 import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -87,27 +86,3 @@ async def init_db() -> None:
         for ddl in SCHEMA_DDL:
             await conn.execute(text(ddl))
     log.info("db.init.complete")
-
-
-# ─── DuckDB ──────────────────────────────────────────────────────────
-# DuckDB is single-process; we keep one persistent connection on disk.
-
-_duck: duckdb.DuckDBPyConnection | None = None
-
-
-def get_duckdb() -> duckdb.DuckDBPyConnection:
-    global _duck
-    if _duck is None:
-        ensure_dirs()
-        settings = get_settings()
-        _duck = duckdb.connect(settings.duckdb_path)
-        # Predictable timestamp parsing for our Parquet/CSV imports.
-        _duck.execute("SET TimeZone='UTC'")
-    return _duck
-
-
-def close_duckdb() -> None:
-    global _duck
-    if _duck is not None:
-        _duck.close()
-        _duck = None

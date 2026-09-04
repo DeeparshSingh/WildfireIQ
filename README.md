@@ -33,8 +33,6 @@ A research artifact built with a TRU Sustainability Research Grant (2025–2026)
 The Lower Mainland sees few wildfires, so its risk reads low (correctly) and is harder to score than the dry Interior. That is stated in the UI and the model card rather than averaged away.
 - **`aq_forecaster_v1`** — 21 LightGBM quantile models (7 horizons × q10/q50/q90) trained on co-located Open-Meteo CAMS hourly air quality + weather. **Beats the persistence baseline at the 6 h, 12 h, 36 h, and 48 h horizons.** Card: [`documents/model-cards/aq_forecaster_v1.md`](./documents/model-cards/aq_forecaster_v1.md).
 
-The risk model is exported to ONNX with verified float32 parity (max |Δ| 7.89 × 10⁻⁸).
-
 **Wildfire risk, in detail.** Each training row is one region-day described by 42 features: that region's weather (temperature, humidity, wind, rain, vapour-pressure deficit), the six Van Wagner FWI codes, 7- and 30-day lags and rolling means, drought signals, calendar terms, and the region's long-run fire-day rate. The label is whether a fire ignited in that region that day. 2022 and 2023 are held strictly out of training, and per-region scores are reported so pooling cannot hide a regression in one area. At serving time each region's probability is multiplied by each hexagon's square-root-normalised historical fire count, and the official CFFDRS Fire Danger class for that area is shown alongside for comparison.
 
 **Air quality forecaster, in detail.** Direct multi-horizon quantile regression: one LightGBM model per (horizon, quantile) pair. The median (q50) is the headline forecast; the q10 and q90 form the shaded uncertainty band so the chart widens when the model is unsure instead of pretending to be precise.
@@ -139,7 +137,7 @@ The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Histo
 │  │ /api/fires /api/risk /api/aq /api/firesmart    │  │
 │  │ /api/evac  /api/fwi  /api/climate /api/weather │  │
 │  └────────────────────────────────────────────────┘  │
-│  Cache-Control middleware · DuckDB warm-up           │
+│  Cache-Control middleware · ordered ingest waves     │
 │  APScheduler (19 ingest jobs)                        │
 │  LightGBM inference · Van Wagner FWI port            │
 └───────────────────┬──────────────────────────────────┘
@@ -147,9 +145,9 @@ The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Histo
 ┌───────────────────┴──────────────────────────────────┐
 │  Storage (local, zero-cost)                          │
 │  • SQLite — app metadata + ingest_runs               │
-│  • DuckDB — analytics                                │
-│  • Parquet (zstd) — every cached upstream batch      │
-│  • data/models/ — LightGBM + ONNX artifacts          │
+│  • Parquet (zstd) — every cached upstream batch,     │
+│    read directly with pandas per request             │
+│  • data/models/ — LightGBM artifacts                 │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -171,7 +169,7 @@ WildFire-IQ/
 │   └── api/                  # FastAPI backend
 │       ├── wildfireiq_api/
 │       │   ├── ingest/       # 19 IngestJob subclasses + registry
-│       │   ├── ml/           # FWI port, trainers, inference, ONNX export
+│       │   ├── ml/           # FWI port, trainers, inference
 │       │   └── routers/      # one router per domain
 │       └── tests/            # pytest suite
 ├── packages/
@@ -181,7 +179,7 @@ WildFire-IQ/
 │   ├── processed/            # cleaned parquets the app reads
 │   ├── geo/                  # static GeoJSON (region bbox, neighbourhoods)
 │   ├── firesmart/            # FireSmart checklist JSON
-│   └── models/               # trained LightGBM + ONNX artifacts
+│   └── models/               # trained LightGBM artifacts
 ├── documents/                # all project documentation (see below)
 ├── scripts/ingest/           # bootstrap entrypoint
 ├── Makefile                  # bootstrap / train / test / build targets

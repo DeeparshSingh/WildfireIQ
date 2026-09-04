@@ -69,6 +69,6 @@ The chart's shaded band is the empirical q10 → q90 interval. By construction t
 - Inference: `apps/api/wildfireiq_api/ml/aq_infer.py`, served at `/api/aq/forecast`.
 
 ## Limitations on cards
-- We do not ship ONNX exports for the 21-model bundle. The risk classifier has one because a single booster is worth the portability; twenty-one small quantile boosters are not, and LightGBM loads them in milliseconds inside the API process.
+- We do not ship ONNX exports. An exporter existed for the risk classifier and was removed in the September 2026 audit: nothing loaded the artifact at runtime, and it carried four dependencies for a file the API never opened. LightGBM loads a booster in milliseconds in-process, so the export bought portability nobody was using.
 - SHAP feature importance is not currently published — the LightGBM `model.feature_importance("gain")` values are persisted in the model artifact metadata for future use.
 - 1000-bootstrap CIs on the test MAEs are not currently rendered into a static plot. The raw test predictions are persisted; the bootstrap can be re-run from the trainer.

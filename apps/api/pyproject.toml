@@ -15,7 +15,6 @@ dependencies = [
     "pydantic-settings>=2.6",
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
-    "duckdb>=1.1",
     "pandas>=2.2",
     "numpy>=1.26,<3",
     "apscheduler>=3.10",
@@ -29,10 +28,6 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "lightgbm>=4.6.0",
     "joblib>=1.5.3",
-    "onnxmltools>=1.16.0",
-    "onnxruntime>=1.26.0",
-    "onnxconverter-common>=1.16.0",
-    "skl2onnx>=1.20.0",
 ]
 
 [dependency-groups]

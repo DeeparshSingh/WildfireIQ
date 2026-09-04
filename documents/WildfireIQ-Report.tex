@@ -436,7 +436,7 @@ web interface.
 ]
 \node[box] (browser) {Browser\\\footnotesize React, Cesium globe, charts};
 \node[accent, below=of browser] (api) {Back end\\\footnotesize FastAPI, scheduler, models};
-\node[box, below left=of api] (data) {Data store\\\footnotesize Parquet, DuckDB, SQLite};
+\node[box, below left=of api] (data) {Data store\\\footnotesize Parquet files, SQLite};
 \node[box, below right=of api] (sources) {Public sources\\\footnotesize BCWS, NASA, ECCC, Open-Meteo};
 
 \draw[arr] (browser) -- node[right, font=\scriptsize\color{slate}] {requests} (api);
@@ -457,7 +457,7 @@ the browser reads cleaned data through the API.}
 \midrule
 Front end & React, TypeScript, Vite, CesiumJS (3D globe), Tailwind, Visx (charts) \\
 Back end & Python, FastAPI, APScheduler (timers), LightGBM (models) \\
-Storage & Parquet files, DuckDB (analytics), SQLite (run log) \\
+Storage & Parquet files (compressed), SQLite (run log) \\
 \bottomrule
 \end{tabular}
 \caption{Technology choices, kept deliberately simple and free to run.}
