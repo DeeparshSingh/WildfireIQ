@@ -8,6 +8,8 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from . import constants
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -69,14 +71,17 @@ class Settings(BaseSettings):
     startup_refresh_minutes: int = Field(default=30)
 
     # ── Region (Thompson-Okanagan canonical bbox) ────────────────────
-    bbox_west: float = -121.5
-    bbox_south: float = 50.0
-    bbox_east: float = -118.5
-    bbox_north: float = 51.5
+    # Defaults come from constants.py so the numbers live in exactly one
+    # place; these stay overridable by env for anyone re-pointing the
+    # climate module at a different region.
+    bbox_west: float = constants.BBOX_WEST
+    bbox_south: float = constants.BBOX_SOUTH
+    bbox_east: float = constants.BBOX_EAST
+    bbox_north: float = constants.BBOX_NORTH
 
     # ── Kamloops centroid for default queries ────────────────────────
-    kamloops_lat: float = 50.6745
-    kamloops_lon: float = -120.3273
+    kamloops_lat: float = constants.KAMLOOPS_LAT
+    kamloops_lon: float = constants.KAMLOOPS_LON
 
 
 @lru_cache

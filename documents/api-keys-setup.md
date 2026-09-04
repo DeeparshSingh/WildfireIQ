@@ -1,6 +1,6 @@
 # API keys setup
 
-WildfireIQ runs against free public data sources. Three free signups are required (and one optional) before full functionality is available.
+WildfireIQ runs against free public data sources. Three free signups cover everything the platform uses.
 
 ## 1. Cesium Ion (REQUIRED — the 3D globe)
 
@@ -41,24 +41,6 @@ If you don't add a token, the app still runs — the globe page just shows a fri
    ```
    WAQI_TOKEN=your-token-here
    ```
-
-## 4. MapTiler Cloud (OPTIONAL — unused by the shipped build)
-
-**Purpose**: Terrain-RGB tiles for the AQ Monitor's small inset map.
-**Free tier**: 100,000 tile requests/month.
-
-1. https://www.maptiler.com/cloud/ → free signup.
-2. Add to `.env`:
-   ```
-   MAPTILER_KEY=your-key
-   ```
-
-## 5. Google Earth Engine (OPTIONAL — unused; an NDVI overlay was never built)
-
-**Purpose**: NDVI vegetation health overlay for the wildfire risk model.
-**Free tier**: Generous for non-commercial / research use.
-
-Only sign up if you want the vegetation-health stretch goal. https://earthengine.google.com/signup/
 
 ---
 

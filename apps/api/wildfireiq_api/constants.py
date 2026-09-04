@@ -47,9 +47,9 @@ REGIONS: Final[list[dict]] = [
     {
         "key": "thompson_okanagan",
         "label": "Thompson-Okanagan (Kamloops)",
-        "lat": 50.6745,
-        "lon": -120.3273,
-        "bbox": (-121.5, 50.0, -118.5, 51.5),
+        "lat": KAMLOOPS_LAT,
+        "lon": KAMLOOPS_LON,
+        "bbox": BBOX,
         "weather_file": "weather_kamloops_archive_daily.parquet",
     },
     {

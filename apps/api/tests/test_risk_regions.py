@@ -184,3 +184,19 @@ def test_region_summaries_are_complete() -> None:
             assert field in r, f"{r.get('key')} summary missing {field}"
         assert r["n_cells"] > 0
         assert r["risk_level"] in CLASS_ORDER
+
+
+def test_home_region_geometry_is_not_duplicated() -> None:
+    """The Thompson-Okanagan bbox appeared in three places: constants.BBOX,
+    Settings.bbox_*, and REGIONS[0]. Editing one silently disagreed with the
+    others; they now derive from the constants."""
+    from wildfireiq_api import constants
+    from wildfireiq_api.settings import get_settings
+
+    s = get_settings()
+    home = REGIONS[0]
+    assert home["key"] == "thompson_okanagan", "the home region must stay first"
+    assert tuple(home["bbox"]) == constants.BBOX
+    assert (s.bbox_west, s.bbox_south, s.bbox_east, s.bbox_north) == constants.BBOX
+    assert (home["lat"], home["lon"]) == (constants.KAMLOOPS_LAT, constants.KAMLOOPS_LON)
+    assert (s.kamloops_lat, s.kamloops_lon) == (constants.KAMLOOPS_LAT, constants.KAMLOOPS_LON)

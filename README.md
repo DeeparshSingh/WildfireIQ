@@ -170,7 +170,7 @@ WildFire-IQ/
 │   │       └── stores/       # Zustand UI state
 │   └── api/                  # FastAPI backend
 │       ├── wildfireiq_api/
-│       │   ├── ingest/       # 17 IngestJob subclasses + registry
+│       │   ├── ingest/       # 19 IngestJob subclasses + registry
 │       │   ├── ml/           # FWI port, trainers, inference, ONNX export
 │       │   └── routers/      # one router per domain
 │       └── tests/            # pytest suite
@@ -197,13 +197,17 @@ All documentation lives in [`documents/`](./documents):
 
 | File | Contents |
 |---|---|
-| [`logic.md`](./documents/logic.md) | Canonical end-to-end engineering log — what each phase ships and why |
+| [`logic.md`](./documents/logic.md) | Canonical end-to-end engineering log — how each feature works and why |
 | [`data-layer.md`](./documents/data-layer.md) | Per-layer source, cadence, computation, and accuracy reference |
-| [`architecture.md`](./documents/architecture.md) | System diagram + request lifecycle |
+| [`architecture.md`](./documents/architecture.md) | System diagram, request lifecycle, pipeline ordering, raw retention |
 | [`data-dictionary.md`](./documents/data-dictionary.md) | Every column of every processed parquet |
-| [`implementation-plan.md`](./documents/implementation-plan.md) | The original phased build plan |
 | [`api-keys-setup.md`](./documents/api-keys-setup.md) | How to obtain the three free API tokens |
 | [`model-cards/`](./documents/model-cards) | Model cards for both ML models |
+| [`implementation-plan.md`](./documents/implementation-plan.md) | The original phased build plan, kept for provenance (archived) |
+| [`WildfireIQ-Report.tex`](./documents/WildfireIQ-Report.tex) | The project report, LaTeX source |
+| [`project_timeline.tex`](./documents/project_timeline.tex) | Grant timeline, LaTeX source |
+| `WildfireIQ_Proposal.pdf` | The funded grant proposal, for reference |
+| `ICICET2026_Abstract_WildfireIQ.{docx,pdf}` | Conference abstract |
 
 ---
 
@@ -266,7 +270,7 @@ make build             # production build of the frontend
 ## Tests
 
 ```bash
-make test                  # backend — 76 pytest (ingest, routers, data quality, trends, risk regions, pipeline)
+make test                  # backend — 77 pytest (ingest, routers, data quality, trends, risk regions, pipeline)
 cd apps/web && pnpm test   # frontend — 22 vitest (hooks + utilities)
 ```
 
