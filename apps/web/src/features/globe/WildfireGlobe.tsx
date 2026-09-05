@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Cartesian3,
   Color,
@@ -32,8 +32,6 @@ const BING_AERIAL_WITH_LABELS_ASSET_ID = 3;
 
 export function WildfireGlobe() {
   const [viewer, setViewerLocal] = useState<CesiumViewer | null>(null);
-  const introPlayed = useGlobeStore((s) => s.introPlayed);
-  const lastCamera = useGlobeStore((s) => s.lastCamera);
   const markIntroPlayed = useGlobeStore((s) => s.markIntroPlayed);
   const openDataGate = useGlobeStore((s) => s.openDataGate);
   const setLastCamera = useGlobeStore((s) => s.setLastCamera);
@@ -114,8 +112,21 @@ export function WildfireGlobe() {
 
   // ── Intro vs. restore: only one runs, depending on whether intro
   //    has already been played in this browser session. ─────────────
+  //
+  // This effect must run exactly once per viewer, and it reads the store
+  // imperatively rather than subscribing to it. Subscribing is what broke
+  // it: the camera listener below writes `lastCamera` on every movement,
+  // so with `lastCamera` in the dependency array any camera motion re-ran
+  // this effect, which cleared the intro timeout and `setView`-ed the
+  // camera straight back where it started. The intro never played, and
+  // every later flight — camera presets, location search, the assistant's
+  // fly-to — was snapped back within a frame of starting.
+  const introRunRef = useRef(false);
   useEffect(() => {
-    if (!viewer) return;
+    if (!viewer || introRunRef.current) return;
+    introRunRef.current = true;
+
+    const { lastCamera, introPlayed } = useGlobeStore.getState();
 
     if (lastCamera && introPlayed) {
       // Restore the user's last position — no flight, no fanfare.
@@ -166,7 +177,7 @@ export function WildfireGlobe() {
     }, 400);
 
     return () => window.clearTimeout(flyTimeout);
-  }, [viewer, introPlayed, lastCamera, markIntroPlayed, openDataGate]);
+  }, [viewer, markIntroPlayed, openDataGate]);
 
   // ── Persist camera position on every move, throttled by Cesium's
   //    `percentageChanged` so we don't write on every frame. ─────────

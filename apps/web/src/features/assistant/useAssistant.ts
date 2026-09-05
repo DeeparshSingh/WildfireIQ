@@ -130,7 +130,14 @@ export function useAssistant() {
       switch (effect.type) {
         case "fly_to": {
           const viewer = useGlobeStore.getState().viewer;
-          if (!viewer) return;
+          if (!viewer) {
+            // The assistant has already told the user it moved the map. If
+            // the globe is not mounted — no Cesium token, or a route that
+            // never rendered it — saying so beats a silent no-op that makes
+            // the answer look like a lie.
+            console.warn("[assistant] fly_to ignored: the globe is not mounted");
+            return;
+          }
           cinematicFlyTo(viewer, {
             lat: effect.lat,
             lon: effect.lon,
