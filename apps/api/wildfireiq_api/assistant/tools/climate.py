@@ -274,7 +274,16 @@ def get_historical_fires(
                                 float(row["longitude"]),
                             ),
                             1,
-                        )
+                        ),
+                        # Computed here for the same reason as in situation.py:
+                        # a model asked to infer a bearing from coordinates
+                        # will state one, and it will be wrong.
+                        "direction": gazetteer.direction_from(
+                            location.lat,
+                            location.lon,
+                            float(row["latitude"]),
+                            float(row["longitude"]),
+                        ),
                     }
                     if location is not None
                     else {}

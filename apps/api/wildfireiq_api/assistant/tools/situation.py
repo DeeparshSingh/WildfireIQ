@@ -129,6 +129,29 @@ def get_wildfire_risk(
     )
 
 
+def _where_clause(
+    origin: Any, lat: float, lon: float, *, always_name_town: bool = False
+) -> dict[str, Any]:
+    """Say where a point is, in words the model can copy rather than derive.
+
+    Given only latitude and longitude a language model will still narrate a
+    direction and a nearby town, and it will get them wrong — the first live
+    run placed a fire 77 km east-southeast of Kamloops "southwest near
+    Falkland", when it was in fact 11 km from Vernon. Both facts are cheap
+    to compute here and impossible to compute reliably in prose.
+    """
+    out: dict[str, Any] = {}
+    if origin is not None:
+        out["direction"] = gazetteer.direction_from(origin.lat, origin.lon, lat, lon)
+    if origin is not None or always_name_town:
+        near = gazetteer.nearest_place(lat, lon)
+        if near is not None:
+            out["nearest_town"] = (
+                f"{near.name}, {gazetteer.haversine_km(lat, lon, near.lat, near.lon):.0f} km"
+            )
+    return out
+
+
 def _nearest_cell(cells: list[dict[str, Any]], lat: float, lon: float) -> dict[str, Any] | None:
     if not cells:
         return None
@@ -224,6 +247,7 @@ def get_active_fires(
             "discovered": (str(row.get("discovery_date_utc") or "") or None),
             "lat": round_floats(row.get("latitude"), 4),
             "lon": round_floats(row.get("longitude"), 4),
+            **_where_clause(location, float(row["latitude"]), float(row["longitude"])),
             **(
                 {"km_away": round(row["_distance_km"], 1)}
                 if row.get("_distance_km") is not None
@@ -310,12 +334,8 @@ def get_satellite_hotspots(
                 "detected_utc": str(r.get("acq_datetime_utc") or ""),
                 "fire_radiative_power_mw": round_floats(r.get("frp"), 1),
                 "confidence": r.get("confidence"),
-                "nearest_town": (
-                    near.name
-                    if (
-                        near := gazetteer.nearest_place(float(r["latitude"]), float(r["longitude"]))
-                    )
-                    else None
+                **_where_clause(
+                    location, float(r["latitude"]), float(r["longitude"]), always_name_town=True
                 ),
                 **({"km_away": round(r["_distance_km"], 1)} if r.get("_distance_km") else {}),
             }

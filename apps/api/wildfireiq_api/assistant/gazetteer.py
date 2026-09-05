@@ -21,6 +21,7 @@ import math
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import Final
 
 from ..constants import REGIONS
 from ..paths import GEO_ROOT
@@ -294,6 +295,48 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2) ** 2
     return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
+
+
+_COMPASS: Final = (
+    "north",
+    "north-northeast",
+    "northeast",
+    "east-northeast",
+    "east",
+    "east-southeast",
+    "southeast",
+    "south-southeast",
+    "south",
+    "south-southwest",
+    "southwest",
+    "west-southwest",
+    "west",
+    "west-northwest",
+    "northwest",
+    "north-northwest",
+)
+
+
+def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Initial great-circle bearing from point 1 to point 2, in degrees."""
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dlon = math.radians(lon2 - lon1)
+    y = math.sin(dlon) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dlon)
+    return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
+
+
+def direction_from(lat1: float, lon1: float, lat2: float, lon2: float) -> str:
+    """Compass direction of point 2 as seen from point 1, e.g. "east-southeast".
+
+    Tools hand this to the model already computed. Asked only for
+    coordinates, a language model will narrate a direction — and get it
+    wrong: the first live run put a fire 77 km east-southeast of Kamloops
+    "southwest near Falkland". Spherical trigonometry is not something to
+    leave to prose.
+    """
+    index = round(bearing_deg(lat1, lon1, lat2, lon2) / 22.5) % 16
+    return _COMPASS[index]
 
 
 def nearest_place(

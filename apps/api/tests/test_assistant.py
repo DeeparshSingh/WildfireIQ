@@ -720,3 +720,111 @@ def test_upstream_failures_are_translated_for_the_person_reading_them() -> None:
     # An unmapped 4xx keeps the upstream message, unwrapped from its JSON.
     odd = _describe_failure(413, '{"error":{"message":"context too long"}}')
     assert "context too long" in str(odd)
+
+
+# ─── The situation brief ─────────────────────────────────────────────
+
+
+@pytest.mark.skipif(
+    not (PROCESSED / "fires_current.parquet").exists(), reason="no active-fire snapshot"
+)
+def test_the_brief_states_fire_proximity_instead_of_inviting_an_inference() -> None:
+    """Regression guard from the first live answer.
+
+    Given only "Active BC fires: 220", the model closed with "nothing in the
+    Kamloops area per the current feed" — a proximity claim the brief did
+    not support. The count is now labelled province-wide and the distance to
+    the nearest incident is stated outright.
+    """
+    from wildfireiq_api.assistant import brief as brief_module
+
+    brief_module.invalidate()
+    text = brief_module.build_brief()
+    brief_module.invalidate()
+
+    assert "province-wide" in text
+    assert "Nearest to Kamloops:" in text
+    assert "km away" in text
+
+
+def test_the_brief_stays_small_enough_to_send_every_turn() -> None:
+    """It is prepended to every conversation, so its size is a per-question
+    cost. A few hundred tokens buys most answers a zero-tool path; a few
+    thousand would not be worth it."""
+    from wildfireiq_api.assistant import brief as brief_module
+
+    brief_module.invalidate()
+    text = brief_module.build_brief()
+    brief_module.invalidate()
+    assert len(text) < 1200, "the brief has grown past its budget"
+
+
+def test_the_prompt_warns_against_reading_locality_into_the_brief() -> None:
+    prompt = build_system_prompt(brief="Situation brief:\n- Active BC fires province-wide: 220")
+    assert "province-wide" in prompt
+    assert "get_active_fires" in prompt
+
+
+# ─── Geometry the model must not be asked to do ──────────────────────
+
+
+def test_compass_directions_are_computed_not_narrated() -> None:
+    """Regression guard from the second live answer.
+
+    Given only coordinates, the model placed a fire 77 km east-southeast of
+    Kamloops "southwest near Falkland" — wrong quadrant, wrong town. The
+    tools now state both.
+    """
+    assert gazetteer.direction_from(0, 0, 1, 0) == "north"
+    assert gazetteer.direction_from(0, 0, 0, 1) == "east"
+    assert gazetteer.direction_from(0, 0, -1, 0) == "south"
+    assert gazetteer.direction_from(0, 0, 0, -1) == "west"
+
+    # Kamloops → the Bradley Creek FSR fire's actual position.
+    assert gazetteer.direction_from(50.6745, -120.3273, 50.30, -119.55) == "southeast"
+    assert 120 < gazetteer.bearing_deg(50.6745, -120.3273, 50.30, -119.55) < 135
+
+
+@pytest.mark.skipif(
+    not (PROCESSED / "fires_current.parquet").exists(), reason="no active-fire snapshot"
+)
+async def test_nearby_incidents_carry_a_direction_and_a_named_town() -> None:
+    execution = await toolkit.execute(
+        "get_active_fires", {"place": "Kamloops", "within_km": 200, "sort_by": "distance"}
+    )
+    assert execution.ok
+    incidents = execution.result.data["incidents"]
+    if not incidents:
+        pytest.skip("no active fires within 200 km today")
+    for incident in incidents:
+        assert incident["direction"] in {
+            "north",
+            "north-northeast",
+            "northeast",
+            "east-northeast",
+            "east",
+            "east-southeast",
+            "southeast",
+            "south-southeast",
+            "south",
+            "south-southwest",
+            "southwest",
+            "west-southwest",
+            "west",
+            "west-northwest",
+            "northwest",
+            "north-northwest",
+        }
+        assert " km" in incident["nearest_town"]
+
+
+@pytest.mark.skipif(
+    not (PROCESSED / "fires_current.parquet").exists(), reason="no active-fire snapshot"
+)
+async def test_a_location_free_fire_query_omits_direction_rather_than_guessing() -> None:
+    """With no origin there is nothing to take a bearing from, so the field
+    is absent — not filled with a plausible-looking default."""
+    execution = await toolkit.execute("get_active_fires", {"limit": 3})
+    assert execution.ok
+    for incident in execution.result.data["incidents"]:
+        assert "direction" not in incident

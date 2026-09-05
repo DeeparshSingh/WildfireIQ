@@ -36,14 +36,23 @@ tries to return a raw table gets told to narrow its filter.
 ## The situation brief
 
 Before the model sees the question it sees a brief: today's AI risk for
-each of the four modelled regions, the active-fire count and the largest
-incident, evacuation orders and alerts in effect, AQHI and PM2.5, current
-Kamloops weather, and days since meaningful rain.
+each of the four modelled regions, the province-wide active-fire count with
+the largest incident and the nearest one to Kamloops, evacuation orders and
+alerts in effect, AQHI and PM2.5, current Kamloops weather, and days since
+meaningful rain.
 
-That costs roughly 250 tokens — about two hundredths of a cent — and it
-means the common question is answered in one model turn with no tool calls
-at all, instead of two turns and a LightGBM run. It is rebuilt at most once
-a minute and shared across users, since it contains nothing user-specific.
+That costs about 150 tokens and it means the common question is answered in
+one model turn with no tool calls at all, instead of three turns and a
+LightGBM run. It is rebuilt at most once a minute and shared across users,
+since it contains nothing user-specific.
+
+Every line is province-wide unless it names a place, and the prompt says so
+explicitly. That rule is there because the first live answer this assistant
+gave closed with "nothing in the Kamloops area per the current feed" — a
+proximity claim inferred from a province-wide count. The brief now states
+the distance to the nearest incident outright rather than leaving room for
+the inference.
+
 `GET /api/assistant/brief` returns it verbatim: an assistant whose
 grounding cannot be inspected cannot be audited.
 
@@ -124,6 +133,13 @@ Asking for a place outside the model's four regions returns a
 `coverage_warning` naming the distance to the nearest modelled hexagon, so
 the assistant reports it as out of coverage rather than as a reading.
 
+**Geometry is computed, never narrated.** Tools that return a point relative
+to somewhere give a compass direction and the nearest named town alongside
+the distance. The second live answer this assistant produced placed a fire
+77 km east-southeast of Kamloops "southwest near Falkland" — wrong quadrant,
+wrong town, from coordinates it was left to interpret itself. Spherical
+trigonometry is not something to leave to prose, so the tools now do it.
+
 ## Safety
 
 - A regex tripwire runs **before** the model on every question. Wording
@@ -152,15 +168,30 @@ rebuilt server-side every time.
 
 ## Cost
 
-At GLM 5.3 Flash's rates a question with the brief, the tool schemas and one
-round of tool results runs roughly 4,000-8,000 input tokens and a few
-hundred output — a few hundredths of a cent. Every run reports its actual
-OpenRouter charge in the `usage` event.
+Measured, not estimated. The per-turn floor is about **6,200 input tokens**:
+~1,100 for the system prompt, ~150 for the brief, and ~5,000 for the 25 tool
+schemas, all of which are re-sent on every turn of a run.
 
-Two things keep it there: the brief, which removes tool calls from the
+| Question | Turns | Tokens | Cost |
+|---|---:|---:|---:|
+| Answered from the brief alone | 1 | ~6,200 in | well under a tenth of a cent |
+| Two tools, measured live | 3 | 19,161 in / 1,395 out | **$0.0033** |
+
+So a third of a cent for a researched answer, and roughly a tenth of that
+for one the brief already covers. Every run reports its actual OpenRouter
+charge in the `usage` event — the table above is what it reported, not what
+the price list implies.
+
+The tool schemas dominate, and they are the deliberate trade: their
+descriptions are what let the model pick `get_air_quality` and then
+`get_health_guidance` unprompted rather than guessing. Two things keep the
+total down instead: the brief, which removes the tool round trip from the
 common case, and per-tool result caching (60 s for live feeds, 15 minutes
 for the risk grid, an hour for documentation and climate history), which is
 sound because the underlying parquet only moves when an ingest job runs.
+
+Latency tracks turns rather than tokens: the measured two-tool answer took
+36 s across three sequential model turns. A brief-only answer is one turn.
 
 ## Configuration
 

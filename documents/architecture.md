@@ -39,7 +39,7 @@ apps/api/wildfireiq_api/
 ├── routers/                 # 1 router per domain
 ├── ml/                      # FWI port, trainers, inference
 ├── assistant/               # agent harness + 25 tools + OpenRouter transport
-└── tests/                   # pytest — 129 tests
+└── tests/                   # pytest — 137 tests
 ```
 
 The `assistant/` package is a deliberate one-way dependency: it imports the

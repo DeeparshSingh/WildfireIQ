@@ -2,13 +2,15 @@
 
 An agent that must call a tool before it can answer "is it smoky today?"
 is slow and expensive, and it looks stupid doing it. So the harness pays
-for the six numbers that answer most questions up front: today's risk per
-region, the fire count, the evacuation count, the air quality, the
-weather, and whether the pipeline is healthy.
+for the numbers that answer most questions up front: today's risk per
+region, the province-wide fire count and the nearest incident to Kamloops,
+evacuations in effect, air quality, and current weather.
 
-That is roughly 250 tokens — about two hundredths of a cent — and it turns
-the common case from *two* model turns plus a LightGBM run into one turn
-with no tools at all. The tools remain for everything specific.
+That is about 150 tokens against a ~6,200-token per-turn floor, and it
+removes a whole round trip: the common case becomes one model turn with no
+tools rather than three turns with two. Measured on a live two-tool
+question, each extra turn costs roughly a third of what the whole brief
+does over a month of caching. The tools remain for everything specific.
 
 The brief is rebuilt at most once a minute and shared across users, since
 it contains nothing user-specific.
@@ -23,8 +25,10 @@ from typing import Any
 
 import structlog
 
+from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
 from ..ml.risk_infer import predict_grid
 from ..routers import _data
+from .gazetteer import haversine_km
 
 log = structlog.get_logger(__name__)
 
@@ -44,6 +48,32 @@ def _risk_line() -> str | None:
     return f"AI wildfire risk for {day} — " + "; ".join(parts)
 
 
+def _nearest_fire_clause() -> str:
+    """Distance from Kamloops to the closest active incident.
+
+    The first live answer this assistant gave closed with "nothing in the
+    Kamloops area per the current feed" — a proximity claim inferred from a
+    province-wide count, which is precisely the kind of statement the
+    grounding rules forbid. A province-wide number invites that inference,
+    so the brief now carries the local fact outright.
+    """
+    rows = _data.fires_current()
+    located = [r for r in rows if r.get("latitude") is not None and r.get("longitude") is not None]
+    if not located:
+        return ""
+    nearest = min(
+        located,
+        key=lambda r: haversine_km(
+            KAMLOOPS_LAT, KAMLOOPS_LON, float(r["latitude"]), float(r["longitude"])
+        ),
+    )
+    km = haversine_km(
+        KAMLOOPS_LAT, KAMLOOPS_LON, float(nearest["latitude"]), float(nearest["longitude"])
+    )
+    name = nearest.get("fire_name") or nearest.get("fire_id")
+    return f". Nearest to Kamloops: {name}, {km:.0f} km away"
+
+
 def _fires_line() -> str | None:
     rows = _data.fires_current()
     if not rows:
@@ -52,10 +82,10 @@ def _fires_line() -> str | None:
     out_of_control = sum(v for k, v in stages.items() if "out of control" in k.lower())
     largest = max(rows, key=lambda r: float(r.get("hectares") or 0))
     return (
-        f"Active BC fires: {len(rows)}"
+        f"Active BC fires province-wide: {len(rows)}"
         + (f", {out_of_control} out of control" if out_of_control else "")
         + f". Largest: {largest.get('fire_name') or largest.get('fire_id')} "
-        f"at {float(largest.get('hectares') or 0):,.0f} ha"
+        f"at {float(largest.get('hectares') or 0):,.0f} ha" + _nearest_fire_clause()
     )
 
 

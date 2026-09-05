@@ -275,7 +275,7 @@ make build             # production build of the frontend
 ## Tests
 
 ```bash
-make test                  # backend — 129 pytest (ingest, routers, data quality, trends, risk regions, pipeline, assistant)
+make test                  # backend — 137 pytest (ingest, routers, data quality, trends, risk regions, pipeline, assistant)
 cd apps/web && pnpm test   # frontend — 36 vitest (hooks, utilities, assistant stream + renderer)
 ```
 
