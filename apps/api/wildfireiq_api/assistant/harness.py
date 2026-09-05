@@ -217,6 +217,7 @@ async def _drive(
     sources: list[dict[str, Any]] = []
     tools_used: list[str] = []
     answer_parts: list[str] = []
+    preamble_parts: list[str] = []
 
     # Positional-only, so an event carrying a `name` field of its own (a
     # tool_call does) cannot collide with the event's own name.
@@ -247,6 +248,7 @@ async def _drive(
             referer=settings.assistant_referer,
             title=settings.assistant_title,
             timeout_s=settings.assistant_timeout_s,
+            reasoning_effort=settings.assistant_reasoning_effort,
         )
 
         # Blocking: reads parquet, may run LightGBM on a cold cache.
@@ -281,21 +283,40 @@ async def _drive(
                 conversation,
                 offer_tools=offer_tools,
                 on_text=lambda text: queue.put(Event("token", {"text": text})),
+                max_tokens=settings.assistant_max_output_tokens,
             )
             usage = usage + step_result.usage
+
+            if step_result.truncated:
+                # The turn hit its output ceiling. On a reasoning model that
+                # usually means thinking ate the whole allowance, which is
+                # how an answer goes missing while still being billed.
+                log.warning(
+                    "assistant.step.truncated",
+                    step=step,
+                    content_chars=len(step_result.text),
+                    reasoning_chars=step_result.reasoning_chars,
+                )
 
             if not step_result.tool_calls:
                 if step_result.text:
                     answer_parts.append(step_result.text)
                 break
 
-            # The text of a turn that ends in tool calls is a plan, not an
-            # answer — "let me check the fires near Merritt". It was already
-            # streamed, so tell the client to move it out of the answer
-            # bubble and into the activity trail rather than keeping it.
+            # The text of a turn that ends in tool calls is usually a plan,
+            # not an answer — "let me check the fires near Merritt" — so the
+            # client moves it out of the answer bubble and into the activity
+            # trail. But it is not *always* a plan: a model that writes its
+            # whole answer and then calls `show_on_map` in the same turn has
+            # already said everything it intends to, and the next turn comes
+            # back silent. Four of the first thirty-two live evaluations lost
+            # a complete, paid-for answer that way. So it is kept as a
+            # fallback, and used only if nothing better arrives.
+            if step_result.text.strip():
+                preamble_parts.append(step_result.text)
             await emit("step_end", had_tools=True, note=step_result.text.strip() or None)
 
-            calls = step_result.tool_calls[:tool_budget]
+            calls = _drop_duplicates(step_result.tool_calls)[:tool_budget]
             tool_budget -= len(calls)
             conversation.append(_assistant_tool_message(step_result.text, calls))
 
@@ -332,12 +353,32 @@ async def _drive(
             # Loop ran out of steps without a `break`: the last turn still
             # wanted tools. Its text was withheld as a plan, so say so
             # rather than ending on silence.
-            if not answer_parts:
+            if not answer_parts and not preamble_parts:
                 answer_parts.append(
                     "I ran out of research steps before I could finish that one. "
                     "Try asking it in smaller pieces."
                 )
                 await emit("token", text=answer_parts[-1])
+
+        # An answering turn that produced nothing leaves the preamble as the
+        # only thing the model actually said. Better a slightly conversational
+        # answer than a blank one.
+        final_text = "".join(answer_parts).strip()
+        if not final_text and preamble_parts:
+            final_text = "\n\n".join(p.strip() for p in preamble_parts).strip()
+            log.info("assistant.recovered_answer_from_preamble", chars=len(final_text))
+            await emit("recovered", text=final_text)
+
+        if not final_text:
+            # Everything upstream succeeded and the model still said nothing.
+            # Say that plainly: a blank bubble looks like the app is broken,
+            # and the user has no way to tell the difference.
+            final_text = (
+                "I gathered the data but did not manage to write an answer. "
+                "Ask me again, or more narrowly, and it should come through."
+            )
+            log.warning("assistant.empty_answer", tools=tools_used)
+            await emit("token", text=final_text)
 
         await emit("sources", sources=sources)
         await emit("suggestions", items=suggest_follow_ups(tools_used))
@@ -350,7 +391,7 @@ async def _drive(
             tools=tools_used,
             duration_ms=int((time.perf_counter() - started) * 1000),
         )
-        await emit("done", text="".join(answer_parts).strip())
+        await emit("done", text=final_text)
 
         log.info(
             "assistant.answered",
@@ -379,11 +420,13 @@ async def _one_step(
     *,
     offer_tools: bool,
     on_text: Any,
+    max_tokens: int,
 ) -> StepResult:
     return await client.stream_step(
         conversation,
         toolkit.schemas() if offer_tools else None,
         on_text=on_text,
+        max_tokens=max_tokens,
     )
 
 
@@ -401,6 +444,29 @@ async def _run_tool(call: ToolCall) -> toolkit.Execution:
             cached=False,
         )
     return await toolkit.execute(call.name, arguments)
+
+
+def _drop_duplicates(calls: list[ToolCall]) -> list[ToolCall]:
+    """Collapse calls a turn asked for twice with identical arguments.
+
+    Models sometimes emit the same call two or three times in one turn.
+    The result cache makes the repeat cheap but not free — it still spends
+    tool budget, clutters the activity trail the user reads, and pads the
+    conversation with duplicate tool messages that are re-sent on every
+    subsequent turn. Arguments are compared as sent, so the same tool with
+    different arguments (three FireSmart zones, two forecast horizons) is
+    correctly kept.
+    """
+    seen: set[tuple[str, str]] = set()
+    kept: list[ToolCall] = []
+    for call in calls:
+        key = (call.name, call.arguments.strip())
+        if key in seen:
+            log.info("assistant.tool.duplicate_dropped", tool=call.name)
+            continue
+        seen.add(key)
+        kept.append(call)
+    return kept
 
 
 def _assistant_tool_message(text: str, calls: list[ToolCall]) -> dict[str, Any]:

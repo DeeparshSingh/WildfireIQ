@@ -110,9 +110,9 @@ def _index() -> tuple[_Section, ...]:
         "properties": {
             "query": {
                 "type": "string",
-                "description": "What to look for, e.g. 'PR-AUC held out 2023' or 'lightning limitation'.",
+                "description": "What to look for, e.g. 'PR-AUC held out 2023'.",
             },
-            "limit": {"type": "integer", "description": "Sections to return, max 5. Default 3."},
+            "limit": {"type": "integer", "description": "Sections, max 5. Default 3."},
         },
         "required": ["query"],
     },
@@ -175,7 +175,7 @@ def search_documentation(query: str, limit: int = 3) -> ToolResult:
             "model": {
                 "type": "string",
                 "enum": ["wildfire_risk_v1", "aq_forecaster_v1", "all"],
-                "description": "Which model. Default 'all'.",
+                "description": "Default 'all'.",
             }
         },
     },
@@ -215,10 +215,10 @@ def get_model_performance(model: str = "all") -> ToolResult:
     parameters={
         "type": "object",
         "properties": {
-            "job": {"type": "string", "description": "One job name. Omit for the whole pipeline."},
+            "job": {"type": "string", "description": "One job name. Omit for all."},
             "only_problems": {
                 "type": "boolean",
-                "description": "Return only jobs whose last run failed or is overdue. Default false.",
+                "description": "Only failing or overdue jobs. Default false.",
             },
         },
     },

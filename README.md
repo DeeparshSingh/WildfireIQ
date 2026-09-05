@@ -112,7 +112,7 @@ The backend exposes a small REST API; every response uses a `{data, meta}` envel
 | Evacuation | `/api/evac/active`, `/api/evac/check` |
 | Preparedness | `/api/firesmart/checklist`, `/api/firesmart/score`, `/api/firesmart/achievements`, `/api/firesmart/neighbourhoods`, `/api/firesmart/season-context` |
 | Climate | `/api/climate/seasonal`, `/api/climate/trends`, `/api/climate/ribbon`, `/api/climate/projection(s-all)`, `/api/climate/fwi-projection`, `/api/climate/tru-carbon` |
-| Assistant | `/api/assistant/chat` (SSE), `/api/assistant/tools`, `/api/assistant/brief`, `/api/assistant/health` |
+| Assistant | `/api/assistant/chat` (SSE, rate- and budget-limited), `/api/assistant/tools`, `/api/assistant/brief`, `/api/assistant/health` |
 | Admin / system | `/api/admin/jobs`, `/api/admin/runs`, `/healthz` |
 
 The climate endpoints accept `?format=csv` for the "Download CSV" buttons. Historical and reference endpoints carry a longer `Cache-Control` than live ones.
@@ -248,6 +248,7 @@ make risk-features     # rebuild features_risk_daily + cell_density
 make research-assets   # mirror model cards into apps/web/public/research/
 make prune-raw         # trim data/raw/ to each job's retention limit
 make assistant-smoke   # one live assistant call (needs OPENROUTER_API_KEY)
+make assistant-eval    # 32-case live evaluation across every data surface (~$0.05)
 make lint              # ruff check + format check
 make test              # backend pytest suite
 make typecheck         # frontend TypeScript check
@@ -275,7 +276,7 @@ make build             # production build of the frontend
 ## Tests
 
 ```bash
-make test                  # backend — 137 pytest (ingest, routers, data quality, trends, risk regions, pipeline, assistant)
+make test                  # backend — 159 pytest (ingest, routers, data quality, trends, risk regions, pipeline, assistant)
 cd apps/web && pnpm test   # frontend — 36 vitest (hooks, utilities, assistant stream + renderer)
 ```
 
@@ -287,6 +288,7 @@ cd apps/web && pnpm test   # frontend — 36 vitest (hooks, utilities, assistant
 - **The CMIP6 climate projections are a synthetic placeholder** with the correct shape, not the live ClimateData.ca download. The trend direction is illustrative; absolute values shift once the real ensemble is dropped into `data/processed/climate_projections.parquet` (no code change needed). This is disclosed on the climate page.
 - **The decade-by-decade FWI projection is a coarse one-variable extrapolation**, disclosed in its method note.
 - **Air quality forecasting is single-point (Kamloops).** It cannot see a smoke plume arriving from outside the region until local readings begin to rise.
+- **The assistant is rate- and budget-limited, not authenticated.** It is the one endpoint that spends money, and the platform has no accounts, so access control is 4 questions a minute and 30 an hour per caller, 4 concurrent runs, and a rolling $2/day ceiling that does not care who is asking. Exposed publicly without a proxy, the per-caller limits key on a spoofable header; the spend ceiling is the backstop.
 - **The assistant answers only from this platform's data.** It has 25 tools and a live situation brief, and it is instructed never to state a number that did not come from one of them — but it is a language model, and the honest framing is that its tool results are trustworthy while its prose about them is not proof. Every answer shows which sources it consulted so the claim can be checked. It is informational, and it defers to 911, EmergencyInfoBC and the BC Wildfire Service for anything urgent.
 - **The risk grid covers four modelled regions** (Thompson-Okanagan, Central Okanagan, Lower Mainland, Prince George); the climate-trend metrics remain Thompson-Okanagan only. Live hazard layers (fires, hotspots, evacuation, FWI, AQHI, smoke) cover the whole province.
 

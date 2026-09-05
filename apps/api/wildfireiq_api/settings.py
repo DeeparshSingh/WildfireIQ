@@ -84,10 +84,35 @@ class Settings(BaseSettings):
     assistant_max_steps: int = Field(default=5, ge=1, le=10)
     assistant_max_tool_calls: int = Field(default=12, ge=1, le=40)
     assistant_timeout_s: float = Field(default=90.0)
+    # Output budget per model turn. GLM 5.3 Flash is a reasoning model: its
+    # private thinking shares this allowance with the answer, so a turn that
+    # thinks hard about a forecast can spend the lot and return nothing.
+    # 3,000 leaves ample headroom for both; at $0.25/M output the ceiling
+    # costs under a tenth of a cent even when fully used.
+    assistant_max_output_tokens: int = Field(default=3000, ge=500)
+    # How hard the model thinks before answering. OpenRouter reserves the
+    # reasoning allowance first and writes the answer from what is left, so
+    # this is the single biggest lever on both latency and the risk of a
+    # turn thinking itself out of room. "low" keeps tool selection sharp on
+    # the evaluation suite while cutting the slowest answers roughly in
+    # half. "none" disables thinking; "high" is for debugging a hard case.
+    assistant_reasoning_effort: str = Field(default="low")
     # Attribution headers OpenRouter shows on its dashboards. Harmless if
     # the app is never public.
     assistant_referer: str = Field(default="https://github.com/DeeparshSingh/WildfireIQ")
     assistant_title: str = Field(default="WildfireIQ Kamloops")
+
+    # ── Assistant abuse + spend limits ───────────────────────────────
+    # This is the only endpoint whose cost is money rather than CPU, and
+    # the platform has no accounts to bill it to, so the limits are the
+    # access control. See assistant/guard.py.
+    assistant_rate_per_minute: int = Field(default=4, ge=1)
+    assistant_rate_per_hour: int = Field(default=30, ge=1)
+    assistant_max_concurrent: int = Field(default=4, ge=1)
+    # A rolling 24-hour ceiling in USD. At the measured ~$0.003 for a
+    # researched answer, $2 is roughly 600 questions a day — generous for a
+    # research deployment, and a hard stop against anything pathological.
+    assistant_daily_cost_limit_usd: float = Field(default=2.0, gt=0)
 
 
 @lru_cache

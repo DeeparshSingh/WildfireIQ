@@ -14,18 +14,20 @@ from .. import gazetteer
 from .base import ToolArgumentError
 
 #: Reusable JSON Schema fragment. Spread into a tool's `properties`.
+#:
+#: Deliberately terse: this block appears in ten of the twenty-five tool
+#: schemas, and every schema is re-sent to the model on every turn of every
+#: run, so a sentence saved here is saved ten times per turn.
 LOCATION_PROPERTIES: dict[str, Any] = {
     "place": {
         "type": "string",
         "description": (
-            "Place name in British Columbia — a city, town, modelled region, "
-            "or Kamloops neighbourhood (e.g. 'Kelowna', 'Logan Lake', "
-            "'Aberdeen, Kamloops'). Use this rather than coordinates whenever "
-            "the user named a place."
+            "BC place name — city, town, modelled region, or Kamloops "
+            "neighbourhood. Prefer this when the user named a place."
         ),
     },
-    "lat": {"type": "number", "description": "Latitude in decimal degrees."},
-    "lon": {"type": "number", "description": "Longitude in decimal degrees."},
+    "lat": {"type": "number", "description": "Latitude, decimal degrees."},
+    "lon": {"type": "number", "description": "Longitude, decimal degrees."},
 }
 
 LOCATION_HINT = (

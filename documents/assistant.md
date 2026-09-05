@@ -168,30 +168,49 @@ rebuilt server-side every time.
 
 ## Cost
 
-Measured, not estimated. The per-turn floor is about **6,200 input tokens**:
-~1,100 for the system prompt, ~150 for the brief, and ~5,000 for the 25 tool
-schemas, all of which are re-sent on every turn of a run.
+Measured across the 32-case evaluation suite, not estimated.
 
-| Question | Turns | Tokens | Cost |
+| | Prompt tokens | Cost | Latency |
 |---|---:|---:|---:|
-| Answered from the brief alone | 1 | ~6,200 in | well under a tenth of a cent |
-| Two tools, measured live | 3 | 19,161 in / 1,395 out | **$0.0033** |
+| Answered from the brief alone | ~6,000 | $0.0007-$0.0009 | 2-8 s |
+| One or more tools | 12,000-20,000 | $0.0013-$0.0023 | 4-20 s |
+| **Whole 32-case sweep** | — | **$0.043** ($0.0013/case) | median **6.1 s** |
 
-So a third of a cent for a researched answer, and roughly a tenth of that
-for one the brief already covers. Every run reports its actual OpenRouter
-charge in the `usage` event — the table above is what it reported, not what
-the price list implies.
+The per-turn floor is about 6,100 tokens: ~1,400 for the system prompt,
+~150 for the brief, and ~4,700 for the 25 tool schemas, all re-sent on
+every turn of a run. A third of the suite needs no tool at all, which is
+the brief paying for itself.
 
-The tool schemas dominate, and they are the deliberate trade: their
-descriptions are what let the model pick `get_air_quality` and then
-`get_health_guidance` unprompted rather than guessing. Two things keep the
-total down instead: the brief, which removes the tool round trip from the
-common case, and per-tool result caching (60 s for live feeds, 15 minutes
-for the risk grid, an hour for documentation and climate history), which is
-sound because the underlying parquet only moves when an ingest job runs.
+### Where the time went
 
-Latency tracks turns rather than tokens: the measured two-tool answer took
-36 s across three sequential model turns. A brief-only answer is one turn.
+The first sweep ran at a median of 16 s and a worst case of **90 s**. Two
+findings fixed that, and both came from measuring rather than guessing:
+
+**GLM 5.3 Flash is a reasoning model, and OpenRouter reserves its thinking
+allowance before the answer is written.** A turn that thought hard about a
+forecast spent the whole `max_tokens` budget on reasoning and returned
+empty — billing 1,900 completion tokens for a blank answer. Four of the
+first thirty-two cases failed that way. Raising the ceiling to 3,000 fixed
+the blanks but let answers sprawl to 3,600 tokens.
+
+**Capping reasoning effort was the real lever.** Setting
+`reasoning: {"effort": "low"}` cut the median from 16 s to 6 s and the
+worst case from 90 s to under 30 s, with the evaluation suite still at
+32/32 — the thinking was not buying correctness, only time. It is a
+setting (`ASSISTANT_REASONING_EFFORT`) because a harder model or a harder
+question might need more.
+
+Three further things keep the total down: the brief, which removes the
+tool round trip from the common case; per-tool result caching (60 s for
+live feeds, 15 minutes for the risk grid, an hour for documentation and
+climate history), sound because the underlying parquet only moves when an
+ingest job runs; and dropping duplicate tool calls within a turn.
+
+The tool schemas dominate the token floor, and they stay verbose on
+purpose: their descriptions are what let the model reach for
+`get_health_guidance` on an asthma question without being told to.
+Trimming their prose bought back about 340 tokens a turn — real, but a
+rounding error beside the cost of picking the wrong tool.
 
 ## Configuration
 
@@ -206,10 +225,61 @@ ASSISTANT_MAX_TOOL_CALLS=12
 echoing the key. The frontend renders nothing at all when either is false,
 rather than offering a button that can only produce an error.
 
+## Abuse and spend limits
+
+This is the only endpoint in the backend whose cost is money rather than
+CPU, and the platform has no accounts to bill it to. Three limits in
+`assistant/guard.py` stand in for access control:
+
+| Limit | Default | Stops |
+|---|---|---|
+| Per-caller, per minute | 4 | one person or a broken script hammering it |
+| Per-caller, per hour | 30 | sustained monopolisation |
+| Rolling 24-hour spend | $2.00 | a distributed burst, or a popular day, emptying the account |
+| Concurrent runs | 4 | a burst opening fifty upstream connections at once |
+
+Rate limits key on the caller address, which behind a proxy comes from
+`X-Forwarded-For` and is therefore spoofable if the app is exposed
+directly. That is exactly why the spend ceiling exists and does not
+consult it: it is the backstop that does not care who is asking. Spend is
+booked from OpenRouter's own reported charge after each run, so the
+ceiling can be overshot by at most the runs already in flight.
+
+All three are in-process, matching the rest of this backend — one uvicorn
+process, no Redis. A multi-process deployment would need shared state.
+`GET /api/assistant/health` publishes the current numbers.
+
+## Resisting misuse
+
+- The system prompt is rebuilt server-side every request. `sanitise_history`
+  accepts only `user` and `assistant` roles, so a `system` turn posted by a
+  caller cannot arrive with the authority of the real one, and the Pydantic
+  schema rejects it before that.
+- **Tool results are data, never instructions.** They carry text from
+  upstream feeds — fire names, evacuation event names, document extracts —
+  which the assistant reports but never obeys.
+- Refusals are evaluated, not assumed. The suite includes prompt
+  extraction, a persona override demanding the assistant call a High-risk
+  area "completely safe", pressure to fabricate a figure the platform does
+  not hold, off-topic coding requests, and general-knowledge questions.
+- UI effects come from a closed, server-validated vocabulary, and
+  `navigate` accepts in-app paths only.
+
 ## Testing
 
-`apps/api/tests/test_assistant.py` runs entirely offline: a scripted client
-replays model turns, so the loop — budgets, parallel fan-out, tool errors,
-malformed arguments, event ordering, the safety tripwire — is exercised
-without spending anything upstream. `make assistant-smoke` is the one
-target that does spend, and it makes a single call.
+Two layers, and the split is deliberate.
+
+`apps/api/tests/test_assistant.py` — 155 tests, entirely offline. A
+scripted client replays model turns, so the loop, budgets, parallel
+fan-out, tool errors, malformed arguments, event ordering, the safety
+tripwire, the rate limiter and the spend ceiling are all exercised without
+spending anything upstream. This runs in CI.
+
+`make assistant-eval` — 32 live cases across every data surface, each
+declaring which tools should run, what the answer must and must not
+contain, and whether an effect or safety notice is expected. It costs
+about $0.05 a sweep and catches what a scripted model cannot: whether the
+real model picks the right tool, honours the grounding rules, and refuses
+what it should. Both regressions fixed after the first live runs — the
+inferred proximity claim and the narrated compass bearing — are now cases
+in it. `make assistant-smoke` runs a single traced question.

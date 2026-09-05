@@ -54,15 +54,15 @@ PAGES: dict[str, str] = {
             "layer": {
                 "type": "string",
                 "enum": list(LAYERS),
-                "description": "Layer to switch on as the camera arrives.",
+                "description": "Layer to switch on when the camera arrives.",
             },
             "zoom_km": {
                 "type": "number",
-                "description": "Roughly how wide a view to frame, 2-500 km. Default 60.",
+                "description": "View width in km, 2-500. Default 60.",
             },
             "label": {
                 "type": "string",
-                "description": "Short caption for what the user is being shown.",
+                "description": "Short caption for the view.",
             },
         },
     },
@@ -159,7 +159,7 @@ def set_map_layer(layer: str, visible: bool) -> ToolResult:
             },
             "reason": {
                 "type": "string",
-                "description": "One short phrase on why, shown to the user.",
+                "description": "Short phrase on why, shown to the user.",
             },
         },
         "required": ["page"],
@@ -174,4 +174,12 @@ def open_page(page: str, reason: str | None = None) -> ToolResult:
         data={"page": page, "path": PAGES[page], "reason": reason},
         source="WildfireIQ navigation",
         effects=[{"type": "navigate", "path": PAGES[page], "label": reason or page}],
+        # Said here rather than only in the system prompt because this is
+        # where the temptation arises. Left to itself the model treats
+        # navigating as the whole reply — "The climate page is now open" was
+        # its entire answer to a question about fire-danger days.
+        note=(
+            "The page is open. This is NOT an answer. The user asked a question and "
+            "still needs it answered in text, with the actual figures. Answer it now."
+        ),
     )

@@ -111,12 +111,24 @@ class Usage:
 
 @dataclass(slots=True)
 class StepResult:
-    """Everything one model turn produced."""
+    """Everything one model turn produced.
+
+    `reasoning_chars` counts the model's private thinking channel. It is
+    never shown and never fed back, but it is billed as output and it
+    shares the `max_tokens` budget with the answer — so when a turn comes
+    back empty, this is the number that explains why.
+    """
 
     text: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
     finish_reason: str | None = None
     usage: Usage = field(default_factory=Usage)
+    reasoning_chars: int = 0
+
+    @property
+    def truncated(self) -> bool:
+        """The turn ran out of output budget before it finished."""
+        return self.finish_reason == "length"
 
 
 class _ToolCallAccumulator:
@@ -195,10 +207,12 @@ class OpenRouterClient:
         referer: str = "",
         title: str = "",
         timeout_s: float = 90.0,
+        reasoning_effort: str | None = None,
     ) -> None:
         if not api_key:
             raise OpenRouterError("OPENROUTER_API_KEY is not set")
         self.model = model
+        self.reasoning_effort = reasoning_effort
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -231,6 +245,11 @@ class OpenRouterClient:
             # the harness can surface a real number rather than an estimate.
             "usage": {"include": True},
         }
+        if self.reasoning_effort:
+            # OpenRouter reserves the reasoning allowance before the answer
+            # is written, so capping effort protects the answer as well as
+            # the clock. Models that do not reason ignore this.
+            body["reasoning"] = {"effort": self.reasoning_effort}
         if tools:
             body["tools"] = tools
             body["tool_choice"] = "auto"
@@ -243,7 +262,7 @@ class OpenRouterClient:
         *,
         on_text: Callable[[str], Any] | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 1600,
+        max_tokens: int = 3000,
     ) -> StepResult:
         """Run one model turn, streaming text deltas to `on_text`.
 
@@ -286,6 +305,8 @@ class OpenRouterClient:
                                 maybe = on_text(text)
                                 if hasattr(maybe, "__await__"):
                                     await maybe
+                        if reasoning := delta.get("reasoning"):
+                            result.reasoning_chars += len(str(reasoning))
                         if frags := delta.get("tool_calls"):
                             acc.add(frags)
                         if reason := choice.get("finish_reason"):

@@ -27,6 +27,7 @@ help:
 	@echo "  make region-weather    Rebuild each region's daily weather archive"
 	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
 	@echo "  make assistant-smoke   One live assistant call (needs OPENROUTER_API_KEY)"
+	@echo "  make assistant-eval    Live eval suite across every data surface (~30 calls)"
 	@echo "  make lint              Ruff check the backend"
 	@echo "  make research-assets   Mirror model cards + plots into apps/web/public/research/"
 	@echo "  make test              Run the Python test suite"
@@ -106,6 +107,13 @@ prune-raw:
 .PHONY: assistant-smoke
 assistant-smoke:
 	cd apps/api && uv run python -m wildfireiq_api.assistant.smoke $(if $(Q),"$(Q)",)
+
+# The live evaluation suite: ~30 questions across every data surface, each
+# with expectations about tool choice, grounding, scope and refusal. Costs
+# roughly $0.003 a case. ONLY=<substring> runs a subset.
+.PHONY: assistant-eval
+assistant-eval:
+	cd apps/api && uv run python -m wildfireiq_api.assistant.evals $(if $(ONLY),--only $(ONLY),) $(if $(VERBOSE),--verbose,)
 
 .PHONY: test
 test:

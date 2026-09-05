@@ -248,7 +248,9 @@ async def test_tools_are_withdrawn_on_the_final_step_so_an_answer_is_forced() ->
 
 
 async def test_the_tool_call_budget_is_enforced() -> None:
-    many = [ToolCall(f"c{i}", "resolve_place", '{"query":"kamloops"}') for i in range(10)]
+    # Distinct arguments, so the budget is what trims the list and not the
+    # duplicate filter.
+    many = [ToolCall(f"c{i}", "resolve_place", f'{{"query":"place{i}"}}') for i in range(10)]
     script = [StepResult(tool_calls=many), StepResult(text="Enough.")]
     _, events = await _run(script, assistant_max_tool_calls=4)
 
@@ -828,3 +830,335 @@ async def test_a_location_free_fire_query_omits_direction_rather_than_guessing()
     assert execution.ok
     for incident in execution.result.data["incidents"]:
         assert "direction" not in incident
+
+
+# ─── Abuse and spend controls ────────────────────────────────────────
+
+
+def _guard(**overrides):
+    from wildfireiq_api.assistant.guard import AssistantGuard
+
+    base = {
+        "per_minute": 3,
+        "per_hour": 10,
+        "daily_cost_limit_usd": 1.0,
+        "max_concurrent": 2,
+    }
+    return AssistantGuard(**{**base, **overrides})
+
+
+def test_a_caller_is_throttled_per_minute_and_per_hour() -> None:
+    guard = _guard(per_minute=3, per_hour=5)
+
+    assert all(guard.check("1.2.3.4", now=100.0 + i).allowed for i in range(3))
+    blocked = guard.check("1.2.3.4", now=103.0)
+    assert not blocked.allowed
+    assert "minute" in blocked.reason
+    assert blocked.retry_after_s == 60
+
+    # A minute later the per-minute window has slid, but the hourly count
+    # has not: two more get through, then the hour limit bites.
+    assert guard.check("1.2.3.4", now=200.0).allowed
+    assert guard.check("1.2.3.4", now=201.0).allowed
+    hourly = guard.check("1.2.3.4", now=202.0)
+    assert not hourly.allowed and "hour" in hourly.reason
+
+
+def test_callers_are_limited_independently() -> None:
+    guard = _guard(per_minute=2)
+    assert guard.check("a", now=10.0).allowed
+    assert guard.check("a", now=11.0).allowed
+    assert not guard.check("a", now=12.0).allowed
+    assert guard.check("b", now=12.0).allowed, "one caller must not throttle another"
+
+
+def test_the_hourly_window_actually_expires() -> None:
+    guard = _guard(per_minute=10, per_hour=2)
+    assert guard.check("a", now=0.0).allowed
+    assert guard.check("a", now=1.0).allowed
+    assert not guard.check("a", now=2.0).allowed
+    assert guard.check("a", now=3700.0).allowed, "an hour later the allowance is fresh"
+
+
+def test_the_daily_spend_ceiling_stops_everyone_regardless_of_caller() -> None:
+    """The rate limits key on a spoofable address. The budget does not."""
+    guard = _guard(daily_cost_limit_usd=0.05)
+    guard.record_spend(0.03, now=0.0)
+    assert guard.check("a", now=1.0).allowed
+
+    guard.record_spend(0.03, now=2.0)
+    for caller in ("a", "b", "a-brand-new-address"):
+        verdict = guard.check(caller, now=3.0)
+        assert not verdict.allowed
+        assert "budget" in verdict.reason
+        assert verdict.retry_after_s and verdict.retry_after_s > 86_000
+
+
+def test_spend_falls_out_of_the_window_after_a_day() -> None:
+    guard = _guard(daily_cost_limit_usd=0.05)
+    guard.record_spend(0.06, now=0.0)
+    assert not guard.check("a", now=10.0).allowed
+    assert guard.check("a", now=86_500.0).allowed
+    assert guard.snapshot()["spent_24h_usd"] == 0
+
+
+def test_concurrency_is_capped_and_the_slot_is_returned() -> None:
+    guard = _guard(max_concurrent=2)
+    guard.enter()
+    guard.enter()
+    verdict = guard.check("a", now=1.0)
+    assert not verdict.allowed and "at once" in verdict.reason
+
+    guard.leave()
+    assert guard.check("a", now=2.0).allowed
+    guard.leave()
+    assert guard.snapshot()["in_flight"] == 0
+
+
+def test_the_caller_table_cannot_grow_without_bound() -> None:
+    """A spray of distinct source addresses must not exhaust memory."""
+    from wildfireiq_api.assistant import guard as guard_module
+
+    guard = _guard(per_minute=1000, per_hour=1000)
+    for i in range(guard_module._MAX_TRACKED_CALLERS + 500):
+        guard.check(f"10.0.{i // 256}.{i % 256}", now=float(i))
+    assert guard.snapshot()["callers_tracked"] <= guard_module._MAX_TRACKED_CALLERS
+
+
+def test_a_forwarded_address_is_preferred_when_present() -> None:
+    from wildfireiq_api.assistant.guard import caller_id
+
+    assert caller_id("203.0.113.9, 10.0.0.1", "10.0.0.1") == "203.0.113.9"
+    assert caller_id(None, "10.0.0.1") == "10.0.0.1"
+    assert caller_id("", None) == "unknown"
+    assert len(caller_id("x" * 500, None)) <= 64
+
+
+def test_negative_or_zero_spend_is_ignored() -> None:
+    guard = _guard()
+    guard.record_spend(0.0)
+    guard.record_spend(-5.0)
+    assert guard.snapshot()["runs_24h"] == 0
+
+
+def test_the_chat_endpoint_returns_429_with_retry_after_when_throttled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from wildfireiq_api import settings as settings_module
+    from wildfireiq_api.assistant import guard as guard_module
+
+    settings_module.get_settings.cache_clear()
+    guard_module.reset_guard()
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("ASSISTANT_RATE_PER_MINUTE", "1")
+    monkeypatch.setenv("ASSISTANT_RATE_PER_HOUR", "1")
+
+    body = {"messages": [{"role": "user", "content": "hello"}]}
+    try:
+        # The first request is admitted; it then fails upstream on the fake
+        # key, which is fine — admission is what is under test.
+        client.post("/api/assistant/chat?stream=false", json=body)
+        second = client.post("/api/assistant/chat?stream=false", json=body)
+        assert second.status_code == 429
+        assert "Retry-After" in second.headers
+    finally:
+        settings_module.get_settings.cache_clear()
+        guard_module.reset_guard()
+
+
+def test_health_publishes_the_limits_without_exposing_the_key(client: TestClient) -> None:
+    body = client.get("/api/assistant/health").json()
+    assert "limits" in body
+    assert body["limits"]["daily_cost_limit_usd"] > 0
+    assert "sk-" not in str(body)
+
+
+# ─── Eval-suite integrity (the suite itself, not a live run) ─────────
+
+
+def test_every_eval_case_names_real_tools_and_a_real_effect() -> None:
+    """A typo in an expectation would make the live suite pass wrongly."""
+    from wildfireiq_api.assistant.evals import CASES
+
+    known = set(toolkit.REGISTRY)
+    effects = {"fly_to", "set_layer", "navigate"}
+    ids = [c.id for c in CASES]
+    assert len(ids) == len(set(ids)), "duplicate case id"
+
+    for case in CASES:
+        for name in (*case.expect_any_tool, *case.expect_all_tools, *case.forbid_tools):
+            assert name in known, f"{case.id} references unknown tool {name!r}"
+        if case.expect_effect:
+            assert case.expect_effect in effects, f"{case.id} expects unknown effect"
+        assert case.question.strip(), f"{case.id} has no question"
+
+
+def test_the_eval_suite_covers_every_data_surface() -> None:
+    """Cheap guard against a tool being added and never exercised live."""
+    from wildfireiq_api.assistant.evals import CASES
+
+    exercised = {t for c in CASES for t in (*c.expect_any_tool, *c.expect_all_tools)}
+    for tag in ("risk", "fires", "evac", "air", "weather", "climate", "prepare", "reference", "ui"):
+        tagged = {name for name, spec in toolkit.REGISTRY.items() if tag in spec.tags}
+        assert tagged & exercised, f"no eval case exercises any {tag} tool"
+
+
+def test_eval_checks_catch_the_failures_they_are_meant_to() -> None:
+    from wildfireiq_api.assistant.evals import Case, Outcome, check
+
+    case = Case(
+        id="x",
+        question="q",
+        expect_all_tools=("get_active_fires",),
+        must_not_mention=("Falkland",),
+        expect_effect="fly_to",
+        max_tools=1,
+    )
+    bad = Outcome(case=case, text="It is southwest near Falkland.", tools=["a", "b"])
+    problems = " | ".join(check(case, bad))
+    assert "never called get_active_fires" in problems
+    assert "Falkland" in problems
+    assert "no fly_to effect" in problems
+    assert "expected at most 1" in problems
+
+    good = Outcome(
+        case=case, text="Nearest is Vernon.", tools=["get_active_fires"], effects=["fly_to"]
+    )
+    assert check(case, good) == []
+
+
+async def test_an_answer_written_alongside_a_tool_call_is_not_lost() -> None:
+    """Regression from the first live eval sweep.
+
+    Four of thirty-two cases returned an empty answer while billing for
+    ~1,900 completion tokens. The model had written its whole reply in the
+    same turn as a final tool call — `show_on_map`, `get_health_guidance` —
+    and the next turn came back silent. The reply was treated as a plan and
+    discarded.
+    """
+    script = [
+        StepResult(
+            text="The AQHI is 2.4, which is Low Risk, so a run this evening is fine.",
+            tool_calls=[ToolCall("c1", "show_on_map", '{"place":"Kamloops"}')],
+        ),
+        StepResult(text=""),  # nothing further to say
+    ]
+    _, events = await _run(script)
+
+    done = _first(events, "done")
+    assert done is not None
+    assert "Low Risk" in done.data["text"], "the answer was thrown away"
+    assert _first(events, "recovered") is not None, "recovery should be announced"
+
+
+async def test_a_genuine_plan_is_still_kept_out_of_the_answer() -> None:
+    """The recovery must not undo the behaviour it backs up: when the model
+    does answer on its final turn, the earlier preamble stays a note."""
+    script = [
+        StepResult(
+            text="Let me check that.",
+            tool_calls=[ToolCall("c1", "resolve_place", '{"query":"kamloops"}')],
+        ),
+        StepResult(text="Kamloops is in the Thompson-Okanagan."),
+    ]
+    _, events = await _run(script)
+
+    done = _first(events, "done")
+    assert done is not None
+    assert done.data["text"] == "Kamloops is in the Thompson-Okanagan."
+    assert "Let me check that." not in done.data["text"]
+    assert _first(events, "recovered") is None
+
+
+async def test_a_turn_that_asks_for_the_same_call_twice_runs_it_once() -> None:
+    script = [
+        StepResult(
+            tool_calls=[
+                ToolCall("a", "resolve_place", '{"query":"kamloops"}'),
+                ToolCall("b", "resolve_place", '{"query":"kamloops"}'),
+                ToolCall("c", "resolve_place", '{"query":"kelowna"}'),
+            ]
+        ),
+        StepResult(text="Both are in BC."),
+    ]
+    _, events = await _run(script)
+
+    calls = [e for e in events if e.name == "tool_call"]
+    assert len(calls) == 2, "the identical repeat should have been dropped"
+    assert {c.data["arguments"] for c in calls} == {
+        '{"query":"kamloops"}',
+        '{"query":"kelowna"}',
+    }
+
+
+async def test_the_same_tool_with_different_arguments_is_not_collapsed() -> None:
+    """Three FireSmart zones in one turn are three legitimate calls."""
+    script = [
+        StepResult(
+            tool_calls=[
+                ToolCall("a", "get_firesmart_actions", '{"zone":"immediate"}'),
+                ToolCall("b", "get_firesmart_actions", '{"zone":"extended"}'),
+            ]
+        ),
+        StepResult(text="Done."),
+    ]
+    _, events = await _run(script)
+    assert len([e for e in events if e.name == "tool_call"]) == 2
+
+
+async def test_a_turn_truncated_by_its_output_budget_is_logged_not_swallowed() -> None:
+    """GLM 5.3 Flash is a reasoning model, and its private thinking shares
+    the output allowance with the answer. A turn that thinks too long comes
+    back with `finish_reason: length` and no content — which is how a live
+    evaluation case billed 1,905 tokens and rendered blank."""
+    from wildfireiq_api.assistant.openrouter import StepResult as SR
+
+    assert SR(text="", finish_reason="length").truncated
+    assert not SR(text="done", finish_reason="stop").truncated
+
+
+async def test_a_silent_model_never_produces_a_blank_bubble() -> None:
+    """If every fallback is empty, say so rather than rendering nothing."""
+    _, events = await _run([StepResult(text="", finish_reason="length")])
+    done = _first(events, "done")
+    assert done is not None
+    assert done.data["text"], "an empty answer must be replaced with an explanation"
+    assert "did not manage" in done.data["text"]
+
+
+async def test_the_configured_output_budget_reaches_the_model() -> None:
+    class Recorder(FakeClient):
+        def __init__(self) -> None:
+            super().__init__([StepResult(text="ok")])
+            self.max_tokens: list[int] = []
+
+        async def stream_step(self, messages, tools=None, *, on_text=None, **kwargs):
+            self.max_tokens.append(kwargs.get("max_tokens", -1))
+            return await super().stream_step(messages, tools, on_text=on_text)
+
+    recorder = Recorder()
+    async for _ in harness.run_conversation(
+        harness.ChatRequest(messages=[{"role": "user", "content": "hi"}]),
+        settings=_settings(assistant_max_output_tokens=2222),
+        client=recorder,  # type: ignore[arg-type]
+    ):
+        pass
+    assert recorder.max_tokens == [2222]
+
+
+def test_reasoning_effort_is_sent_and_omitted_when_unset() -> None:
+    """OpenRouter reserves the reasoning allowance before writing the
+    answer, so this setting protects the answer as well as the clock."""
+    from wildfireiq_api.assistant.openrouter import OpenRouterClient
+
+    capped = OpenRouterClient(api_key="k", model="m", reasoning_effort="low")
+    body = capped._body(
+        [{"role": "user", "content": "hi"}], None, stream=True, temperature=0.2, max_tokens=100
+    )
+    assert body["reasoning"] == {"effort": "low"}
+    assert body["usage"] == {"include": True}
+
+    default = OpenRouterClient(api_key="k", model="m")
+    assert "reasoning" not in default._body(
+        [{"role": "user", "content": "hi"}], None, stream=True, temperature=0.2, max_tokens=100
+    )

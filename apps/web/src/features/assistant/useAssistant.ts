@@ -240,8 +240,21 @@ export function useAssistant() {
             case "error":
               actions.setError(id, String(data.message));
               break;
-            case "done":
+            case "done": {
+              // The server's `done` carries the authoritative answer. It
+              // normally matches what was streamed, but when the model wrote
+              // its answer in the same turn as a tool call, that text was
+              // moved into the activity trail by `step_end` and the bubble is
+              // empty. Restoring it here keeps the answer visible.
+              const finalText = String(data.text ?? "");
+              const current = useAssistantStore
+                .getState()
+                .messages.find((m) => m.id === id);
+              if (finalText && !current?.content.trim()) {
+                actions.appendToken(id, finalText);
+              }
               break;
+            }
           }
         }
       } catch (err) {

@@ -16,13 +16,14 @@ import asyncio
 from collections.abc import AsyncIterator
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from ..settings import get_settings
 from . import tools as toolkit
 from .brief import brief_metadata, build_brief
+from .guard import caller_id, get_guard
 from .harness import ChatRequest, answer, availability, event_to_sse, run_conversation
 from .prompts import STARTER_PROMPTS
 
@@ -76,7 +77,7 @@ def _require_available() -> None:
 
 @router.get("/health", summary="Whether the assistant is configured and what it can do")
 async def health() -> dict[str, Any]:
-    return {**availability(), "brief": brief_metadata()}
+    return {**availability(), "brief": brief_metadata(), "limits": get_guard().snapshot()}
 
 
 @router.get("/tools", summary="The assistant's toolset")
@@ -96,20 +97,47 @@ async def brief() -> dict[str, Any]:
 
 
 @router.post("/chat", summary="Ask the assistant a question")
-async def chat(body: ChatBody, stream: bool = True) -> Any:
+async def chat(request: Request, body: ChatBody, stream: bool = True) -> Any:
     _require_available()
     settings = get_settings()
-    request = ChatRequest(
+
+    guard = get_guard()
+    caller = caller_id(
+        request.headers.get("x-forwarded-for"),
+        request.client.host if request.client else None,
+    )
+    verdict = guard.check(caller)
+    if not verdict.allowed:
+        headers = {"Retry-After": str(verdict.retry_after_s)} if verdict.retry_after_s else {}
+        raise HTTPException(429, verdict.reason or "Too many requests", headers=headers)
+
+    chat_request = ChatRequest(
         messages=[m.model_dump() for m in body.messages],
         context=body.context.model_dump(exclude_none=True) if body.context else None,
     )
 
     if not stream:
-        return await answer(request, settings=settings)
+        guard.enter()
+        try:
+            result = await answer(chat_request, settings=settings)
+        finally:
+            guard.leave()
+        guard.record_spend(float((result.get("usage") or {}).get("cost_usd") or 0.0))
+        return result
 
     async def frames() -> AsyncIterator[str]:
-        async for event in run_conversation(request, settings=settings):
-            yield event_to_sse(event)
+        # The concurrency slot is held for the life of the stream, and
+        # released in `finally` so a browser that closes the tab mid-answer
+        # does not leak it. The spend is booked from the run's own `usage`
+        # event, which carries OpenRouter's actual charge.
+        guard.enter()
+        try:
+            async for event in run_conversation(chat_request, settings=settings):
+                if event.name == "usage":
+                    guard.record_spend(float(event.data.get("cost_usd") or 0.0))
+                yield event_to_sse(event)
+        finally:
+            guard.leave()
 
     return StreamingResponse(
         frames(),

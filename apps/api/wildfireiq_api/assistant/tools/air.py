@@ -42,7 +42,7 @@ def _aqhi_band(aqhi: float | None) -> str:
             **LOCATION_PROPERTIES,
             "within_km": {
                 "type": "number",
-                "description": "Only report stations within this radius. Default 150.",
+                "description": "Station radius in km. Default 150.",
             },
         },
     },
@@ -124,7 +124,7 @@ def get_air_quality(
         "properties": {
             "hours": {
                 "type": "integer",
-                "description": "Horizon to report, up to 48. Default 48.",
+                "description": "Hours ahead, up to 48. Default 48.",
             }
         },
     },
@@ -195,12 +195,12 @@ def get_air_quality_forecast(hours: int = 48) -> ToolResult:
         "properties": {
             "aqhi": {
                 "type": "number",
-                "description": "AQHI value to look up. Omit to return every band.",
+                "description": "AQHI to look up. Omit for all bands.",
             },
             "audience": {
                 "type": "string",
                 "enum": ["general", "at_risk", "outdoor_workers", "all"],
-                "description": "Which advice line to return. Default 'all'.",
+                "description": "Default 'all'.",
             },
         },
     },
@@ -247,10 +247,10 @@ def get_health_guidance(aqhi: float | None = None, audience: str = "all") -> Too
     parameters={
         "type": "object",
         "properties": {
-            "days": {"type": "integer", "description": "Look-back window, 7-120. Default 60."},
+            "days": {"type": "integer", "description": "Look-back, 7-120. Default 60."},
             "smoky_threshold_pm25": {
                 "type": "number",
-                "description": "PM2.5 above which a day counts as smoky. Default 35 µg/m³ (Canada's 24-hour objective).",
+                "description": "Smoky-day threshold. Default 35 µg/m³ (Canada's 24-hour objective).",
             },
         },
     },

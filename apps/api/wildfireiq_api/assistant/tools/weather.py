@@ -27,15 +27,15 @@ WEATHER_SOURCE = "Open-Meteo · ECCC GEM-HRDPS"
             "kind": {
                 "type": "string",
                 "enum": ["current", "hourly", "daily"],
-                "description": "Which view to return. Default 'current'.",
+                "description": "Default 'current'.",
             },
             "hours": {
                 "type": "integer",
-                "description": "For kind='hourly', how many hours ahead (max 72). Default 24.",
+                "description": "For kind='hourly': hours ahead, max 72. Default 24.",
             },
             "days": {
                 "type": "integer",
-                "description": "For kind='daily', how many days (max 10). Default 5.",
+                "description": "For kind='daily': days, max 10. Default 5.",
             },
         },
     },
@@ -125,7 +125,7 @@ def get_weather(kind: str = "current", hours: int = 24, days: int = 5) -> ToolRe
             **LOCATION_PROPERTIES,
             "include_stations": {
                 "type": "boolean",
-                "description": "Include individual CWFIS ground stations. Default true.",
+                "description": "Include CWFIS ground stations. Default true.",
             },
         },
     },

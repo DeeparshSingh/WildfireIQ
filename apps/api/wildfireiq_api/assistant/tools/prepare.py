@@ -33,12 +33,12 @@ _ZONE_LABELS = {
             "dwelling": {
                 "type": "string",
                 "enum": ["house", "townhouse", "apartment", "mobile", "cabin"],
-                "description": "Dwelling type. Default 'house'.",
+                "description": "Default 'house'.",
             },
             "season": {
                 "type": "string",
                 "enum": ["spring", "summer", "fall", "winter"],
-                "description": "Season to prioritise for. Default 'summer'.",
+                "description": "Default 'summer'.",
             },
             "situation": {
                 "type": "array",
@@ -54,10 +54,7 @@ _ZONE_LABELS = {
                 "enum": list(_ZONE_LABELS),
                 "description": "Return only one zone's actions.",
             },
-            "limit": {
-                "type": "integer",
-                "description": "Max actions to return (max 20). Default 8.",
-            },
+            "limit": {"type": "integer", "description": "Max actions, up to 20. Default 8."},
         },
     },
     ttl_s=3600,
