@@ -5,8 +5,7 @@
  */
 export function RouteLoader({ label = "Loading…" }: { label?: string }) {
   return (
-    <div
-      role="status"
+    <output
       aria-busy
       aria-label={label}
       style={{
@@ -23,17 +22,10 @@ export function RouteLoader({ label = "Loading…" }: { label?: string }) {
           width="44"
           height="44"
           viewBox="0 0 44 44"
-          aria-hidden
+          aria-hidden="true"
           style={{ overflow: "visible" }}
         >
-          <circle
-            cx="22"
-            cy="22"
-            r="18"
-            stroke="hsl(220 15% 22%)"
-            strokeWidth="2"
-            fill="none"
-          />
+          <circle cx="22" cy="22" r="18" stroke="hsl(220 15% 22%)" strokeWidth="2" fill="none" />
           <circle
             cx="22"
             cy="22"
@@ -70,6 +62,6 @@ export function RouteLoader({ label = "Loading…" }: { label?: string }) {
           [aria-busy] circle:last-child { animation: none !important; }
         }
       `}</style>
-    </div>
+    </output>
   );
 }

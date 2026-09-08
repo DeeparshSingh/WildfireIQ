@@ -1,16 +1,16 @@
+import { AxisBottom, AxisLeft } from "@visx/axis";
+import { GridRows } from "@visx/grid";
+import { Group } from "@visx/group";
+import { scaleLinear } from "@visx/scale";
+import { AreaClosed, LinePath } from "@visx/shape";
 /**
  * Section 4 — "What's coming." July temperature projections under
  * SSP1-2.6 / SSP2-4.5 / SSP5-8.5 with ensemble q10–q90 bands. User toggles
  * scenarios via segmented control.
  */
 import { useState } from "react";
-import { AxisBottom, AxisLeft } from "@visx/axis";
-import { GridRows } from "@visx/grid";
-import { Group } from "@visx/group";
-import { scaleLinear } from "@visx/scale";
-import { AreaClosed, LinePath } from "@visx/shape";
 
-import { useProjectionsAll, type ProjectionRow } from "@/lib/api/hooks";
+import { type ProjectionRow, useProjectionsAll } from "@/lib/api/hooks";
 
 import { InfoChip } from "./InfoChip";
 import { SectionShell } from "./SectionShell";
@@ -18,9 +18,24 @@ import { SectionShell } from "./SectionShell";
 type Ssp = "ssp126" | "ssp245" | "ssp585";
 
 const SCENARIOS: { id: Ssp; label: string; colour: string; band: string }[] = [
-  { id: "ssp126", label: "SSP1-2.6 · low", colour: "hsl(140 55% 55%)", band: "hsl(140 55% 55% / 0.18)" },
-  { id: "ssp245", label: "SSP2-4.5 · middle", colour: "hsl(45 95% 58%)", band: "hsl(45 95% 58% / 0.18)" },
-  { id: "ssp585", label: "SSP5-8.5 · high", colour: "hsl(0 80% 55%)", band: "hsl(0 80% 55% / 0.18)" },
+  {
+    id: "ssp126",
+    label: "SSP1-2.6 · low",
+    colour: "hsl(140 55% 55%)",
+    band: "hsl(140 55% 55% / 0.18)",
+  },
+  {
+    id: "ssp245",
+    label: "SSP2-4.5 · middle",
+    colour: "hsl(45 95% 58%)",
+    band: "hsl(45 95% 58% / 0.18)",
+  },
+  {
+    id: "ssp585",
+    label: "SSP5-8.5 · high",
+    colour: "hsl(0 80% 55%)",
+    band: "hsl(0 80% 55% / 0.18)",
+  },
 ];
 
 const VARIABLES = [
@@ -55,11 +70,7 @@ export function Section4_Projections() {
       }
     >
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
-        <select
-          value={variable}
-          onChange={(e) => setVariable(e.target.value)}
-          style={selectStyle}
-        >
+        <select value={variable} onChange={(e) => setVariable(e.target.value)} style={selectStyle}>
           {VARIABLES.map((v) => (
             <option key={v.id} value={v.id}>
               {v.label}
@@ -77,7 +88,9 @@ export function Section4_Projections() {
                 style={{
                   padding: "8px 14px",
                   borderRadius: 999,
-                  background: on ? `${s.colour.replace(")", " / 0.18)").replace("hsl(", "hsl(")}` : "hsl(220 30% 10% / 0.6)",
+                  background: on
+                    ? `${s.colour.replace(")", " / 0.18)").replace("hsl(", "hsl(")}`
+                    : "hsl(220 30% 10% / 0.6)",
                   border: `1px solid ${on ? s.colour : "hsl(200 80% 50% / 0.15)"}`,
                   color: on ? "var(--color-text-hi)" : "var(--color-text-mid)",
                   fontFamily: "var(--font-data)",
@@ -94,9 +107,9 @@ export function Section4_Projections() {
       </div>
       <Chart
         observed={q.data?.scenarios.observed ?? []}
-        ssp126={enabled.has("ssp126") ? q.data?.scenarios.ssp126 ?? [] : []}
-        ssp245={enabled.has("ssp245") ? q.data?.scenarios.ssp245 ?? [] : []}
-        ssp585={enabled.has("ssp585") ? q.data?.scenarios.ssp585 ?? [] : []}
+        ssp126={enabled.has("ssp126") ? (q.data?.scenarios.ssp126 ?? []) : []}
+        ssp245={enabled.has("ssp245") ? (q.data?.scenarios.ssp245 ?? []) : []}
+        ssp585={enabled.has("ssp585") ? (q.data?.scenarios.ssp585 ?? []) : []}
       />
     </SectionShell>
   );
@@ -166,6 +179,7 @@ function Chart({
       }}
     >
       <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+        <title>Projected mean July temperature by emissions scenario</title>
         <Group left={margin.left} top={margin.top}>
           <GridRows scale={yScale} width={iw} stroke="hsl(220 20% 18%)" strokeOpacity={0.5} />
 

@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 
+import { GlobeView } from "./features/globe/GlobeView";
 import { AppShell } from "./shell/AppShell";
 import { RouteLoader } from "./shell/RouteLoader";
 import { Splash } from "./shell/Splash";
-import { GlobeView } from "./features/globe/GlobeView";
 
 // The globe is the front door — keep it eager.
 // Every other route is code-split so the initial JS payload stays small.
@@ -12,7 +12,9 @@ const AirQualityRoute = lazy(() =>
   import("./features/air-quality/AirQualityRoute").then((m) => ({ default: m.AirQualityRoute })),
 );
 const PreparednessRoute = lazy(() =>
-  import("./features/preparedness/PreparednessRoute").then((m) => ({ default: m.PreparednessRoute })),
+  import("./features/preparedness/PreparednessRoute").then((m) => ({
+    default: m.PreparednessRoute,
+  })),
 );
 const SharedView = lazy(() =>
   import("./features/preparedness/SharedView").then((m) => ({ default: m.SharedView })),

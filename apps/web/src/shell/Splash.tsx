@@ -12,8 +12,7 @@ export function Splash() {
         zIndex: 200,
         display: "grid",
         placeItems: "center",
-        background:
-          "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 65%)",
+        background: "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 65%)",
         pointerEvents: "none",
       }}
     >

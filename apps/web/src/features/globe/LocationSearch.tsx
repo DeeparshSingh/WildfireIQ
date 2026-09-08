@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Cartesian3,
+  type Cartesian3,
+  Math as CesiumMath,
   GeocodeType,
   IonGeocoderService,
-  Math as CesiumMath,
   Rectangle,
 } from "cesium";
 // (Cartesian3 retained — geocoder Results can return either Cartesian3 or Rectangle types we test against.)
 import type { Viewer as CesiumViewer } from "cesium";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  cinematicFlyTo,
-  cinematicFlyToRectangle,
-} from "@/lib/cesium-helpers/cinematicFlyTo";
+import { cinematicFlyTo, cinematicFlyToRectangle } from "@/lib/cesium-helpers/cinematicFlyTo";
 
 type Result = {
   displayName: string;
@@ -120,10 +117,11 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
         void (async () => {
           if (!geocoder) return;
           const raw = await geocoder.geocode(query.trim(), GeocodeType.SEARCH);
-          if (raw[0]) pick({
-            displayName: raw[0].displayName,
-            destination: raw[0].destination as Cartesian3 | Rectangle,
-          });
+          if (raw[0])
+            pick({
+              displayName: raw[0].displayName,
+              destination: raw[0].destination as Cartesian3 | Rectangle,
+            });
         })();
       }
       return;
@@ -181,6 +179,14 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-expanded={open && results.length > 0}
+          aria-controls="location-search-listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && results.length > 0 ? `location-option-${activeIndex}` : undefined
+          }
+          aria-label="Search location"
           value={query}
           placeholder="Search location  ( / )"
           onChange={(e) => {
@@ -242,6 +248,8 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
       {open && results.length > 0 && (
         <div
           className="glass-strong"
+          id="location-search-listbox"
+          aria-label="Location results"
           role="listbox"
           style={{
             marginTop: 6,
@@ -255,7 +263,9 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
             return (
               <button
                 key={`${r.displayName}-${i}`}
+                id={`location-option-${i}`}
                 type="button"
+                tabIndex={-1}
                 role="option"
                 aria-selected={active}
                 onMouseEnter={() => setActiveIndex(i)}
@@ -267,8 +277,7 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
                   padding: "10px 14px",
                   background: active ? "var(--color-bg-3)" : "transparent",
                   border: "none",
-                  borderBottom:
-                    i === results.length - 1 ? "none" : "1px solid var(--color-stroke)",
+                  borderBottom: i === results.length - 1 ? "none" : "1px solid var(--color-stroke)",
                   color: "var(--color-text-hi)",
                   cursor: "pointer",
                   fontFamily: "var(--font-body)",

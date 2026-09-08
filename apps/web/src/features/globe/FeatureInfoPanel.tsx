@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useMemo } from "react";
 
 import {
   type EvacZone,
@@ -144,42 +144,33 @@ function RiskDetail({ id }: { id: string }) {
     cell.risk_class === "Extreme"
       ? "var(--risk-extreme)"
       : cell.risk_class === "High"
-      ? "var(--risk-high)"
-      : cell.risk_class === "Moderate"
-      ? "var(--risk-moderate)"
-      : "var(--risk-low)";
+        ? "var(--risk-high)"
+        : cell.risk_class === "Moderate"
+          ? "var(--risk-moderate)"
+          : "var(--risk-low)";
 
   return (
     <div>
       <Title>{cell.risk_class} risk</Title>
-      <Subtitle style={{ color, textShadow: `0 0 12px ${color}55` }}>
-        {cell.region_label}
-      </Subtitle>
+      <Subtitle style={{ color, textShadow: `0 0 12px ${color}55` }}>{cell.region_label}</Subtitle>
       <Stats
         rows={[
           ["P(cell)", `${(cell.p_cell * 100).toFixed(1)}%`],
           ["P(area today)", `${(cell.p_region * 100).toFixed(1)}%`],
           ["Historical fires", String(cell.hist_fire_count)],
-          [
-            "Centroid",
-            `${cell.centroid_lat.toFixed(4)}, ${cell.centroid_lon.toFixed(4)}`,
-          ],
+          ["Centroid", `${cell.centroid_lat.toFixed(4)}, ${cell.centroid_lon.toFixed(4)}`],
           ["—", ""],
-          [
-            "CFFDRS",
-            region
-              ? `${region.cffdrs_class} (FWI ${region.fwi_today.toFixed(1)})`
-              : "—",
-          ],
+          ["CFFDRS", region ? `${region.cffdrs_class} (FWI ${region.fwi_today.toFixed(1)})` : "—"],
           ["Observation day", fmtDate(region?.observation_day)],
         ]}
       />
       <Attribution>
-        LightGBM trained on BC Wildfire Service records 1999-2021 + ERA5 weather, pooled across four regions and
-        validated on held-out 2022-2023. Held-out 2023 PR-AUC 0.72 in the Thompson-Okanagan, ahead of the
-        FWI-threshold baseline (0.37). Each area is scored on its own local weather.
-        The CFFDRS row is the canonical BCWS Fire Danger class from that area&apos;s FWI, for comparison.
-        Informational only, not a substitute for BC Wildfire Service guidance.
+        LightGBM trained on BC Wildfire Service records 1999-2021 + ERA5 weather, pooled across four
+        regions and validated on held-out 2022-2023. Held-out 2023 PR-AUC 0.72 in the
+        Thompson-Okanagan, ahead of the FWI-threshold baseline (0.37). Each area is scored on its
+        own local weather. The CFFDRS row is the canonical BCWS Fire Danger class from that
+        area&apos;s FWI, for comparison. Informational only, not a substitute for BC Wildfire
+        Service guidance.
       </Attribution>
     </div>
   );
@@ -189,10 +180,7 @@ function RiskDetail({ id }: { id: string }) {
 
 function FireDetail({ id }: { id: string }) {
   const { data } = useFiresCurrent();
-  const fire = useMemo<Fire | undefined>(
-    () => data?.find((f) => f.fire_id === id),
-    [data, id],
-  );
+  const fire = useMemo<Fire | undefined>(() => data?.find((f) => f.fire_id === id), [data, id]);
   if (!fire) return <Empty label="Fire not found" />;
 
   return (
@@ -223,10 +211,7 @@ function FireDetail({ id }: { id: string }) {
 function HotspotDetail({ id }: { id: string }) {
   const { data } = useFirmsHotspots(72);
   const h = useMemo<Hotspot | undefined>(
-    () =>
-      data?.find(
-        (x) => `${x.latitude}-${x.longitude}-${x.acq_datetime_utc}` === id,
-      ),
+    () => data?.find((x) => `${x.latitude}-${x.longitude}-${x.acq_datetime_utc}` === id),
     [data, id],
   );
   if (!h) return <Empty label="Hotspot not found" />;
@@ -260,11 +245,13 @@ function EvacDetail({ id }: { id: string }) {
   );
   if (!z) return <Empty label="Zone not found" />;
 
-  const statusColour = ((z.status || "").toLowerCase().includes("order")
-    ? "var(--risk-extreme)"
-    : (z.status || "").toLowerCase().includes("alert")
-    ? "var(--risk-high)"
-    : "var(--risk-low)") as string;
+  const statusColour = (
+    (z.status || "").toLowerCase().includes("order")
+      ? "var(--risk-extreme)"
+      : (z.status || "").toLowerCase().includes("alert")
+        ? "var(--risk-high)"
+        : "var(--risk-low)"
+  ) as string;
 
   return (
     <div>

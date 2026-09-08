@@ -1,4 +1,18 @@
-"""NRCan CWFIS Fire Weather Index daily ingest."""
+"""NRCan CWFIS Fire Weather Index daily ingest.
+
+Real station observations from NRCan, as an independent cross-check on the
+Van Wagner FWI this project computes itself in `derived_fwi`. That derived
+job — not this one — is what `/api/fwi/today` serves: it covers the 18 BC
+locations users actually search for and refreshes every 30 minutes, where
+CWFIS carries only 11 BC stations and publishes once a day.
+
+This job had been failing for the whole build against a diagnosis that was
+simply wrong. The error said the GeoServer was unreachable and the code
+comments blamed recurring HTTP 502s. The host was up the entire time: NRCan
+renamed the layer from `public:fwi_stns_current` to `public:firewx_stns_current`,
+and every request had been coming back as a WFS `InvalidParameterValue`
+exception, which the broad `except` treated as an outage.
+"""
 
 from __future__ import annotations
 
@@ -24,18 +38,24 @@ from .base import IngestContext, IngestJob, IngestReport, kvs
 
 WFS_URL = "https://cwfis.cfs.nrcan.gc.ca/geoserver/public/ows"
 
+#: Deliberately not `fwi_stations_today.parquet`, which belongs to
+#: derived_fwi_stations. Both jobs wrote that file until the September 2026
+#: audit, so whichever ran last won.
+OUTPUT_NAME = "fwi_stations_cwfis.parquet"
 
-def _params(bbox: bool) -> dict[str, str]:
-    p = {
-        "service": "WFS",
-        "version": "2.0.0",
-        "request": "GetFeature",
-        "typeName": "public:fwi_stns_current",
-        "outputFormat": "application/json",
-    }
-    if bbox:
-        p["bbox"] = f"{BBOX_WEST},{BBOX_SOUTH},{BBOX_EAST},{BBOX_NORTH},EPSG:4326"
-    return p
+
+#: No server-side bbox. EPSG:4326 is read lat,lon by WFS 2.0, and CRS84 was
+#: honoured only loosely here — both returned stations well outside British
+#: Columbia (Saskatchewan, and latitudes past 64N). The whole feed is 1,564
+#: stations for about 900 KB, so it is fetched entire and filtered on each
+#: station's own lat/lon properties, which is exact.
+_PARAMS: dict[str, str] = {
+    "service": "WFS",
+    "version": "2.0.0",
+    "request": "GetFeature",
+    "typeName": "public:firewx_stns_current",
+    "outputFormat": "application/json",
+}
 
 
 def _in_bbox(lat: float | None, lon: float | None) -> bool:
@@ -53,34 +73,31 @@ class CWFISFWIDailyJob(IngestJob):
         fetched_at = ctx.started_at_utc.isoformat()
         today = ctx.started_at_utc.strftime("%Y-%m-%d")
 
-        # Try bbox first, fall back to full + client filter.
         fc = None
-        filter_client = False
-        for use_bbox in (True, False):
+        try:
+            ctx.log.info("cwfis.fetch")
+            r = await ctx.client.get(WFS_URL, params=_PARAMS, timeout=60.0)
+            r.raise_for_status()
             try:
-                ctx.log.info("cwfis.fetch", bbox=use_bbox)
-                r = await ctx.client.get(WFS_URL, params=_params(use_bbox), timeout=60.0)
-                r.raise_for_status()
-                try:
-                    fc = r.json()
-                except (json.JSONDecodeError, ValueError):
-                    fc = json.loads(r.text)
-                filter_client = not use_bbox
-                break
-            except (httpx.HTTPError, ValueError) as exc:
-                ctx.log.info("cwfis.fetch_failed", bbox=use_bbox, error=str(exc))
-                fc = None
-                continue
+                fc = r.json()
+            except (json.JSONDecodeError, ValueError):
+                fc = json.loads(r.text)
+        except (httpx.HTTPError, ValueError) as exc:
+            # Log the reason. The previous version swallowed it into a blanket
+            # "GeoServer unreachable", which hid a renamed layer for months.
+            ctx.log.warning("cwfis.fetch_failed", error=str(exc))
 
-        # NRCan's CWFIS GeoServer goes down with 502 errors regularly. Their
-        # flat-file datamart at /data/fwi/ now returns HTML wrappers instead
-        # of CSVs. The derived_fwi_stations job removes this dependency by computing
-        # FWI from Open-Meteo weather data with the cffdrs-py port.
+        # A failure here is not a platform failure: derived_fwi_stations is the
+        # source /api/fwi/today reads, and it depends only on Open-Meteo.
         if fc is None:
             return IngestReport(
                 job_name=self.name,
                 status="fail",
-                error="CWFIS GeoServer unreachable. Will retry on the next cron; the derived_fwi_stations job covers this in the meantime.",
+                error=(
+                    "CWFIS WFS returned no usable FeatureCollection. Will retry on "
+                    "the next cron; /api/fwi/today is served by derived_fwi_stations "
+                    "and is unaffected."
+                ),
             )
 
         features = fc.get("features", []) or []
@@ -104,10 +121,10 @@ class CWFISFWIDailyJob(IngestJob):
             except (TypeError, ValueError):
                 lat_f, lon_f = None, None
 
-            if filter_client and not _in_bbox(lat_f, lon_f):
+            if not _in_bbox(lat_f, lon_f):
                 continue
 
-            station_id = kvs(props, "station_id", "wmo_code", "stn_id", "id")
+            station_id = kvs(props, "station_id", "wmo", "wmo_code", "stn_id", "id")
             rows.append(
                 {
                     "station_id": str(station_id) if station_id is not None else "",
@@ -134,16 +151,18 @@ class CWFISFWIDailyJob(IngestJob):
             )
 
         df = pd.DataFrame(rows)
-        today_path = PROCESSED_ROOT / "fwi_stations_today.parquet"
+        today_path = PROCESSED_ROOT / OUTPUT_NAME
         today_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(today_path, compression="zstd", index=False)
 
+        # This used to write `fwi_stations_today.parquet`, the same file
+        # derived_fwi rewrites every 30 minutes — so on the one day a year this
+        # job succeeded, its rows survived half an hour. Separate files now.
+        #
         # An append-only `fwi_stations_history.parquet` was also written here
         # and never read by anything — no router, no model, no test. Removed in
         # the September 2026 audit rather than left to grow unbounded for a
-        # reader that never arrived. `derived_fwi_stations` writes the same
-        # today-only schema, and the FWI history the risk model needs is
-        # recomputed from the weather archive by `ml.features`.
+        # reader that never arrived.
         ctx.log.info("cwfis.written", rows=len(df))
 
         return IngestReport(

@@ -75,6 +75,7 @@ export function Section3_Ribbon() {
         }}
       >
         <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+          <title>Fire season extent by year, from first to last ignition</title>
           {/* month gridlines */}
           {MONTH_DOYS.map((m) => (
             <g key={m.label}>
@@ -129,12 +130,23 @@ export function Section3_Ribbon() {
           })}
         </svg>
 
-        <div style={{ display: "flex", gap: 12, marginTop: 12, fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-mid)" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginTop: 12,
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-mid)",
+          }}
+        >
           <Legend colour="hsl(140 55% 50%)" label="< 33%" />
           <Legend colour="hsl(45 95% 58%)" label="33–66%" />
           <Legend colour="hsl(22 100% 56%)" label="66–90%" />
           <Legend colour="hsl(0 80% 52%)" label="≥ 90%" />
-          <span style={{ marginLeft: "auto" }}>colour = √(area / max) — bar length = season length</span>
+          <span style={{ marginLeft: "auto" }}>
+            colour = √(area / max) — bar length = season length
+          </span>
         </div>
       </div>
     </SectionShell>
@@ -144,7 +156,15 @@ export function Section3_Ribbon() {
 function Legend({ colour, label }: { colour: string; label: string }) {
   return (
     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-      <span style={{ width: 12, height: 8, background: colour, borderRadius: 2, display: "inline-block" }} />
+      <span
+        style={{
+          width: 12,
+          height: 8,
+          background: colour,
+          borderRadius: 2,
+          display: "inline-block",
+        }}
+      />
       <span>{label}</span>
     </span>
   );

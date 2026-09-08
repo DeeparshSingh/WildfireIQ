@@ -237,7 +237,7 @@ FireSmart checklist actions & 30 \\
 Smoke forecast steps & 73 hourly snapshots \\
 Scheduled data jobs & 17 (15 recurring, 2 one-time) \\
 Assistant tools & 25, evaluated on 32 live cases \\
-Automated tests passing & 167 backend, 36 frontend \\
+Automated tests passing & 176 backend, 45 frontend \\
 \bottomrule
 \end{tabular}
 \caption{Selected figures from the final build.}
@@ -297,9 +297,13 @@ interface, which keeps the app fast and means a brief outage at a source does
 not break the screen.
 
 Two pieces of data are calculated rather than downloaded. The Fire Weather Index
-is computed from daily weather using Canada's official equations, because the
-national service that normally publishes it was unreachable for much of the
-build. The historical fire-and-climate summary behind the Climate Trends page is
+is computed from daily weather using Canada's official equations. This was
+originally a workaround --- the national service that publishes it appeared to be
+down --- but it turned out to be the better arrangement: that service lists only
+eleven stations inside British Columbia and none of the places people search for
+here. Its published numbers are still downloaded, as a check on our own: at
+stations close enough to compare, the two agree to about one and a half per
+cent. The historical fire-and-climate summary behind the Climate Trends page is
 rebuilt each night by joining 27 years of fire records with matching weather and
 a full Fire Weather Index run, producing one row of metrics per year.
 
@@ -524,8 +528,8 @@ weather, without waiting.
 
 \subsection{Testing and quality}
 
-The platform ships with an automated test suite: 167 checks on the back end and
-36 on the front end. These confirm that each data source produces the expected
+The platform ships with an automated test suite: 176 checks on the back end and
+45 on the front end. These confirm that each data source produces the expected
 shape, that values stay within sensible bounds (for example, no negative
 pollution readings and no fires placed outside the province), that the Fire
 Weather Index calculation behaves correctly, that the trend statistics recover a
@@ -569,8 +573,8 @@ the platform calculates something itself, it uses the recognised standard.}
 \section{Status and Summary}
 
 The four proposed features, both models, and the assistant are built, connected
-to live data, and working. The platform passes its full test suite (167 back-end
-and 36 front-end checks) with a clean build, and the code, documentation, and model cards are
+to live data, and working. The platform passes its full test suite (176 back-end
+and 45 front-end checks) with a clean build, and the code, documentation, and model cards are
 organised for handoff.
 
 The table below maps each proposal commitment to its current state.

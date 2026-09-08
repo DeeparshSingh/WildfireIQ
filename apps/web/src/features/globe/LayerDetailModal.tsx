@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type EvacZone,
@@ -163,7 +163,12 @@ function ModalContent({
         </button>
       </header>
 
-      <CollapsibleInfo info={info} meta={meta} open={infoOpen} onToggle={() => setInfoOpen((v) => !v)} />
+      <CollapsibleInfo
+        info={info}
+        meta={meta}
+        open={infoOpen}
+        onToggle={() => setInfoOpen((v) => !v)}
+      />
 
       {layer === "fires" && <FiresBrowser />}
       {layer === "hotspots" && <HotspotsBrowser />}
@@ -343,7 +348,9 @@ function FilterChip({
         textTransform: "uppercase",
         borderRadius: "var(--radius-pill)",
         border: `1px solid ${active ? "var(--color-ember-500)" : "var(--color-stroke)"}`,
-        background: active ? "color-mix(in oklab, var(--color-ember-500) 12%, transparent)" : "transparent",
+        background: active
+          ? "color-mix(in oklab, var(--color-ember-500) 12%, transparent)"
+          : "transparent",
         color: active ? "var(--color-text-hi)" : "var(--color-text-mid)",
         cursor: "pointer",
       }}
@@ -378,9 +385,7 @@ function ResultsList<T>({
     );
   }
   return (
-    <div style={{ flex: 1, overflowY: "auto" }}>
-      {items.map((item, i) => render(item, i))}
-    </div>
+    <div style={{ flex: 1, overflowY: "auto" }}>{items.map((item, i) => render(item, i))}</div>
   );
 }
 
@@ -416,8 +421,12 @@ function Row({
         fontFamily: "var(--font-body)",
         transition: "background var(--dur-fast) var(--ease-out-expo)",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-3)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--color-bg-3)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
+      }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -515,7 +524,7 @@ function SearchInput({
 function fireCentroid(f: Fire): [number, number] | null {
   if (f.geom_wkt) {
     const parsed = parseWkt(f.geom_wkt);
-    if (parsed && parsed.positions.length) {
+    if (parsed?.positions.length) {
       const c = ringCentroid(parsed.positions[0]);
       if (c) return c;
     }
@@ -549,11 +558,13 @@ function FiresBrowser() {
       const status = (f.status ?? "").toLowerCase();
       const isOut = status === "out" || status === "extinguished";
       if (isOut && !filter.includeExtinguished) return false;
-      if (filter.statuses.length > 0 && !filter.statuses.some((s) => status.includes(s.toLowerCase())))
+      if (
+        filter.statuses.length > 0 &&
+        !filter.statuses.some((s) => status.includes(s.toLowerCase()))
+      )
         return false;
       if ((f.hectares ?? 0) < filter.minHectares) return false;
-      if (search && !(f.fire_name ?? "").toLowerCase().includes(search.toLowerCase()))
-        return false;
+      if (search && !(f.fire_name ?? "").toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
     // Newest discovered first.
@@ -576,7 +587,14 @@ function FiresBrowser() {
         >
           ≥ 10 ha
         </FilterChip>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-low)",
+          }}
+        >
           {items.length} match{items.length === 1 ? "" : "es"} · newest first
         </span>
       </Toolbar>
@@ -644,7 +662,14 @@ function HotspotsBrowser() {
         >
           High confidence
         </FilterChip>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-low)",
+          }}
+        >
           {items.length} hotspot{items.length === 1 ? "" : "s"}
         </span>
       </Toolbar>
@@ -684,7 +709,10 @@ function EvacBrowser() {
     const filtered = arr.filter((z) => {
       if (filter.hidePast && isPastEvac(z)) return false;
       const status = (z.status ?? "").toLowerCase();
-      if (filter.statuses.length > 0 && !filter.statuses.some((s) => status.includes(s.toLowerCase())))
+      if (
+        filter.statuses.length > 0 &&
+        !filter.statuses.some((s) => status.includes(s.toLowerCase()))
+      )
         return false;
       if (search) {
         const q = search.toLowerCase();
@@ -699,22 +727,36 @@ function EvacBrowser() {
   const statusActive = (s: string) => filter.statuses.includes(s);
   const toggleStatus = (s: string) =>
     setEvac({
-      statuses: statusActive(s)
-        ? filter.statuses.filter((x) => x !== s)
-        : [...filter.statuses, s],
+      statuses: statusActive(s) ? filter.statuses.filter((x) => x !== s) : [...filter.statuses, s],
     });
 
   return (
     <>
       <Toolbar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search by event name…" />
-        <FilterChip active={statusActive("Order")} onClick={() => toggleStatus("Order")}>Order</FilterChip>
-        <FilterChip active={statusActive("Alert")} onClick={() => toggleStatus("Alert")}>Alert</FilterChip>
-        <FilterChip active={statusActive("Rescind")} onClick={() => toggleStatus("Rescind")}>Rescind</FilterChip>
-        <FilterChip active={filter.hidePast} onClick={() => setEvac({ hidePast: !filter.hidePast })}>
+        <FilterChip active={statusActive("Order")} onClick={() => toggleStatus("Order")}>
+          Order
+        </FilterChip>
+        <FilterChip active={statusActive("Alert")} onClick={() => toggleStatus("Alert")}>
+          Alert
+        </FilterChip>
+        <FilterChip active={statusActive("Rescind")} onClick={() => toggleStatus("Rescind")}>
+          Rescind
+        </FilterChip>
+        <FilterChip
+          active={filter.hidePast}
+          onClick={() => setEvac({ hidePast: !filter.hidePast })}
+        >
           {filter.hidePast ? "Hiding past" : "Show past"}
         </FilterChip>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-low)",
+          }}
+        >
           {items.length} zone{items.length === 1 ? "" : "s"} · newest first
         </span>
       </Toolbar>
@@ -727,8 +769,8 @@ function EvacBrowser() {
           const color = status.includes("order")
             ? "var(--risk-extreme)"
             : status.includes("alert")
-            ? "var(--risk-high)"
-            : "var(--risk-low)";
+              ? "var(--risk-high)"
+              : "var(--risk-low)";
           return (
             <Row
               key={(z.event_id ?? z.event_name ?? "") + i}
@@ -765,16 +807,32 @@ function FwiBrowser() {
     <>
       <Toolbar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search station…" />
-        <FilterChip active={filter.minFwi >= 5} onClick={() => setFwi({ minFwi: filter.minFwi >= 5 ? 0 : 5 })}>
+        <FilterChip
+          active={filter.minFwi >= 5}
+          onClick={() => setFwi({ minFwi: filter.minFwi >= 5 ? 0 : 5 })}
+        >
           FWI ≥ 5
         </FilterChip>
-        <FilterChip active={filter.minFwi >= 12} onClick={() => setFwi({ minFwi: filter.minFwi >= 12 ? 0 : 12 })}>
+        <FilterChip
+          active={filter.minFwi >= 12}
+          onClick={() => setFwi({ minFwi: filter.minFwi >= 12 ? 0 : 12 })}
+        >
           FWI ≥ 12
         </FilterChip>
-        <FilterChip active={filter.minFwi >= 19} onClick={() => setFwi({ minFwi: filter.minFwi >= 19 ? 0 : 19 })}>
+        <FilterChip
+          active={filter.minFwi >= 19}
+          onClick={() => setFwi({ minFwi: filter.minFwi >= 19 ? 0 : 19 })}
+        >
           Extreme (≥ 19)
         </FilterChip>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-low)" }}>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-low)",
+          }}
+        >
           {items.length} station{items.length === 1 ? "" : "s"}
         </span>
       </Toolbar>
@@ -787,10 +845,10 @@ function FwiBrowser() {
             fwi < 5
               ? "var(--risk-low)"
               : fwi < 12
-              ? "var(--risk-moderate)"
-              : fwi < 19
-              ? "var(--risk-high)"
-              : "var(--risk-extreme)";
+                ? "var(--risk-moderate)"
+                : fwi < 19
+                  ? "var(--risk-high)"
+                  : "var(--risk-extreme)";
           return (
             <Row
               key={s.station_id}
@@ -811,10 +869,10 @@ function riskClassColor(k: string): string {
   return k === "Extreme"
     ? "var(--risk-extreme)"
     : k === "High"
-    ? "var(--risk-high)"
-    : k === "Moderate"
-    ? "var(--risk-moderate)"
-    : "var(--risk-low)";
+      ? "var(--risk-high)"
+      : k === "Moderate"
+        ? "var(--risk-moderate)"
+        : "var(--risk-low)";
 }
 
 function RiskBrowser() {
@@ -914,8 +972,12 @@ function RiskBrowser() {
                 opacity: shown ? 1 : 0.5,
                 transition: "background var(--dur-fast) var(--ease-out-expo)",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-bg-3)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--color-bg-3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <span
                 aria-hidden
@@ -967,7 +1029,8 @@ function RiskBrowser() {
                     marginTop: 4,
                   }}
                 >
-                  {(r.p_region * 100).toFixed(0)}% chance today · FWI {r.fwi_today.toFixed(0)} · {r.n_cells} zones
+                  {(r.p_region * 100).toFixed(0)}% chance today · FWI {r.fwi_today.toFixed(0)} ·{" "}
+                  {r.n_cells} zones
                 </span>
               </span>
               <span
@@ -1002,9 +1065,9 @@ function RiskBrowser() {
           color: "var(--color-text-low)",
         }}
       >
-        Tap a city to show or hide its risk grid on the map. The percentage is
-        the model&apos;s chance of a fire somewhere in that area today; the dot
-        and label show the area&apos;s overall risk level.
+        Tap a city to show or hide its risk grid on the map. The percentage is the model&apos;s
+        chance of a fire somewhere in that area today; the dot and label show the area&apos;s
+        overall risk level.
       </div>
     </>
   );
@@ -1025,14 +1088,28 @@ function SmokeBrowser() {
 
   if (isLoading || !data) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+      <div
+        style={{
+          padding: 48,
+          textAlign: "center",
+          color: "var(--color-text-low)",
+          fontFamily: "var(--font-body)",
+        }}
+      >
         Loading forecast timesteps…
       </div>
     );
   }
   if (data.length === 0) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-low)", fontFamily: "var(--font-body)" }}>
+      <div
+        style={{
+          padding: 48,
+          textAlign: "center",
+          color: "var(--color-text-low)",
+          fontFamily: "var(--font-body)",
+        }}
+      >
         No smoke forecast timesteps available right now.
       </div>
     );
@@ -1083,10 +1160,7 @@ function SmokeBrowser() {
   return (
     <>
       <Toolbar>
-        <FilterChip
-          active={false}
-          onClick={() => setTimestepIndex(Math.max(0, safeIndex - 1))}
-        >
+        <FilterChip active={false} onClick={() => setTimestepIndex(Math.max(0, safeIndex - 1))}>
           ← Prev
         </FilterChip>
         <FilterChip
@@ -1155,10 +1229,9 @@ function SmokeBrowser() {
           lineHeight: 1.5,
         }}
       >
-        The WMS overlay is mostly transparent when PM2.5 is low — that's the
-        truth, not a missing image. The colour-coded PM2.5 badge on each
-        timestep below shows the Open-Meteo CAMS forecast value at Kamloops
-        so you can see what the ECCC model is actually predicting.
+        The WMS overlay is mostly transparent when PM2.5 is low — that's the truth, not a missing
+        image. The colour-coded PM2.5 badge on each timestep below shows the Open-Meteo CAMS
+        forecast value at Kamloops so you can see what the ECCC model is actually predicting.
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         {data.map((step, i) => {
@@ -1177,9 +1250,7 @@ function SmokeBrowser() {
                 background: active ? "var(--color-bg-3)" : "transparent",
                 border: "none",
                 borderBottom: "1px solid var(--color-stroke)",
-                borderLeft: active
-                  ? "3px solid var(--color-cyan-glow)"
-                  : "3px solid transparent",
+                borderLeft: active ? "3px solid var(--color-cyan-glow)" : "3px solid transparent",
                 cursor: "pointer",
                 fontFamily: "var(--font-body)",
                 textAlign: "left",

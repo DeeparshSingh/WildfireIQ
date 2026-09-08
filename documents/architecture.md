@@ -28,7 +28,7 @@ WildFire-IQ/
 │   │   │   ├── ml/                FWI port, feature builder, two trainers, two inference modules, trends
 │   │   │   ├── routers/           one router per domain + _data.py (parquet readers) + _envelope.py
 │   │   │   └── assistant/         agent harness, 25 tools, OpenRouter transport, guard, evals
-│   │   └── tests/                 167 pytest tests
+│   │   └── tests/                 176 pytest tests
 │   └── web/                       React 18 · TypeScript · Vite · Cesium
 │       └── src/
 │           ├── main.tsx, app.tsx  providers, route table (lazy routes)
@@ -385,8 +385,8 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 167 | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity) |
-| Frontend | `apps/web/src/lib/__tests__/` | 36 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer |
+| Backend | `apps/api/tests/` | 176 | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), and the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs) |
+| Frontend | `apps/web/src/lib/__tests__/` | 45 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, and the WKT parser behind the globe's fire and evacuation polygons (`wkt`: multipolygon rings, interior holes, malformed input) |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |
 
@@ -408,8 +408,10 @@ All of it runs in under a minute and needs no network except the live eval.
   and the assistant's limits are in-process).
 - **When a feed breaks:** the last good file keeps serving; the failure is in
   `ingest_runs` (`/api/admin/runs?job=…`) and in the logs; the next tick
-  retries. `cwfis_fwi_daily` fails against an upstream outage by design and
-  is covered by `derived_fwi_stations`.
+  retries. `cwfis_fwi_daily` had failed for the whole build against a
+  diagnosis that was wrong — NRCan renamed the WFS layer, and the broad
+  `except` reported it as an outage. Fixed; it now runs green as a
+  cross-check on the FWI the platform computes itself.
 - **Disk:** `data/raw` is capped at 24 snapshots per job (~150 MB);
   `data/processed` is ~60 MB; models ~27 MB.
 

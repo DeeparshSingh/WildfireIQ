@@ -74,23 +74,41 @@
 
 /* Keyframes */
 @keyframes ember-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(18 95% 54% / 0.5); }
-  50%      { box-shadow: 0 0 0 12px hsl(18 95% 54% / 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(18 95% 54% / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px hsl(18 95% 54% / 0);
+  }
 }
 
 @keyframes cyan-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 @keyframes scan-line {
-  0%   { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Live-data dot — used in top status bar */

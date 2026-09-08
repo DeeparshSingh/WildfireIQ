@@ -61,7 +61,11 @@ export function ClimateRoute() {
               lineHeight: 1.02,
             }}
           >
-            How the Thompson-Okanagan's <em style={{ color: "var(--color-ember-500, hsl(18 95% 54%))", fontStyle: "normal" }}>fire seasons</em> have changed — and where they're going.
+            How the Thompson-Okanagan's{" "}
+            <em style={{ color: "var(--color-ember-500, hsl(18 95% 54%))", fontStyle: "normal" }}>
+              fire seasons
+            </em>{" "}
+            have changed — and where they're going.
           </h1>
           <p
             style={{
@@ -73,10 +77,9 @@ export function ClimateRoute() {
               maxWidth: 720,
             }}
           >
-            Six sections built from BC Wildfire Service incident records,
-            Open-Meteo ERA5 reanalysis weather, our Van Wagner FWI port, and
-            the ClimateData.ca CMIP6 ensemble. Every chart has its source,
-            method, and a CSV download under the (i) chip.
+            Six sections built from BC Wildfire Service incident records, Open-Meteo ERA5 reanalysis
+            weather, our Van Wagner FWI port, and the ClimateData.ca CMIP6 ensemble. Every chart has
+            its source, method, and a CSV download under the (i) chip.
           </p>
         </header>
 
@@ -100,10 +103,9 @@ export function ClimateRoute() {
             color: "var(--color-text-mid)",
           }}
         >
-          <strong style={{ color: "var(--color-text-hi)" }}>Informational only.</strong>{" "}
-          This page is a research artifact, not operational guidance. For
-          official forecasts and emergency direction consult BC Wildfire
-          Service, BC Emergency Management Climate Readiness, and the
+          <strong style={{ color: "var(--color-text-hi)" }}>Informational only.</strong> This page
+          is a research artifact, not operational guidance. For official forecasts and emergency
+          direction consult BC Wildfire Service, BC Emergency Management Climate Readiness, and the
           Pacific Climate Impacts Consortium (PCIC).
         </footer>
       </div>

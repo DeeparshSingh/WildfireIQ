@@ -2,7 +2,7 @@
  * Common scaffolding for each climate section — kicker label, headline,
  * subhead, info chip slot, scroll-trigger fade-in.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export function SectionShell({
   kicker,
@@ -46,10 +46,20 @@ export function SectionShell({
         padding: "64px 0 32px",
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(24px)",
-        transition: "opacity 600ms var(--ease-out-expo, ease), transform 600ms var(--ease-out-expo, ease)",
+        transition:
+          "opacity 600ms var(--ease-out-expo, ease), transform 600ms var(--ease-out-expo, ease)",
       }}
     >
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 24,
+        }}
+      >
         <div style={{ maxWidth: 720 }}>
           <div
             style={{

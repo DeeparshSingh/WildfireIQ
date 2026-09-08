@@ -64,16 +64,47 @@ export function InfoChip({
             gap: 8,
           }}
         >
-          <div style={{ fontFamily: "var(--font-data)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "var(--color-text-mid)",
+            }}
+          >
             Source
           </div>
-          <div style={{ fontFamily: "var(--font-body)", fontSize: 12, lineHeight: 1.5, color: "var(--color-text-hi)" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: "var(--color-text-hi)",
+            }}
+          >
             {source}
           </div>
-          <div style={{ fontFamily: "var(--font-data)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-text-mid)", marginTop: 4 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "var(--color-text-mid)",
+              marginTop: 4,
+            }}
+          >
             Method
           </div>
-          <div style={{ fontFamily: "var(--font-body)", fontSize: 12, lineHeight: 1.5, color: "var(--color-text-mid)" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: "var(--color-text-mid)",
+            }}
+          >
             {method}
           </div>
           {downloadUrl && (

@@ -4,7 +4,7 @@
  * position and target. Mimics the Google Earth / Apple Maps "zoom out,
  * traverse, zoom in" feel.
  */
-import { Cartesian3, Math as CesiumMath, Rectangle } from "cesium";
+import { Cartesian3, Math as CesiumMath, type Rectangle } from "cesium";
 import type { Viewer as CesiumViewer } from "cesium";
 
 /** Haversine great-circle distance in km between two lon/lat pairs. */
@@ -21,12 +21,12 @@ function haversineKm(lonA: number, latA: number, lonB: number, latB: number): nu
 
 /** Apex altitude scaled by horizontal distance — keeps animations cinematic without being slow on local moves. */
 function chooseApexMeters(distanceKm: number): number {
-  if (distanceKm < 25) return 60_000;           // ~60 km — block-to-block
-  if (distanceKm < 100) return 250_000;         // 250 km — across a city/region
-  if (distanceKm < 500) return 1_200_000;       // 1,200 km — within province
-  if (distanceKm < 2_000) return 4_500_000;     // 4,500 km — cross-country
-  if (distanceKm < 8_000) return 12_000_000;    // 12,000 km — continental
-  return 22_000_000;                            // 22,000 km — space view, true global hop
+  if (distanceKm < 25) return 60_000; // ~60 km — block-to-block
+  if (distanceKm < 100) return 250_000; // 250 km — across a city/region
+  if (distanceKm < 500) return 1_200_000; // 1,200 km — within province
+  if (distanceKm < 2_000) return 4_500_000; // 4,500 km — cross-country
+  if (distanceKm < 8_000) return 12_000_000; // 12,000 km — continental
+  return 22_000_000; // 22,000 km — space view, true global hop
 }
 
 /** Total animation duration in seconds, scaled by distance. Bounded so very long hops don't feel sluggish. */
@@ -87,7 +87,7 @@ export function cinematicFlyTo(viewer: CesiumViewer, opts: FlyToOpts) {
     },
     complete: () => {
       viewer.scene.requestRenderMode = true;
-      viewer.scene.maximumRenderTimeChange = Infinity;
+      viewer.scene.maximumRenderTimeChange = Number.POSITIVE_INFINITY;
       opts.onComplete?.();
     },
   });
@@ -126,7 +126,7 @@ export function cinematicFlyToRectangle(
     easingFunction: (t) => (t < 0.5 ? 16 * t ** 5 : 1 - (-2 * t + 2) ** 5 / 2),
     complete: () => {
       viewer.scene.requestRenderMode = true;
-      viewer.scene.maximumRenderTimeChange = Infinity;
+      viewer.scene.maximumRenderTimeChange = Number.POSITIVE_INFINITY;
       onComplete?.();
     },
   });

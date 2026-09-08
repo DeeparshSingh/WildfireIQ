@@ -25,8 +25,10 @@ async def _main() -> int:
             ],
         ),
         (
+            # Its own file — fwi_stations_today.parquet belongs to
+            # derived_fwi_stations, which rewrites it every six hours.
             CWFISFWIDailyJob(),
-            ["fwi_stations_today.parquet"],
+            ["fwi_stations_cwfis.parquet"],
         ),
     ):
         print(f"\n=== Running {job.name} ===")

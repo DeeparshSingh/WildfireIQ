@@ -4,12 +4,12 @@
  */
 import { useState } from "react";
 
-import { useNeighbourhoods, type NeighbourhoodFeature } from "@/lib/api/hooks";
+import { type NeighbourhoodFeature, useNeighbourhoods } from "@/lib/api/hooks";
 
 import {
-  SITUATION_OPTIONS,
   type Dwelling,
   type PrepProfile,
+  SITUATION_OPTIONS,
   type Season,
   type SituationId,
   requestNotificationPermission,
@@ -34,7 +34,7 @@ export function OnboardingWizard({
   const neighbourhoods = useNeighbourhoods();
   const matches =
     query.length === 0
-      ? neighbourhoods.data ?? []
+      ? (neighbourhoods.data ?? [])
       : (neighbourhoods.data ?? []).filter((n) =>
           n.properties.name.toLowerCase().includes(query.toLowerCase()),
         );
@@ -98,7 +98,8 @@ export function OnboardingWizard({
               lineHeight: 1.05,
             }}
           >
-            Let's tailor your <em style={{ color: "var(--color-cyan-glow)", fontStyle: "normal" }}>FireSmart Hub</em>.
+            Let's tailor your{" "}
+            <em style={{ color: "var(--color-cyan-glow)", fontStyle: "normal" }}>FireSmart Hub</em>.
           </h1>
           <p
             style={{
@@ -110,8 +111,8 @@ export function OnboardingWizard({
               maxWidth: 560,
             }}
           >
-            Three quick questions. Nothing is sent anywhere — your answers
-            live in this browser only. You can change them later.
+            Three quick questions. Nothing is sent anywhere — your answers live in this browser
+            only. You can change them later.
           </p>
         </header>
 
@@ -129,9 +130,8 @@ export function OnboardingWizard({
             <div style={{ display: "grid", gap: 16 }}>
               <h2 style={h2Style}>Pick your neighbourhood</h2>
               <p style={subStyle}>
-                Used to map evacuation zones and to fly the globe view to
-                your area. Choose any if you're elsewhere in the
-                Thompson-Okanagan — the live data still works.
+                Used to map evacuation zones and to fly the globe view to your area. Choose any if
+                you're elsewhere in the Thompson-Okanagan — the live data still works.
               </p>
               <input
                 type="search"
@@ -140,7 +140,17 @@ export function OnboardingWizard({
                 onChange={(e) => setQuery(e.target.value)}
                 style={inputStyle}
               />
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "grid",
+                  gap: 6,
+                  maxHeight: 240,
+                  overflowY: "auto",
+                }}
+              >
                 {matches.map((n) => {
                   const isSel = selected?.properties.name === n.properties.name;
                   return (
@@ -167,8 +177,15 @@ export function OnboardingWizard({
                         }}
                       >
                         <span>{n.properties.name}</span>
-                        <span style={{ fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-mid)" }}>
-                          {n.properties.centroid_lat.toFixed(3)}, {n.properties.centroid_lon.toFixed(3)}
+                        <span
+                          style={{
+                            fontFamily: "var(--font-data)",
+                            fontSize: 11,
+                            color: "var(--color-text-mid)",
+                          }}
+                        >
+                          {n.properties.centroid_lat.toFixed(3)},{" "}
+                          {n.properties.centroid_lon.toFixed(3)}
                         </span>
                       </button>
                     </li>
@@ -188,11 +205,7 @@ export function OnboardingWizard({
                   ]}
                 />
               </div>
-              <Footer
-                back={null}
-                next={() => setStep(1)}
-                nextLabel="Continue"
-              />
+              <Footer back={null} next={() => setStep(1)} nextLabel="Continue" />
             </div>
           )}
 
@@ -200,9 +213,8 @@ export function OnboardingWizard({
             <div style={{ display: "grid", gap: 16 }}>
               <h2 style={h2Style}>Tell us your situation</h2>
               <p style={subStyle}>
-                Multi-select. We use these to filter and re-order the
-                checklist so you only see actions that apply to you. All
-                optional.
+                Multi-select. We use these to filter and re-order the checklist so you only see
+                actions that apply to you. All optional.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {SITUATION_OPTIONS.map((opt) => {
@@ -242,13 +254,20 @@ export function OnboardingWizard({
             <div style={{ display: "grid", gap: 16 }}>
               <h2 style={h2Style}>Notification preferences</h2>
               <p style={subStyle}>
-                Browser Web Notifications, opt-in. We never push to a server
-                — these fire from your browser when our refreshing data
-                crosses a threshold.
+                Browser Web Notifications, opt-in. We never push to a server — these fire from your
+                browser when our refreshing data crosses a threshold.
               </p>
 
               <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontFamily: "var(--font-data)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-data)",
+                    fontSize: 11,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "var(--color-text-mid)",
+                  }}
+                >
                   AQHI alert threshold · {aqhiThreshold}+
                 </span>
                 <input
@@ -256,7 +275,7 @@ export function OnboardingWizard({
                   min={4}
                   max={10}
                   value={aqhiThreshold}
-                  onChange={(e) => setAqhiThreshold(parseInt(e.target.value, 10))}
+                  onChange={(e) => setAqhiThreshold(Number.parseInt(e.target.value, 10))}
                   style={{ accentColor: "hsl(18 95% 54%)" }}
                 />
               </label>
@@ -268,7 +287,13 @@ export function OnboardingWizard({
                   onChange={(e) => setEvacAlerts(e.target.checked)}
                   style={{ accentColor: "hsl(0 80% 55%)", width: 18, height: 18 }}
                 />
-                <span style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--color-text-hi)" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: 14,
+                    color: "var(--color-text-hi)",
+                  }}
+                >
                   Notify me if my neighbourhood enters an evacuation Alert or Order
                 </span>
               </label>
@@ -364,7 +389,15 @@ function Select({
 }) {
   return (
     <label style={{ display: "grid", gap: 4 }}>
-      <span style={{ fontFamily: "var(--font-data)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+      <span
+        style={{
+          fontFamily: "var(--font-data)",
+          fontSize: 10,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: "var(--color-text-mid)",
+        }}
+      >
         {label}
       </span>
       <select

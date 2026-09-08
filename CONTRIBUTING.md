@@ -18,10 +18,10 @@ exact URL or endpoint, and what you expected versus what you saw.
 ## Pull requests
 
 1. Branch from `main`.
-2. Run the full check locally — all four must pass:
+2. Run the full check locally. One command covers lint, typecheck, both test
+   suites and the production build:
    ```bash
-   make lint && make test && make typecheck && make build
-   cd apps/web && pnpm test
+   make check
    ```
 3. Add or update tests for anything you changed. There is no coverage
    threshold, but untested new code is not merged.

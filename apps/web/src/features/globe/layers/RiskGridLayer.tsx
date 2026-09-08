@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
 import {
   Cartesian3,
   Color,
+  type Entity,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  type Entity,
 } from "cesium";
 import { cellToBoundary } from "h3-js";
+import { useEffect, useRef } from "react";
 
 import { type RiskCell, useRiskGrid } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
@@ -108,16 +108,13 @@ export function RiskGridLayer() {
     }
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(
-      (click: ScreenSpaceEventHandler.PositionedEvent) => {
-        const picked = viewer.scene.pick(click.position);
-        const ent = picked?.id as Entity | undefined;
-        if (!ent || !ent.id) return;
-        const cellId = idMapRef.current.get(ent.id);
-        if (cellId) useLayersStore.getState().select({ kind: "risk", id: cellId });
-      },
-      ScreenSpaceEventType.LEFT_CLICK,
-    );
+    handler.setInputAction((click: ScreenSpaceEventHandler.PositionedEvent) => {
+      const picked = viewer.scene.pick(click.position);
+      const ent = picked?.id as Entity | undefined;
+      if (!ent || !ent.id) return;
+      const cellId = idMapRef.current.get(ent.id);
+      if (cellId) useLayersStore.getState().select({ kind: "risk", id: cellId });
+    }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
     requestRender(viewer);
 

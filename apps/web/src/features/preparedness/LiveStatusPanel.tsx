@@ -7,19 +7,32 @@
  *   • Days since 5 mm+ rain                 — `/api/firesmart/season-context`
  *   • Days to historical fire-season peak   — derived from same endpoint
  */
-import {
-  useAqCurrent,
-  useEvacCheck,
-  useFwiToday,
-  useSeasonContext,
-} from "@/lib/api/hooks";
+import { useAqCurrent, useEvacCheck, useFwiToday, useSeasonContext } from "@/lib/api/hooks";
 
 function evacTone(status: "clear" | "alert" | "order" | null | undefined) {
   if (status === "order")
-    return { bg: "hsl(0 70% 45% / 0.18)", border: "hsl(0 80% 55%)", label: "ORDER", text: "Evacuation Order active", emoji: "🚨" };
+    return {
+      bg: "hsl(0 70% 45% / 0.18)",
+      border: "hsl(0 80% 55%)",
+      label: "ORDER",
+      text: "Evacuation Order active",
+      emoji: "🚨",
+    };
   if (status === "alert")
-    return { bg: "hsl(35 90% 50% / 0.18)", border: "hsl(35 90% 55%)", label: "ALERT", text: "Evacuation Alert", emoji: "⚠️" };
-  return { bg: "hsl(150 60% 40% / 0.15)", border: "hsl(150 70% 50%)", label: "CLEAR", text: "No active orders or alerts", emoji: "✅" };
+    return {
+      bg: "hsl(35 90% 50% / 0.18)",
+      border: "hsl(35 90% 55%)",
+      label: "ALERT",
+      text: "Evacuation Alert",
+      emoji: "⚠️",
+    };
+  return {
+    bg: "hsl(150 60% 40% / 0.15)",
+    border: "hsl(150 70% 50%)",
+    label: "CLEAR",
+    text: "No active orders or alerts",
+    emoji: "✅",
+  };
 }
 
 function aqhiBand(aqhi: number | null) {
@@ -71,11 +84,7 @@ export function LiveStatusPanel({
     fwi.data
       ?.map((s) => ({
         ...s,
-        dist:
-          Math.hypot(
-            (s.latitude ?? 0) - lat,
-            (s.longitude ?? 0) - lon,
-          ),
+        dist: Math.hypot((s.latitude ?? 0) - lat, (s.longitude ?? 0) - lon),
       }))
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 3) ?? [];
@@ -118,14 +127,22 @@ export function LiveStatusPanel({
           <span>{tone.emoji}</span>
           <span>{evac.isLoading ? "Checking…" : tone.text}</span>
         </div>
-        {(evac.data?.matches ?? []).slice(0, 2).map((m, i) => (
-          <div key={i} style={{ fontSize: 11, color: "var(--color-text-mid)" }}>
+        {(evac.data?.matches ?? []).slice(0, 2).map((m) => (
+          <div
+            key={`${m.event_name ?? "unnamed"}-${m.issued_utc ?? ""}-${m.status ?? ""}`}
+            style={{ fontSize: 11, color: "var(--color-text-mid)" }}
+          >
             · {m.event_name ?? "Unnamed event"}
           </div>
         ))}
       </div>
 
-      <Stat label="AQHI · Kamloops" value={aqhi !== null ? String(aqhi) : "—"} sub={aqBand.label} color={aqBand.color} />
+      <Stat
+        label="AQHI · Kamloops"
+        value={aqhi !== null ? String(aqhi) : "—"}
+        sub={aqBand.label}
+        color={aqBand.color}
+      />
       <Stat
         label="Max FWI nearby"
         value={maxFwi >= 0 ? maxFwi.toFixed(1) : "—"}
@@ -143,7 +160,7 @@ export function LiveStatusPanel({
         value={dtp != null ? String(dtp) : "—"}
         sub={
           ctx.data
-            ? `${["", "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][ctx.data.peak_month]} ${ctx.data.peak_day}`
+            ? `${["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][ctx.data.peak_month]} ${ctx.data.peak_day}`
             : "—"
         }
         color="hsl(22 100% 56%)"

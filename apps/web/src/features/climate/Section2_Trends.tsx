@@ -5,9 +5,14 @@
  */
 import { Group } from "@visx/group";
 import { scaleLinear } from "@visx/scale";
-import { LinePath, Line } from "@visx/shape";
+import { Line, LinePath } from "@visx/shape";
 
-import { useClimateTrends, useSeasonalMetrics, type SeasonalRow, type TrendMetric } from "@/lib/api/hooks";
+import {
+  type SeasonalRow,
+  type TrendMetric,
+  useClimateTrends,
+  useSeasonalMetrics,
+} from "@/lib/api/hooks";
 
 import { InfoChip } from "./InfoChip";
 import { SectionShell } from "./SectionShell";
@@ -120,8 +125,7 @@ function Sparkline({
     range: [ih, 0],
   });
 
-  const trendLine =
-    trend &&
+  const trendLine = trend &&
     Number.isFinite(trend.slope_per_year) &&
     Number.isFinite(trend.intercept) && {
       x1: xs[0],
@@ -152,7 +156,9 @@ function Sparkline({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-text-hi)" }}>
+        <div
+          style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-text-hi)" }}
+        >
           {panel.label}
         </div>
         <div style={{ fontFamily: "var(--font-data)", fontSize: 12, color: panel.colour }}>
@@ -161,6 +167,7 @@ function Sparkline({
         </div>
       </div>
       <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+        <title>{panel.label} over time, with trend line</title>
         <Group left={margin.left} top={margin.top}>
           <LinePath
             data={pts}
@@ -171,13 +178,7 @@ function Sparkline({
             strokeOpacity={0.85}
           />
           {pts.map((d) => (
-            <circle
-              key={d.year}
-              cx={xScale(d.year)}
-              cy={yScale(d.val)}
-              r={2}
-              fill={panel.colour}
-            />
+            <circle key={d.year} cx={xScale(d.year)} cy={yScale(d.val)} r={2} fill={panel.colour} />
           ))}
           {trendLine && (
             <Line

@@ -8,7 +8,7 @@
  */
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { Group } from "@visx/group";
-import { scaleLinear, scaleBand } from "@visx/scale";
+import { scaleBand, scaleLinear } from "@visx/scale";
 import { Bar, Line } from "@visx/shape";
 
 import { useTruCarbon } from "@/lib/api/hooks";
@@ -66,6 +66,7 @@ function Chart({ rows }: { rows: { year: number; tco2e: number; target?: number 
       }}
     >
       <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+        <title>TRU campus carbon emissions by year</title>
         <Group left={margin.left} top={margin.top}>
           {rows.map((r) => {
             const bx = xScale(r.year) ?? 0;
@@ -91,8 +92,33 @@ function Chart({ rows }: { rows: { year: number; tco2e: number; target?: number 
               strokeDasharray="4 6"
             />
           )}
-          <AxisBottom top={ih} scale={xScale} stroke="hsl(220 15% 32%)" tickStroke="hsl(220 15% 32%)" tickLabelProps={() => ({ fill: "hsl(40 12% 72%)", fontFamily: "var(--font-data)", fontSize: 10, textAnchor: "middle", dy: "0.25em" })} />
-          <AxisLeft scale={yScale} stroke="hsl(220 15% 32%)" tickStroke="hsl(220 15% 32%)" numTicks={5} tickLabelProps={() => ({ fill: "hsl(40 12% 72%)", fontFamily: "var(--font-data)", fontSize: 10, textAnchor: "end", dx: "-0.4em", dy: "0.3em" })} />
+          <AxisBottom
+            top={ih}
+            scale={xScale}
+            stroke="hsl(220 15% 32%)"
+            tickStroke="hsl(220 15% 32%)"
+            tickLabelProps={() => ({
+              fill: "hsl(40 12% 72%)",
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              textAnchor: "middle",
+              dy: "0.25em",
+            })}
+          />
+          <AxisLeft
+            scale={yScale}
+            stroke="hsl(220 15% 32%)"
+            tickStroke="hsl(220 15% 32%)"
+            numTicks={5}
+            tickLabelProps={() => ({
+              fill: "hsl(40 12% 72%)",
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              textAnchor: "end",
+              dx: "-0.4em",
+              dy: "0.3em",
+            })}
+          />
         </Group>
       </svg>
     </div>

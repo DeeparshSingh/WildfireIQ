@@ -1,10 +1,10 @@
-import { Suspense, lazy, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { type ReactNode, Suspense, lazy } from "react";
 
+import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LeftRail } from "./LeftRail";
 import { TopBar } from "./TopBar";
-import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
 
 // Globe is lazy-loaded so the initial JS bundle stays slim. It mounts once
 // at the AppShell level and lives on across route changes.

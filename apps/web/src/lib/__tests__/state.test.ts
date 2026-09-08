@@ -4,15 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  decodeShare,
-  encodeShare,
-  rolloverStreak,
-} from "../../features/preparedness/state";
-import type {
-  PrepProfile,
-  ProgressV1,
-} from "../../features/preparedness/state";
+import { decodeShare, encodeShare, rolloverStreak } from "../../features/preparedness/state";
+import type { PrepProfile, ProgressV1 } from "../../features/preparedness/state";
 
 const baseProfile: PrepProfile = {
   version: "1",

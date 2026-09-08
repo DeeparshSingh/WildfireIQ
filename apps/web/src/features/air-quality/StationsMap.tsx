@@ -58,8 +58,9 @@ export function StationsMap({ stations }: { stations: AqCurrentStation[] }) {
 
   const maxKm = Math.max(...ranked.map((s) => s._km), 50);
 
-  // Concentric ring distances (km) — draw 3 rings inside the panel.
-  const ringKms = [maxKm / 3, (2 * maxKm) / 3, maxKm];
+  // Three concentric rings at thirds of the panel radius. The fraction is
+  // the ring's identity, so it doubles as a stable React key.
+  const RING_FRACTIONS = [1 / 3, 2 / 3, 1];
 
   return (
     <div
@@ -78,12 +79,12 @@ export function StationsMap({ stations }: { stations: AqCurrentStation[] }) {
         aria-label="AQHI stations around Kamloops"
       >
         {/* Concentric range rings */}
-        {ringKms.map((_km, i) => (
+        {RING_FRACTIONS.map((f) => (
           <circle
-            key={i}
+            key={f}
             cx={CENTER}
             cy={CENTER}
-            r={(RADIUS * (i + 1)) / 3}
+            r={RADIUS * f}
             fill="none"
             stroke="var(--color-stroke)"
             strokeOpacity={0.55}
@@ -108,17 +109,17 @@ export function StationsMap({ stations }: { stations: AqCurrentStation[] }) {
           strokeOpacity={0.25}
         />
         {/* Range labels */}
-        {ringKms.map((km, i) => (
+        {RING_FRACTIONS.map((f) => (
           <text
-            key={`lbl-${i}`}
-            x={CENTER + (RADIUS * (i + 1)) / 3 + 4}
+            key={`lbl-${f}`}
+            x={CENTER + RADIUS * f + 4}
             y={CENTER - 2}
             fontSize={8}
             fontFamily="var(--font-data)"
             fill="var(--color-text-low)"
             letterSpacing="0.18em"
           >
-            {Math.round(km)} km
+            {Math.round(maxKm * f)} km
           </text>
         ))}
 

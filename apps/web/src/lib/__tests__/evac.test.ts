@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { isPastEvac, sortEvacByDateDesc, type EvacZone } from "../api/hooks";
+import { type EvacZone, isPastEvac, sortEvacByDateDesc } from "../api/hooks";
 
 function zone(partial: Partial<EvacZone>): EvacZone {
   return {

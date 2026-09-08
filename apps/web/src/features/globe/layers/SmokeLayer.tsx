@@ -1,9 +1,5 @@
+import { type ImageryLayer, Rectangle, SingleTileImageryProvider } from "cesium";
 import { useEffect, useRef } from "react";
-import {
-  Rectangle,
-  SingleTileImageryProvider,
-  type ImageryLayer,
-} from "cesium";
 
 import { useSmokeForecast } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";

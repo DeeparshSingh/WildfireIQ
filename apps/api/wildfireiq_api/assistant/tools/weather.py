@@ -114,10 +114,12 @@ def get_weather(kind: str = "current", hours: int = 24, days: int = 5) -> ToolRe
     name="get_fire_weather_index",
     description=(
         "Canadian Fire Weather Index for the modelled regions and, when "
-        "available, nearby CWFIS ground stations. Returns the FWI itself, its "
+        "available, nearby weather stations. Returns the FWI itself, its "
         "component codes (FFMC, DMC, DC, ISI, BUI) and the CFFDRS fire-danger "
         "class. Use for 'what's the fire danger rating', 'how dry is the "
-        "forest', or when explaining why risk is high."
+        "forest', or when explaining why risk is high. These values are "
+        "computed by this project from Van Wagner's equations over Open-Meteo "
+        "weather — do not attribute them to NRCan or CWFIS."
     ),
     parameters={
         "type": "object",
@@ -125,7 +127,7 @@ def get_weather(kind: str = "current", hours: int = 24, days: int = 5) -> ToolRe
             **LOCATION_PROPERTIES,
             "include_stations": {
                 "type": "boolean",
-                "description": "Include CWFIS ground stations. Default true.",
+                "description": "Include nearby station readings. Default true.",
             },
         },
     },
@@ -142,8 +144,7 @@ def get_fire_weather_index(
     as_of: str | None = None
 
     # The project derives FWI from each region's own weather with the Van
-    # Wagner equations, so this path works even while the CWFIS GeoServer is
-    # down — which it has been for most of the build.
+    # Wagner equations, so this path does not depend on CWFIS being reachable.
     grid = predict_grid()
     if grid is not None:
         payload["modelled_regions"] = [
@@ -191,10 +192,9 @@ def get_fire_weather_index(
             as_of = as_of or newest_timestamp(stations, "fetched_at_utc")
         else:
             payload["stations_note"] = (
-                "No CWFIS station readings cached — that upstream GeoServer is "
-                "frequently unavailable. The modelled regional FWI above is "
-                "computed independently from Van Wagner's equations and is "
-                "what the risk model actually uses."
+                "No CWFIS station readings cached yet. The modelled regional "
+                "FWI above is computed independently from Van Wagner's "
+                "equations and is what the risk model actually uses."
             )
 
     if not payload:
@@ -207,7 +207,7 @@ def get_fire_weather_index(
     )
     return ToolResult(
         data=payload,
-        source="Natural Resources Canada CWFIS · WildfireIQ Van Wagner FWI implementation",
+        source="WildfireIQ Van Wagner FWI implementation over Open-Meteo daily weather",
         as_of=as_of,
     )
 

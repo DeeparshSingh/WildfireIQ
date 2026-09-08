@@ -78,14 +78,21 @@ single point (`KAMLOOPS_LAT`, `KAMLOOPS_LON` in the same file).
 | Active fires | **BC Wildfire Service** via DataBC WFS (`PROT_CURRENT_FIRE_POLYS_SP`, `PROT_CURRENT_FIRE_PNTS_SP`) | Every current incident: name, size, stage of control, perimeter or point | every 15 min | BC | none |
 | Satellite hotspots | **NASA FIRMS** near-real-time (VIIRS NOAA-20, VIIRS SNPP, MODIS) | Thermal detections in the last 3 days with radiative power and confidence | every 30 min | BC | `FIRMS_MAP_KEY` (free) |
 | Evacuation zones | **BC Emergency Management and Climate Readiness** ArcGIS FeatureServer | Every order, alert and rescind with its polygon | every 5 min | BC | none |
-| Fire-weather stations | **Open-Meteo** daily weather for 18 BC towns, run through Canada's **Van Wagner FWI equations** (`ml/fwi.py`) | 30 days of weather per town → today's FFMC, DMC, DC, ISI, BUI, FWI, DSR | every 30 min | BC, 18 towns | none |
+| Fire-weather stations | **Open-Meteo** daily weather for 18 BC towns, run through Canada's **Van Wagner FWI equations** (`ml/fwi.py`) | weather since 1 April per town → today's FFMC, DMC, DC, ISI, BUI, FWI, DSR | every 6 h | BC, 18 towns | none |
 | Smoke forecast | **ECCC FireWork** (RAQDPS-FW) via MSC GeoMet WMS | 73 hourly forecast images, each paired with the predicted PM2.5 at Kamloops | every 6 h | BC | none |
 | AI risk grid | The platform's own **wildfire risk model** (§5.1) | Risk class for 523 hexagons across 4 regions | computed on request from data refreshed nightly | 4 regions | none |
 
-The official Fire Weather Index feed from **NRCan CWFIS** is also attempted
-once a day (`cwfis_fwi_daily`, 18:00 UTC). That service has returned errors
-throughout the project, so the in-house calculation is the working source;
-both write the same file, and when CWFIS answers its values are used.
+The official Fire Weather Index feed from **NRCan CWFIS** is pulled once a day
+too (`cwfis_fwi_daily`, 18:00 UTC), into its own file. It is a cross-check, not
+a substitute: CWFIS lists only 11 stations inside British Columbia and none of
+the 18 towns people search for here, so the in-house calculation is what the app
+serves. Where a CWFIS station sits close enough to one of ours to compare, the
+two agree on Drought Code to about 1.5%, which is the best evidence available
+that `ml/fwi.py` is right.
+
+This job reported "GeoServer unreachable" for the whole build. It was wrong —
+NRCan had renamed the WFS layer, and a broad `except` turned that into an
+outage. Fixed in the September 2026 audit.
 
 ### 3.2 Air Quality
 
@@ -150,7 +157,7 @@ All times are UTC. Each row is one ingest job (`apps/api/wildfireiq_api/ingest/`
 | `bcem_evac` | every 5 min |
 | `databc_fires_current` | every 15 min |
 | `firms_hotspots` | every 30 min |
-| `derived_fwi_stations` | every 30 min |
+| `derived_fwi_stations` | every 6 hours |
 
 | Hourly | |
 |---|---|
@@ -165,7 +172,7 @@ All times are UTC. Each row is one ingest job (`apps/api/wildfireiq_api/ingest/`
 
 | Nightly, in dependency order | |
 |---|---|
-| `cwfis_fwi_daily` (official FWI; currently failing upstream) | 18:00 |
+| `cwfis_fwi_daily` (NRCan's official FWI, as a cross-check) | 18:00 |
 | `open_meteo_archive_kamloops` — 27-year ERA5 archive, extended to today | 02:20 |
 | `derived_region_weather` — the same for Kelowna, Vancouver, Prince George | 02:25 |
 | `derived_seasonal_metrics` — the climate page's per-year table | 02:30 |

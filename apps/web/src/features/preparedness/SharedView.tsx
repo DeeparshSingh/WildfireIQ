@@ -65,15 +65,19 @@ export function SharedView() {
               maxWidth: 560,
             }}
           >
-            All data on this page was decoded from the URL hash. Nothing
-            was fetched from a server. This is a read-only view.
+            All data on this page was decoded from the URL hash. Nothing was fetched from a server.
+            This is a read-only view.
           </p>
         </header>
 
         {!payload ? (
           <section
             className="glass-strong"
-            style={{ padding: 28, borderRadius: "var(--radius-lg)", color: "var(--color-text-mid)" }}
+            style={{
+              padding: 28,
+              borderRadius: "var(--radius-lg)",
+              color: "var(--color-text-mid)",
+            }}
           >
             No valid shared payload in the URL. Ask the sharer for the link again.
           </section>
@@ -89,19 +93,50 @@ export function SharedView() {
                 marginBottom: 16,
               }}
             >
-              <div style={{ fontFamily: "var(--font-data)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-data)",
+                  fontSize: 10,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "var(--color-text-mid)",
+                }}
+              >
                 Completed actions
               </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 700, color: "var(--color-text-hi)", lineHeight: 1 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: "var(--color-text-hi)",
+                  lineHeight: 1,
+                }}
+              >
                 {payload.g.completedActions.length}
               </div>
-              <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--color-text-mid)" }}>
-                🔥 {payload.g.streakDays} day streak · {payload.g.earnedAchievements.length} badges earned
+              <div
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: 12,
+                  color: "var(--color-text-mid)",
+                }}
+              >
+                🔥 {payload.g.streakDays} day streak · {payload.g.earnedAchievements.length} badges
+                earned
               </div>
             </section>
 
             <section style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontFamily: "var(--font-data)", fontSize: 11, letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-data)",
+                  fontSize: 11,
+                  letterSpacing: "0.28em",
+                  textTransform: "uppercase",
+                  color: "var(--color-text-mid)",
+                }}
+              >
                 Badges earned
               </div>
               {(achievements.data ?? []).map((a) => {
@@ -123,10 +158,25 @@ export function SharedView() {
                   >
                     <span style={{ fontSize: 22 }}>{a.emoji}</span>
                     <div>
-                      <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "var(--color-text-hi)" }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-body)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--color-text-hi)",
+                        }}
+                      >
                         {a.label}
                       </div>
-                      <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-mid)", lineHeight: 1.4, marginTop: 2 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-body)",
+                          fontSize: 11,
+                          color: "var(--color-text-mid)",
+                          lineHeight: 1.4,
+                          marginTop: 2,
+                        }}
+                      >
                         {a.blurb}
                       </div>
                     </div>

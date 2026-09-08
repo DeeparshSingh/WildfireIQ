@@ -94,9 +94,13 @@ Makefile         Every documented command
 ./start.sh                # run both halves (or: make dev, pnpm dev)
 ./start.sh --bootstrap    # also pull historical datasets first
 
-make test                 # backend tests (167)
-cd apps/web && pnpm test  # frontend tests (36)
-make lint                 # ruff check + format check
+make check                # the whole gate: lint, typecheck, both test suites, build
+
+make lint                 # ruff + biome
+make format               # apply ruff + biome formatting
+make test                 # both suites (176 backend, 45 frontend)
+make test-api             # backend only
+make test-web             # frontend only
 make typecheck            # tsc --noEmit
 make build                # production build of the web app
 

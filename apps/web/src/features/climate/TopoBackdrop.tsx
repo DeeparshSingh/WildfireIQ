@@ -11,7 +11,7 @@ export function TopoBackdrop() {
   const paths: string[] = [];
   for (let i = 0; i < LINES; i++) {
     const baseY = (H * (i + 1)) / (LINES + 1);
-    const amp = 12 + (i * 7) % 50;
+    const amp = 12 + ((i * 7) % 50);
     const freq = 0.006 + ((i * 13) % 7) * 0.0012;
     const phase = (i * 37) % 360;
     let d = `M 0 ${baseY}`;
@@ -40,16 +40,11 @@ export function TopoBackdrop() {
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
         style={{ width: "100%", height: "100%" }}
       >
-        {paths.map((d, i) => (
-          <path
-            key={i}
-            d={d}
-            stroke="hsl(40 30% 96%)"
-            strokeWidth={0.6}
-            fill="none"
-          />
+        {paths.map((d) => (
+          <path key={d} d={d} stroke="hsl(40 30% 96%)" strokeWidth={0.6} fill="none" />
         ))}
       </svg>
     </div>

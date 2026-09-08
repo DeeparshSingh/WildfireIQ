@@ -1,7 +1,7 @@
 /**
  * Right column — score, badges (all 12), streak, share + reset.
  */
-import { useFireSmartAchievements, type FireSmartAchievement } from "@/lib/api/hooks";
+import { type FireSmartAchievement, useFireSmartAchievements } from "@/lib/api/hooks";
 
 export function ProgressPanel({
   points,
@@ -29,9 +29,20 @@ export function ProgressPanel({
     <aside style={{ display: "grid", gap: 16 }}>
       <SectionHeader>Your progress</SectionHeader>
 
-      <section className="glass-strong" style={{ padding: 18, borderRadius: "var(--radius-lg)", display: "grid", gap: 12 }}>
+      <section
+        className="glass-strong"
+        style={{ padding: 18, borderRadius: "var(--radius-lg)", display: "grid", gap: 12 }}
+      >
         <div>
-          <div style={{ fontFamily: "var(--font-data)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-text-mid)" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-data)",
+              fontSize: 10,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "var(--color-text-mid)",
+            }}
+          >
             FireSmart score
           </div>
           <div
@@ -45,19 +56,32 @@ export function ProgressPanel({
             }}
           >
             {points}
-            <span style={{ fontSize: 14, color: "var(--color-text-mid)", fontWeight: 400 }}> / {maxPoints} pts</span>
+            <span style={{ fontSize: 14, color: "var(--color-text-mid)", fontWeight: 400 }}>
+              {" "}
+              / {maxPoints} pts
+            </span>
           </div>
-          <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--color-text-mid)", marginTop: 4 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 12,
+              color: "var(--color-text-mid)",
+              marginTop: 4,
+            }}
+          >
             {completed} of {total} actions · {pct}%
           </div>
         </div>
 
-        <div style={{ height: 8, background: "hsl(220 30% 12%)", borderRadius: 8, overflow: "hidden" }}>
+        <div
+          style={{ height: 8, background: "hsl(220 30% 12%)", borderRadius: 8, overflow: "hidden" }}
+        >
           <div
             style={{
               width: `${pct}%`,
               height: "100%",
-              background: "linear-gradient(90deg, hsl(150 70% 50%), hsl(180 75% 55%), hsl(200 90% 60%))",
+              background:
+                "linear-gradient(90deg, hsl(150 70% 50%), hsl(180 75% 55%), hsl(200 90% 60%))",
               transition: "width 0.4s ease",
             }}
           />
@@ -115,10 +139,25 @@ function BadgeRow({ achievement, earned }: { achievement: FireSmartAchievement; 
     >
       <span style={{ fontSize: 22 }}>{achievement.emoji}</span>
       <div>
-        <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "var(--color-text-hi)" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--color-text-hi)",
+          }}
+        >
           {achievement.label}
         </div>
-        <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-mid)", lineHeight: 1.4, marginTop: 2 }}>
+        <div
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: 11,
+            color: "var(--color-text-mid)",
+            lineHeight: 1.4,
+            marginTop: 2,
+          }}
+        >
           {achievement.blurb}
         </div>
       </div>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { Math as CesiumMath } from "cesium";
 import type { Viewer as CesiumViewer } from "cesium";
+import { useEffect, useState } from "react";
 
 type Readout = {
   lat: number;

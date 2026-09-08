@@ -105,11 +105,10 @@ export function AboutView() {
               margin: "14px 0 0",
             }}
           >
-            Wildfire risk, air quality, and community preparedness for the
-            Thompson-Okanagan region of British Columbia, built from public
-            data. Created by Deeparsh Singh Dang at Thompson Rivers University
-            with support from the TRU Sustainability Research Grant for
-            Students, 2025-2026.
+            Wildfire risk, air quality, and community preparedness for the Thompson-Okanagan region
+            of British Columbia, built from public data. Created by Deeparsh Singh Dang at Thompson
+            Rivers University with support from the TRU Sustainability Research Grant for Students,
+            2025-2026.
           </p>
           <div
             style={{
@@ -151,14 +150,12 @@ export function AboutView() {
 
         <Section title="How the models were tested">
           <p style={pStyle}>
-            Both models were trained on records up to 2021 and then evaluated
-            on the 2022 and 2023 fire seasons, which were held out of training
-            entirely. On the unseen 2023 season the wildfire risk model reaches
-            a precision-recall score of 0.72 in the Thompson-Okanagan and 0.61
-            in Prince George, ahead of the conventional Fire Weather Index
-            threshold method at 0.37. The air quality forecaster beats a
-            &ldquo;tomorrow equals today&rdquo; baseline at the 6, 12, 36, and
-            48-hour horizons. Full training data, method, and known failure
+            Both models were trained on records up to 2021 and then evaluated on the 2022 and 2023
+            fire seasons, which were held out of training entirely. On the unseen 2023 season the
+            wildfire risk model reaches a precision-recall score of 0.72 in the Thompson-Okanagan
+            and 0.61 in Prince George, ahead of the conventional Fire Weather Index threshold method
+            at 0.37. The air quality forecaster beats a &ldquo;tomorrow equals today&rdquo; baseline
+            at the 6, 12, 36, and 48-hour horizons. Full training data, method, and known failure
             modes are published in the model cards that ship with the code.
           </p>
         </Section>
@@ -172,9 +169,8 @@ export function AboutView() {
             ))}
           </ul>
           <Callout>
-            Always follow the BC Wildfire Service and BC Emergency Management
-            Climate Readiness for official direction. This platform is
-            informational and does not replace them.
+            Always follow the BC Wildfire Service and BC Emergency Management Climate Readiness for
+            official direction. This platform is informational and does not replace them.
           </Callout>
         </Section>
 
@@ -238,13 +234,11 @@ export function AboutView() {
 
         <Section title="Privacy">
           <p style={pStyle}>
-            There are no accounts and no analytics. The preparedness hub keeps
-            your neighbourhood, checklist progress, and any photos you attach
-            in your own browser, using local storage and IndexedDB. Photos
-            never leave your device. The one thing sent to the backend is a
-            coordinate pair, used only to test whether that point falls inside
-            an active evacuation polygon; it is not stored or logged against
-            any identifier.
+            There are no accounts and no analytics. The preparedness hub keeps your neighbourhood,
+            checklist progress, and any photos you attach in your own browser, using local storage
+            and IndexedDB. Photos never leave your device. The one thing sent to the backend is a
+            coordinate pair, used only to test whether that point falls inside an active evacuation
+            polygon; it is not stored or logged against any identifier.
           </p>
         </Section>
 
@@ -259,10 +253,10 @@ export function AboutView() {
             color: "var(--color-text-low)",
           }}
         >
-          To cite this work, see CITATION.cff in the repository. The documents
-          folder alongside the code holds a plain-language guide to how the
-          platform works and how to extend it, the engineering architecture,
-          the data dictionary, both model cards, and the assistant's design.
+          To cite this work, see CITATION.cff in the repository. The documents folder alongside the
+          code holds a plain-language guide to how the platform works and how to extend it, the
+          engineering architecture, the data dictionary, both model cards, and the assistant's
+          design.
         </footer>
       </div>
     </div>

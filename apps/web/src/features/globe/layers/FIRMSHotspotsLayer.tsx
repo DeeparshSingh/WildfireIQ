@@ -1,14 +1,14 @@
-import { useEffect, useRef } from "react";
 import {
   Cartesian3,
   Color,
+  type Entity,
   NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  type Entity,
 } from "cesium";
+import { useEffect, useRef } from "react";
 
-import { useFirmsHotspots, type Hotspot } from "@/lib/api/hooks";
+import { type Hotspot, useFirmsHotspots } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
@@ -92,16 +92,13 @@ export function FIRMSHotspotsLayer() {
     }
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(
-      (click: ScreenSpaceEventHandler.PositionedEvent) => {
-        const picked = viewer.scene.pick(click.position);
-        const ent = picked?.id as Entity | undefined;
-        if (!ent || !ent.id) return;
-        const id = idMapRef.current.get(ent.id);
-        if (id) useLayersStore.getState().select({ kind: "hotspot", id });
-      },
-      ScreenSpaceEventType.LEFT_CLICK,
-    );
+    handler.setInputAction((click: ScreenSpaceEventHandler.PositionedEvent) => {
+      const picked = viewer.scene.pick(click.position);
+      const ent = picked?.id as Entity | undefined;
+      if (!ent || !ent.id) return;
+      const id = idMapRef.current.get(ent.id);
+      if (id) useLayersStore.getState().select({ kind: "hotspot", id });
+    }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
 
     requestRender(viewer);

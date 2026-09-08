@@ -12,10 +12,12 @@ Computes the standard six FWI codes from daily noon-LST weather observations:
   BUI  — Buildup Index
   FWI  — Fire Weather Index
 
-Why this exists: NRCan's CWFIS GeoServer (the primary source for live FWI) has
-been returning HTTP 502 for the entire build window. Computing FWI ourselves
-removes the dependency entirely and gives us per-day FWI for our 27-year
-weather archive, which is the actual feature we need for the risk classifier.
+Why this exists: computing FWI ourselves gives per-day values across the whole
+27-year weather archive, which is the actual feature the risk classifier needs,
+and it removes any runtime dependency on NRCan's CWFIS service — which lists
+only eleven stations inside British Columbia in any case. CWFIS values are
+ingested separately as a cross-check; at co-located stations this port's Drought
+Code agrees with NRCan's to about 1.5%.
 
 Inputs (per row, daily noon-LST values):
   temp_c   — temperature (°C)

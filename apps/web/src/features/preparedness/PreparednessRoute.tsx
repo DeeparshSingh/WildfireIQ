@@ -25,6 +25,8 @@ import { LiveStatusPanel } from "./LiveStatusPanel";
 import { OnboardingWizard } from "./OnboardingWizard";
 import { ProgressPanel } from "./ProgressPanel";
 import {
+  type PrepProfile,
+  type ProgressV1,
   clearProfile,
   encodeShare,
   loadProfile,
@@ -33,8 +35,6 @@ import {
   rolloverStreak,
   saveProfile,
   saveProgress,
-  type PrepProfile,
-  type ProgressV1,
 } from "./state";
 
 export function PreparednessRoute() {
@@ -51,15 +51,7 @@ export function PreparednessRoute() {
 
   // Server-filtered checklist (drives points + total).
   const sit = useMemo(() => profile?.situation ?? [], [profile]);
-  const mappedSit = useMemo(
-    () =>
-      sit.map((s) =>
-        s === "house_yard"
-          ? "any"
-          : s,
-      ),
-    [sit],
-  );
+  const mappedSit = useMemo(() => sit.map((s) => (s === "house_yard" ? "any" : s)), [sit]);
   const checklist = useFireSmartChecklist(
     profile?.dwelling ?? "house",
     profile?.season ?? "summer",
@@ -79,9 +71,7 @@ export function PreparednessRoute() {
   const stats = useMemo(() => {
     const total = actions.length;
     const done = actions.filter((a) => completedSet.has(a.id)).length;
-    const pts = actions
-      .filter((a) => completedSet.has(a.id))
-      .reduce((a, b) => a + b.points, 0);
+    const pts = actions.filter((a) => completedSet.has(a.id)).reduce((a, b) => a + b.points, 0);
     const max = actions.reduce((a, b) => a + b.points, 0);
     return { total, done, pts, max };
   }, [actions, completedSet]);
@@ -116,16 +106,20 @@ export function PreparednessRoute() {
   }, [stats, actions, completedSet, photosCount, progress]);
 
   // Fire confetti once per newly-earned badge.
+  //
+  // The ref — not `progress` — is what makes this fire once. Badges already
+  // earned on a previous visit seed it, so a page load does not replay their
+  // confetti, and celebrating a badge cannot re-trigger this effect.
+  const celebratedRef = useRef<Set<string>>(new Set(progress.earnedAchievements));
   useEffect(() => {
-    const already = new Set(progress.earnedAchievements);
-    const fresh: string[] = [];
-    earnedNow.forEach((id) => {
-      if (!already.has(id)) fresh.push(id);
-    });
-    if (fresh.length > 0) {
-      setProgress((p) => ({ ...p, earnedAchievements: [...p.earnedAchievements, ...fresh] }));
-      setConfettiTick((t) => t + 1);
-    }
+    const fresh = [...earnedNow].filter((id) => !celebratedRef.current.has(id));
+    if (fresh.length === 0) return;
+    for (const id of fresh) celebratedRef.current.add(id);
+    setProgress((p) => ({
+      ...p,
+      earnedAchievements: [...new Set([...p.earnedAchievements, ...fresh])],
+    }));
+    setConfettiTick((t) => t + 1);
   }, [earnedNow]);
 
   // ─── Smoke-aware flag: flip on if user is here while AQHI ≥ 7 ──────
@@ -141,10 +135,7 @@ export function PreparednessRoute() {
   }, [aqhi, progress.smokeAware]);
 
   // ─── Evac state-change Web Notification ───────────────────────────────
-  const evac = useEvacCheck(
-    profile?.neighbourhoodLat ?? null,
-    profile?.neighbourhoodLon ?? null,
-  );
+  const evac = useEvacCheck(profile?.neighbourhoodLat ?? null, profile?.neighbourhoodLon ?? null);
   const lastStatusRef = useRef<typeof progress.lastEvacStatus>(progress.lastEvacStatus);
   useEffect(() => {
     const cur = evac.data?.status ?? null;
@@ -162,9 +153,7 @@ export function PreparednessRoute() {
       );
     }
     lastStatusRef.current = cur;
-    if (progress.lastEvacStatus !== cur) {
-      setProgress((p) => ({ ...p, lastEvacStatus: cur }));
-    }
+    setProgress((p) => (p.lastEvacStatus === cur ? p : { ...p, lastEvacStatus: cur }));
   }, [evac.data?.status, profile]);
 
   // ─── Mutations ───────────────────────────────────────────────────────
@@ -186,9 +175,7 @@ export function PreparednessRoute() {
   const setPhoto = (id: string) =>
     setProgress((p) => ({
       ...p,
-      completedActions: p.completedActions.map((c) =>
-        c.id === id ? { ...c, hasPhoto: true } : c,
-      ),
+      completedActions: p.completedActions.map((c) => (c.id === id ? { ...c, hasPhoto: true } : c)),
     }));
   const clearPhotoFlag = (id: string) =>
     setProgress((p) => ({
@@ -249,9 +236,7 @@ export function PreparednessRoute() {
       <div style={{ maxWidth: 1320, margin: "0 auto" }}>
         <Header profile={profile} setProfile={setProfile} />
 
-        {shareLink && (
-          <ShareBanner url={shareLink} onClose={() => setShareLink(null)} />
-        )}
+        {shareLink && <ShareBanner url={shareLink} onClose={() => setShareLink(null)} />}
 
         <div
           style={{
@@ -365,7 +350,9 @@ function Header({
       <div style={{ display: "flex", gap: 8 }}>
         <select
           value={profile.season}
-          onChange={(e) => setProfile({ ...profile, season: e.target.value as PrepProfile["season"] })}
+          onChange={(e) =>
+            setProfile({ ...profile, season: e.target.value as PrepProfile["season"] })
+          }
           style={selectStyle}
         >
           <option value="any">All year</option>
@@ -375,7 +362,9 @@ function Header({
         </select>
         <select
           value={profile.dwelling}
-          onChange={(e) => setProfile({ ...profile, dwelling: e.target.value as PrepProfile["dwelling"] })}
+          onChange={(e) =>
+            setProfile({ ...profile, dwelling: e.target.value as PrepProfile["dwelling"] })
+          }
           style={selectStyle}
         >
           <option value="house">Detached house</option>
@@ -404,7 +393,9 @@ function ShareBanner({ url, onClose }: { url: string; onClose: () => void }) {
     >
       <span style={{ fontSize: 18 }}>🔗</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-text-hi)" }}>
+        <div
+          style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-text-hi)" }}
+        >
           Share link copied. Your progress is encoded in the URL — no server stores it.
         </div>
         <div
@@ -456,10 +447,9 @@ function PrivacyFooter() {
         textAlign: "center",
       }}
     >
-      <strong style={{ color: "var(--color-text-hi)" }}>Private by design.</strong>{" "}
-      Profile + progress in localStorage. Photos in IndexedDB. Coordinates
-      are sent to the backend only for the polygon lookup that powers the
-      evac widget — never stored or logged with an identifier.
+      <strong style={{ color: "var(--color-text-hi)" }}>Private by design.</strong> Profile +
+      progress in localStorage. Photos in IndexedDB. Coordinates are sent to the backend only for
+      the polygon lookup that powers the evac widget — never stored or logged with an identifier.
     </p>
   );
 }

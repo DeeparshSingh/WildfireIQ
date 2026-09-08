@@ -1,17 +1,17 @@
-import { useEffect, useRef } from "react";
 import {
   Cartesian2,
   Cartesian3,
   Color,
+  type Entity,
   NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  type Entity,
 } from "cesium";
+import { useEffect, useRef } from "react";
 
-import { useFiresCurrent, type Fire } from "@/lib/api/hooks";
-import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
+import { type Fire, useFiresCurrent } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
+import { parseWkt, ringCentroid } from "@/lib/cesium-helpers/wkt";
 import { useFiltersStore } from "@/stores/filters";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
@@ -29,7 +29,7 @@ const FIRE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" wi
   <path fill="url(#g)" stroke="#7a1b06" stroke-width="1"
     d="M16 2 C18 8 24 10 22 18 C28 16 26 26 16 30 C6 26 4 16 10 18 C8 10 14 8 16 2 Z"/>
 </svg>`;
-const FIRE_ICON_URL = "data:image/svg+xml;utf8," + encodeURIComponent(FIRE_SVG);
+const FIRE_ICON_URL = `data:image/svg+xml;utf8,${encodeURIComponent(FIRE_SVG)}`;
 
 // Scale icons by camera distance so they shrink when zoomed out (avoid clutter)
 // and stay readable when zoomed in. (near distance, near scale, far distance, far scale)
@@ -43,10 +43,7 @@ function passesFilter(
   const s = (f.status ?? "").toLowerCase();
   const isOut = s === "out" || s === "extinguished";
   if (isOut && !filter.includeExtinguished) return false;
-  if (
-    filter.statuses.length > 0 &&
-    !filter.statuses.some((q) => s.includes(q.toLowerCase()))
-  ) {
+  if (filter.statuses.length > 0 && !filter.statuses.some((q) => s.includes(q.toLowerCase()))) {
     return false;
   }
   if ((f.hectares ?? 0) < filter.minHectares) return false;
@@ -119,10 +116,7 @@ export function ActiveFiresLayer() {
           addedRef.current.push(polyEnt);
 
           const closed = ring.slice();
-          if (
-            closed[0] !== closed[closed.length - 2] ||
-            closed[1] !== closed[closed.length - 1]
-          ) {
+          if (closed[0] !== closed[closed.length - 2] || closed[1] !== closed[closed.length - 1]) {
             closed.push(closed[0], closed[1]);
           }
           const outlineEnt = viewer.entities.add({
@@ -174,16 +168,13 @@ export function ActiveFiresLayer() {
     }
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(
-      (click: ScreenSpaceEventHandler.PositionedEvent) => {
-        const picked = viewer.scene.pick(click.position);
-        const ent = picked?.id as Entity | undefined;
-        if (!ent || !ent.id) return;
-        const fireId = idMapRef.current.get(ent.id);
-        if (fireId) useLayersStore.getState().select({ kind: "fire", id: fireId });
-      },
-      ScreenSpaceEventType.LEFT_CLICK,
-    );
+    handler.setInputAction((click: ScreenSpaceEventHandler.PositionedEvent) => {
+      const picked = viewer.scene.pick(click.position);
+      const ent = picked?.id as Entity | undefined;
+      if (!ent || !ent.id) return;
+      const fireId = idMapRef.current.get(ent.id);
+      if (fireId) useLayersStore.getState().select({ kind: "fire", id: fireId });
+    }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
 
     requestRender(viewer);

@@ -1,15 +1,8 @@
+import { Cartesian3, Math as CesiumMath, Color, Ion, IonImageryProvider, Terrain } from "cesium";
+import type { Viewer as CesiumViewer } from "cesium";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Cartesian3,
-  Color,
-  Ion,
-  IonImageryProvider,
-  Math as CesiumMath,
-  Terrain,
-} from "cesium";
 import { Viewer } from "resium";
 import type { CesiumComponentRef } from "resium";
-import type { Viewer as CesiumViewer } from "cesium";
 
 import { getCesiumIonToken } from "@/lib/cesium-helpers/init";
 import { useGlobeStore } from "@/stores/globe";
@@ -57,9 +50,7 @@ export function WildfireGlobe() {
 
     (async () => {
       try {
-        const labeled = await IonImageryProvider.fromAssetId(
-          BING_AERIAL_WITH_LABELS_ASSET_ID,
-        );
+        const labeled = await IonImageryProvider.fromAssetId(BING_AERIAL_WITH_LABELS_ASSET_ID);
         if (cancelled) return;
         viewer.imageryLayers.removeAll();
         viewer.imageryLayers.addImageryProvider(labeled);
@@ -131,11 +122,7 @@ export function WildfireGlobe() {
     if (lastCamera && introPlayed) {
       // Restore the user's last position — no flight, no fanfare.
       viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(
-          lastCamera.lon,
-          lastCamera.lat,
-          lastCamera.height,
-        ),
+        destination: Cartesian3.fromDegrees(lastCamera.lon, lastCamera.lat, lastCamera.height),
         orientation: {
           heading: lastCamera.heading,
           pitch: lastCamera.pitch,
@@ -143,7 +130,7 @@ export function WildfireGlobe() {
         },
       });
       viewer.scene.requestRenderMode = true;
-      viewer.scene.maximumRenderTimeChange = Infinity;
+      viewer.scene.maximumRenderTimeChange = Number.POSITIVE_INFINITY;
       openDataGate(); // layers can render immediately on revisits
       return;
     }
@@ -170,7 +157,7 @@ export function WildfireGlobe() {
         duration: 4.5,
         complete: () => {
           viewer.scene.requestRenderMode = true;
-          viewer.scene.maximumRenderTimeChange = Infinity;
+          viewer.scene.maximumRenderTimeChange = Number.POSITIVE_INFINITY;
           markIntroPlayed();
         },
       });

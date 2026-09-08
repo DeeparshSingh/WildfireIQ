@@ -124,9 +124,9 @@ export function ForecastChart({ data }: { data: AqForecast }) {
           />
           {allPoints
             .filter((p) => p.observed)
-            .map((p, i) => (
+            .map((p) => (
               <Circle
-                key={`obs-${i}`}
+                key={`obs-${p.time}`}
                 cx={xScale(p.time)}
                 cy={yScale(p.q50)}
                 r={3}

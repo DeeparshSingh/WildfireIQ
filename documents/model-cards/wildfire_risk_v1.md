@@ -21,7 +21,7 @@ The region list lives in `wildfireiq_api/constants.py::REGIONS` and is read by t
 ## Training data
 - **Fires**: BC Wildfire Service `PROT_HISTORICAL_INCIDENTS_SP` (DataBC) — 96,356 incidents 1999–2026 across all of British Columbia. Each region filters this province-wide record to its own bounding box at label time. The DataBC download was always province-wide, so covering four regions instead of one added no upstream cost.
 - **Weather**: Open-Meteo ERA5 archive sampled at each region's anchor city — daily max-temp / min-temp / min-RH / max-wind / max-gust / total-precip / max-VPD / ET₀ from 1999-01-01, roughly 10,100 daily rows per region. ERA5 lags about five days, so a 15-day forecast tail is spliced on and the series always reaches today.
-- **Fire Weather Index codes** (FFMC, DMC, DC, ISI, BUI, FWI, DSR) are **derived from the weather data** per region using the canonical Van Wagner & Pickett (1985) equations — implemented in `wildfireiq_api/ml/fwi.py`. This eliminates the runtime dependency on NRCan's CWFIS GeoServer (which has been HTTP-502'd throughout the build).
+- **Fire Weather Index codes** (FFMC, DMC, DC, ISI, BUI, FWI, DSR) are **derived from the weather data** per region using the canonical Van Wagner & Pickett (1985) equations — implemented in `wildfireiq_api/ml/fwi.py`. This removes the runtime dependency on NRCan's CWFIS GeoServer and gives per-day FWI across the whole 27-year archive, which is the feature the classifier needs. NRCan's published station values are still ingested separately as a cross-check: at co-located stations our Drought Code agrees with theirs to about 1.5%.
 
 ## Features
 42 input features per region-day (`features_risk_daily.parquet`, 40,436 rows as of 2026-09-04; it grows by four rows a day):

@@ -1,26 +1,39 @@
-"""Derived Fire Weather Index — multi-station fallback when CWFIS is down.
+"""Derived Fire Weather Index at representative BC weather stations.
 
-NRCan's CWFIS GeoServer has been HTTP-502 throughout the build. This job
-computes FWI ourselves at a curated set of representative BC weather
-stations by:
-  1. Pulling the last 30 days of daily weather from Open-Meteo for each
-     station coordinate (free, no key, 10 stations = 10 API calls per run).
-  2. Running the Van Wagner FWI port already used by the wildfire risk
-     model on each station's chronological series so carryover codes
-     (FFMC/DMC/DC) are valid.
-  3. Persisting the *latest* day's row per station as
-     `fwi_stations_today.parquet` — same schema the CWFIS job uses, so
-     the existing /api/fwi/today route + the Cesium FWIStationsLayer +
-     LayerDetailModal FwiBrowser all work unchanged.
+This is the source `/api/fwi/today` serves. It computes FWI ourselves rather
+than reading NRCan's published values, because CWFIS carries only 11 stations
+inside British Columbia and none of them are the places users search for.
+`cwfis_fwi.py` pulls the official numbers alongside, as a cross-check.
+
+How it works:
+  1. Pull daily weather from Open-Meteo's archive for each station, from
+     1 April of the current year through today — one call per station, free,
+     no key.
+  2. Run the Van Wagner FWI port already used by the wildfire risk model over
+     each station's chronological series.
+  3. Persist the *latest* day's row per station as
+     `fwi_stations_today.parquet`, the schema /api/fwi/today, the Cesium
+     FWIStationsLayer and the LayerDetailModal FwiChecker all read.
+
+Why 1 April and not a rolling window: the three fuel-moisture codes are
+carryover values, and they only mean anything if the series starts where the
+Van Wagner convention says the season starts. This job used to pull 30 days,
+which is fine for FFMC (it responds within a day) and passable for DMC, but
+badly wrong for the Drought Code — DC has roughly a 52-day time constant and
+accumulates all season. Starting it in August produced DC around 160-235
+against NRCan's 439-642 at the same stations, biasing BUI and FWI low in
+exactly the dry conditions the index exists to flag.
 
 The port is pure pandas, so this adds no new dependency.
 
-Cron: every 30 min (cheap, ~3 s to run).
+Cron: every 6 hours. FWI is a daily index computed from daily weather, so the
+former 30-minute cadence re-derived an unchanged number 48 times a day.
 """
 
 from __future__ import annotations
 
 import asyncio
+from datetime import date
 
 import pandas as pd
 
@@ -51,16 +64,32 @@ STATIONS: list[tuple[str, float, float]] = [
     ("Smithers", 54.7804, -127.1772),
 ]
 
-OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
+#: The archive endpoint, not the forecast one: `past_days` caps at 92, which
+#: cannot reach 1 April. Archive covers 1 April through today with no gaps.
+OPEN_METEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+
+#: What /api/fwi/today reads.
+OUTPUT_NAME = "fwi_stations_today.parquet"
+
+#: Van Wagner's fire season start, and the date `ml.fwi.compute_fwi` assumes
+#: its FFMC=85 / DMC=6 / DC=15 startup values apply to.
+SEASON_START_MONTH_DAY = (4, 1)
 
 
-async def _pull_station_weather(client, name: str, lat: float, lon: float) -> pd.DataFrame | None:
-    """Pull last 30 days of daily weather at this station."""
-    # Use the forecast endpoint with `past_days=30` so we always get
-    # the most up-to-date rows including yesterday (Archive lags ~5 days).
+async def _pull_station_weather(
+    client, name: str, lat: float, lon: float, *, today: date
+) -> pd.DataFrame | None:
+    """Daily weather at this station from 1 April through today."""
+    season_start = date(today.year, *SEASON_START_MONTH_DAY)
+    if today < season_start:
+        # Before 1 April there is no current season to spin up; fall back to
+        # the previous year's so the codes still carry something real.
+        season_start = date(today.year - 1, *SEASON_START_MONTH_DAY)
     params = {
         "latitude": str(lat),
         "longitude": str(lon),
+        "start_date": season_start.isoformat(),
+        "end_date": today.isoformat(),
         "daily": ",".join(
             [
                 "temperature_2m_max",
@@ -72,8 +101,6 @@ async def _pull_station_weather(client, name: str, lat: float, lon: float) -> pd
                 "et0_fao_evapotranspiration",
             ]
         ),
-        "past_days": "30",
-        "forecast_days": "1",
         "timezone": "UTC",
     }
     # Open-Meteo rate-limits bursts (HTTP 429). Retry a few times with
@@ -82,7 +109,7 @@ async def _pull_station_weather(client, name: str, lat: float, lon: float) -> pd
     r = None
     for attempt in range(4):
         try:
-            r = await client.get(OPEN_METEO_FORECAST, params=params)
+            r = await client.get(OPEN_METEO_ARCHIVE, params=params)
             if r.status_code == 429:
                 await asyncio.sleep(1.5 * (attempt + 1))
                 continue
@@ -117,7 +144,7 @@ async def _pull_station_weather(client, name: str, lat: float, lon: float) -> pd
 
 class DerivedFWIStationsJob(IngestJob):
     name = "derived_fwi_stations"
-    cadence = "*/30 * * * *"
+    cadence = "0 */6 * * *"
     label = "Derived FWI · Van Wagner from Open-Meteo (multi-station BC)"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
@@ -128,9 +155,11 @@ class DerivedFWIStationsJob(IngestJob):
         # drops stations). 18 stations / 4 at a time finishes in ~5 batches.
         sem = asyncio.Semaphore(4)
 
+        today = ctx.started_at_utc.date()
+
         async def _gated(name: str, lat: float, lon: float):
             async with sem:
-                return await _pull_station_weather(ctx.client, name, lat, lon)
+                return await _pull_station_weather(ctx.client, name, lat, lon, today=today)
 
         tasks = [_gated(name, lat, lon) for name, lat, lon in STATIONS]
         frames = await asyncio.gather(*tasks)
@@ -175,7 +204,7 @@ class DerivedFWIStationsJob(IngestJob):
             )
 
         df = pd.DataFrame(rows)
-        out_path = PROCESSED_ROOT / "fwi_stations_today.parquet"
+        out_path = PROCESSED_ROOT / OUTPUT_NAME
         out_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(out_path, compression="zstd", index=False)
         ctx.log.info("derived_fwi.written", rows=len(df), path=str(out_path))

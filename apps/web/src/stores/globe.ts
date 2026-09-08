@@ -1,3 +1,4 @@
+import type { Viewer as CesiumViewer } from "cesium";
 /**
  * Globe view state — shared across the whole app so the Cesium viewer
  * can live in AppShell while route components access it.
@@ -6,7 +7,6 @@
  * everything). Lets us play the cinematic intro only once per page load.
  */
 import { create } from "zustand";
-import type { Viewer as CesiumViewer } from "cesium";
 
 export type CameraSnapshot = {
   lon: number;

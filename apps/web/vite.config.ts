@@ -11,11 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   // .env lives at the monorepo root, not in apps/web.
   envDir: path.resolve(__dirname, "..", ".."),
-  plugins: [
-    react(),
-    tailwindcss(),
-    cesium(),
-  ],
+  plugins: [react(), tailwindcss(), cesium()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

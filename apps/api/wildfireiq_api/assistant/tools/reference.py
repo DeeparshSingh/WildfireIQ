@@ -274,9 +274,10 @@ async def get_data_freshness(job: str | None = None, only_problems: bool = False
         source="WildfireIQ ingest_runs table",
         as_of=now.isoformat(timespec="seconds"),
         note=(
-            "cwfis_fwi_daily fails against an upstream NRCan GeoServer outage. "
-            "The Fire Weather Index is derived independently from Van Wagner's "
-            "equations, so that failure does not degrade the risk model."
+            "The Fire Weather Index the platform serves is derived from "
+            "Van Wagner's equations over its own weather archive, not read "
+            "from NRCan. cwfis_fwi_daily ingests NRCan's published station "
+            "values alongside, as a cross-check."
         ),
     )
 

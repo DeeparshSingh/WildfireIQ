@@ -114,8 +114,7 @@ export function rolloverStreak(p: ProgressV1): ProgressV1 {
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
   const next = { ...p };
   next.lastVisitDay = today;
-  next.streakDays =
-    p.lastVisitDay === yesterday ? p.streakDays + 1 : 1;
+  next.streakDays = p.lastVisitDay === yesterday ? p.streakDays + 1 : 1;
   return next;
 }
 

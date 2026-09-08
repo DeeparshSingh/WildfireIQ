@@ -1,0 +1,44 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "ignore": ["dist", "public/cesium", "node_modules"] },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": true, "style": { "noNonNullAssertion": "off" } }
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "trailingCommas": "all", "semicolons": "always" }
+  },
+  "overrides": [
+    {
+      // Two widgets implement ARIA patterns with no usable native equivalent.
+      //
+      // LayerDetailModal: a native <dialog> needs showModal() for top-layer
+      // behaviour, which does not compose with the animated backdrop; the
+      // dialog role plus the focus trap and Esc handler give the same
+      // semantics.
+      //
+      // LocationSearch: a <select> cannot render multi-line result rows, and
+      // in the aria-activedescendant combobox pattern the listbox must not be
+      // a tab stop — focus stays on the input by design.
+      "include": [
+        "src/features/globe/LayerDetailModal.tsx",
+        "src/features/globe/LocationSearch.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off",
+            "useFocusableInteractive": "off"
+          }
+        }
+      }
+    }
+  ]
+}

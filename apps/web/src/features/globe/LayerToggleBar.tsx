@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import {
   useEvacActive,
@@ -39,7 +39,11 @@ function useLayerCounts(): LayerDef[] {
     const s = (f.status ?? "").toLowerCase();
     const isOut = s === "out" || s === "extinguished";
     if (isOut && !firesFilter.includeExtinguished) return false;
-    if (firesFilter.statuses.length && !firesFilter.statuses.some((q) => s.includes(q.toLowerCase()))) return false;
+    if (
+      firesFilter.statuses.length &&
+      !firesFilter.statuses.some((q) => s.includes(q.toLowerCase()))
+    )
+      return false;
     if ((f.hectares ?? 0) < firesFilter.minHectares) return false;
     return true;
   }).length;

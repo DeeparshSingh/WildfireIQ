@@ -1,4 +1,11 @@
-"""Fire Weather Index station readings from CWFIS."""
+"""Fire Weather Index at representative BC weather stations.
+
+These values are computed here, by `ml/fwi.py`, from Open-Meteo weather run
+through Van Wagner's equations — they are not NRCan's published readings. The
+route used to be attributed to CWFIS, which credited NRCan for our arithmetic.
+NRCan's own figures are ingested separately as a cross-check; see
+`ingest/cwfis_fwi.py` and the data dictionary.
+"""
 
 from typing import Any
 
@@ -16,8 +23,11 @@ async def today() -> dict[str, Any]:
     return Envelope[list](
         data=rows,
         meta=Meta(
-            source="cwfis_fwi_daily",
-            attribution="Natural Resources Canada · CWFIS (Canadian Wildland Fire Information System)",
-            note=None if rows else "CWFIS upstream may be transiently unavailable — re-run ingest",
+            source="derived_fwi_stations",
+            attribution=(
+                "Fire Weather Index computed by WildfireIQ from Van Wagner & Pickett "
+                "(1985), over Open-Meteo daily weather"
+            ),
+            note=None if rows else "no station rows cached yet — re-run ingest",
         ),
     ).model_dump(mode="json")

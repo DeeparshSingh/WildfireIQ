@@ -26,18 +26,18 @@ export const LAYER_INFO: Record<LayerId, LayerInfo> = {
     refresh: "Updated every 15 minutes; the map re-checks every minute",
   },
   hotspots: {
-    what: "Spots on the ground that satellites measured as unusually hot in the last 3 days. Think of these as \"heat alarms,\" not confirmed fires — a hotspot means a satellite saw heat there and it's worth a look. Bigger, redder dots gave off more heat; small pale dots are weaker signals.",
+    what: 'Spots on the ground that satellites measured as unusually hot in the last 3 days. Think of these as "heat alarms," not confirmed fires — a hotspot means a satellite saw heat there and it\'s worth a look. Bigger, redder dots gave off more heat; small pale dots are weaker signals.',
     pipeline:
       "NASA satellites pass over BC a few times a day and record heat. We download those readings every 30 minutes and drop the least reliable ones (low-confidence detections). A single fire can light up two or three neighbouring dots at once — that's normal, it just means the hot area is bigger than one satellite pixel.",
     source: "NASA FIRMS satellites (VIIRS and MODIS)",
     refresh: "Updated every 30 minutes; the map re-checks every 5 minutes",
     caveat:
-      "Not every hotspot is a wildfire. Industrial flares, hot rooftops, and processing plants can also trip the heat sensor. Treat a hotspot as \"investigate,\" not \"confirmed fire.\"",
+      'Not every hotspot is a wildfire. Industrial flares, hot rooftops, and processing plants can also trip the heat sensor. Treat a hotspot as "investigate," not "confirmed fire."',
   },
   evac: {
-    what: "Areas where people have been told to leave or get ready to leave because of a nearby hazard. Three levels: an Evacuation ORDER (leave now) is filled red; an ALERT (be ready to leave) is amber with a dashed edge; a RESCIND (it's safe again) fades to green. Tap the \"Hide past\" control to remove rescinded zones from the list and the map.",
+    what: 'Areas where people have been told to leave or get ready to leave because of a nearby hazard. Three levels: an Evacuation ORDER (leave now) is filled red; an ALERT (be ready to leave) is amber with a dashed edge; a RESCIND (it\'s safe again) fades to green. Tap the "Hide past" control to remove rescinded zones from the list and the map.',
     pipeline:
-      "We pull the official BC Emergency Management map every few minutes and draw the zones exactly as issued. The Preparedness Hub uses these same shapes to answer \"is my address inside an evacuation zone?\"",
+      'We pull the official BC Emergency Management map every few minutes and draw the zones exactly as issued. The Preparedness Hub uses these same shapes to answer "is my address inside an evacuation zone?"',
     source: "BC Emergency Management Climate Readiness (official)",
     refresh: "Updated every 5 minutes; the map re-checks every minute",
   },

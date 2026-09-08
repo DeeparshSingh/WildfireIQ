@@ -254,9 +254,7 @@ export function useAssistant() {
               // moved into the activity trail by `step_end` and the bubble is
               // empty. Restoring it here keeps the answer visible.
               const finalText = String(data.text ?? "");
-              const current = useAssistantStore
-                .getState()
-                .messages.find((m) => m.id === id);
+              const current = useAssistantStore.getState().messages.find((m) => m.id === id);
               if (finalText && !current?.content.trim()) {
                 actions.appendToken(id, finalText);
               }

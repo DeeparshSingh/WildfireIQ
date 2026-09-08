@@ -1,15 +1,15 @@
-import { useEffect, useRef } from "react";
 import {
   Cartesian3,
+  type Entity,
   NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  type Entity,
 } from "cesium";
+import { useEffect, useRef } from "react";
 
 const BILLBOARD_SCALE = new NearFarScalar(1_000, 1.0, 3_000_000, 0.55);
 
-import { useFwiToday, type FwiStation } from "@/lib/api/hooks";
+import { type FwiStation, useFwiToday } from "@/lib/api/hooks";
 import { requestRender } from "@/lib/cesium-helpers/render";
 import { useGlobeStore } from "@/stores/globe";
 import { useLayersStore } from "@/stores/layers";
@@ -32,7 +32,7 @@ function svgFor(fwi: number | null): string {
       font-size="11" font-weight="700" fill="#0a0d14"
       style="font-variant-numeric:tabular-nums">${label}</text>
   </svg>`;
-  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 function descriptionFor(s: FwiStation): string {

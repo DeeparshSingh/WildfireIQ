@@ -28,8 +28,10 @@ help:
 	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
 	@echo "  make assistant-smoke   One live assistant call (needs OPENROUTER_API_KEY)"
 	@echo "  make assistant-eval    Live eval suite across every data surface (~30 calls)"
-	@echo "  make lint              Ruff check the backend"
-	@echo "  make test              Run the Python test suite"
+	@echo "  make check             Everything below, in order — run this before pushing"
+	@echo "  make lint              Ruff (backend) + Biome (frontend)"
+	@echo "  make format            Apply Ruff and Biome formatting"
+	@echo "  make test              Both test suites (backend + frontend)"
 	@echo "  make typecheck         Run TypeScript typecheck for the frontend"
 	@echo "  make build             Production-build the frontend"
 	@echo ""
@@ -86,6 +88,12 @@ train-aq:
 lint:
 	cd apps/api && uv run ruff check wildfireiq_api tests
 	cd apps/api && uv run ruff format --check wildfireiq_api tests
+	cd apps/web && npx biome check .
+
+.PHONY: format
+format:
+	cd apps/api && uv run ruff format wildfireiq_api tests
+	cd apps/web && npx biome check --write .
 
 .PHONY: prune-raw
 prune-raw:
@@ -109,6 +117,15 @@ assistant-eval:
 .PHONY: test
 test:
 	cd apps/api && uv run pytest -q
+	cd apps/web && npx vitest run
+
+.PHONY: test-api
+test-api:
+	cd apps/api && uv run pytest -q
+
+.PHONY: test-web
+test-web:
+	cd apps/web && npx vitest run
 
 .PHONY: typecheck
 typecheck:
@@ -117,3 +134,10 @@ typecheck:
 .PHONY: build
 build:
 	cd apps/web && npx vite build
+
+# The full pre-push gate. Ordered cheapest-first so it fails fast.
+.PHONY: check
+check: lint typecheck test build
+	@echo ""
+	@echo "All checks passed."
+

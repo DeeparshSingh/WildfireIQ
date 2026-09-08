@@ -5,19 +5,15 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-import {
-  useFireSmartChecklist,
-  type FireSmartAction,
-  type FireSmartGroup,
-} from "@/lib/api/hooks";
+import { type FireSmartAction, type FireSmartGroup, useFireSmartChecklist } from "@/lib/api/hooks";
 
 import {
-  deletePhoto,
-  getPhoto,
-  putPhoto,
   type Dwelling,
   type Season,
   type SituationId,
+  deletePhoto,
+  getPhoto,
+  putPhoto,
 } from "./state";
 
 export function Checklist({
@@ -44,16 +40,16 @@ export function Checklist({
     s === "house_yard"
       ? "any"
       : s === "renter"
-      ? "renter"
-      : s === "pets"
-      ? "pets"
-      : s === "sensitive"
-      ? "sensitive"
-      : s === "outdoor_worker"
-      ? "outdoor_worker"
-      : s === "mobility"
-      ? "mobility"
-      : s,
+        ? "renter"
+        : s === "pets"
+          ? "pets"
+          : s === "sensitive"
+            ? "sensitive"
+            : s === "outdoor_worker"
+              ? "outdoor_worker"
+              : s === "mobility"
+                ? "mobility"
+                : s,
   );
 
   const checklist = useFireSmartChecklist(dwelling, season, mappedSit);
@@ -144,7 +140,9 @@ function ZoneCard({
             {group.distance}
           </div>
         </div>
-        <span style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--color-text-mid)" }}>
+        <span
+          style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--color-text-mid)" }}
+        >
           {done} / {actions.length}
         </span>
       </header>
@@ -223,7 +221,14 @@ function ActionRow({
           border: `1px solid ${isDone ? "hsl(150 70% 50% / 0.4)" : "hsl(200 80% 50% / 0.15)"}`,
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "start" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto 1fr auto",
+            gap: 12,
+            alignItems: "start",
+          }}
+        >
           <button
             type="button"
             onClick={onToggle}
@@ -276,14 +281,16 @@ function ActionRow({
                 gap: 12,
               }}
             >
-              <span>
-                {action.estimated_minutes ? `~${action.estimated_minutes} min` : "—"}
-              </span>
+              <span>{action.estimated_minutes ? `~${action.estimated_minutes} min` : "—"}</span>
               <span style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>
                 {action.cost === "free" ? "free" : action.cost}
               </span>
               <span style={{ textTransform: "capitalize" }}>{action.category}</span>
-              {open ? <span style={{ color: "var(--color-cyan-glow)" }}>hide why</span> : <span style={{ color: "var(--color-cyan-glow)" }}>why this matters →</span>}
+              {open ? (
+                <span style={{ color: "var(--color-cyan-glow)" }}>hide why</span>
+              ) : (
+                <span style={{ color: "var(--color-cyan-glow)" }}>why this matters →</span>
+              )}
             </div>
           </button>
           <span
@@ -312,7 +319,15 @@ function ActionRow({
               border: "1px dashed hsl(200 80% 50% / 0.2)",
             }}
           >
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 12, lineHeight: 1.6, color: "var(--color-text-mid)", margin: 0 }}>
+            <p
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: "var(--color-text-mid)",
+                margin: 0,
+              }}
+            >
               {action.why}
             </p>
           </div>
@@ -336,26 +351,30 @@ function ActionRow({
                 <img
                   src={photoUrl}
                   alt="proof"
-                  style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, border: "1px solid hsl(200 80% 50% / 0.3)" }}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    border: "1px solid hsl(200 80% 50% / 0.3)",
+                  }}
                 />
-                <button
-                  type="button"
-                  onClick={clearPhoto}
-                  style={smallBtn}
-                >
+                <button type="button" onClick={clearPhoto} style={smallBtn}>
                   Remove photo
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                style={smallBtn}
-              >
+              <button type="button" onClick={() => fileRef.current?.click()} style={smallBtn}>
                 📷 Add photo
               </button>
             )}
-            <span style={{ fontFamily: "var(--font-data)", fontSize: 10, color: "var(--color-text-mid)" }}>
+            <span
+              style={{
+                fontFamily: "var(--font-data)",
+                fontSize: 10,
+                color: "var(--color-text-mid)",
+              }}
+            >
               stored on this device only
             </span>
           </div>

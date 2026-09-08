@@ -80,7 +80,17 @@ Today's Fire Weather Index codes at 18 BC towns.
 | `ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr` | float | the full code set |
 | `fetched_at_utc` | str | |
 
-Writers `derived_fwi_stations` (every 30 min, Van Wagner over Open-Meteo) and `cwfis_fwi_daily` (daily; the official feed, currently failing upstream). Same schema, same file. Reader `/api/fwi/today`.
+Writer `derived_fwi_stations` (every 6 hours; Van Wagner over Open-Meteo, run from 1 April so the carryover codes are valid). Reader `/api/fwi/today`.
+
+### `fwi_stations_cwfis.parquet` — 69 rows
+NRCan's own published Fire Weather Index readings for stations inside the BC
+bounding box. Same schema as the file above. This is a cross-check, not what the
+app serves: NRCan lists only 11 stations inside British Columbia and none of the
+towns users search for, so `/api/fwi/today` reads the derived file. At stations
+close enough to compare, the two agree on Drought Code to about 1.5%.
+
+Writer `cwfis_fwi_daily` (daily). No reader — kept as an independent validation
+of `ml/fwi.py`.
 
 ### `smoke_forecast_metadata.parquet` — 73 rows
 One row per hourly step of the ECCC FireWork smoke forecast.

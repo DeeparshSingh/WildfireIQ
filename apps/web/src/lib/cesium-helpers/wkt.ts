@@ -22,7 +22,7 @@ function parseCoordList(s: string): number[] {
   for (const p of pairs) {
     const m = p.trim().match(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/);
     if (!m) continue;
-    out.push(parseFloat(m[1]), parseFloat(m[2]));
+    out.push(Number.parseFloat(m[1]), Number.parseFloat(m[2]));
   }
   return out;
 }
@@ -35,7 +35,7 @@ export function parseWkt(wkt: string | null | undefined): ParsedWkt {
   if (upper.startsWith("POINT")) {
     const m = w.match(/POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)/i);
     if (!m) return null;
-    return { kind: "point", positions: [[parseFloat(m[1]), parseFloat(m[2])]] };
+    return { kind: "point", positions: [[Number.parseFloat(m[1]), Number.parseFloat(m[2])]] };
   }
 
   if (upper.startsWith("MULTIPOLYGON")) {
@@ -46,8 +46,7 @@ export function parseWkt(wkt: string | null | undefined): ParsedWkt {
     const polys: number[][] = [];
     // Find each polygon block: starts with `((`, contains comma-separated rings.
     const polyRe = /\(\(([^()]+)\)(?:\s*,\s*\([^()]+\))*\s*\)/g;
-    let m: RegExpExecArray | null;
-    while ((m = polyRe.exec(body)) !== null) {
+    for (const m of body.matchAll(polyRe)) {
       polys.push(parseCoordList(m[1]));
     }
     if (polys.length === 0) return null;

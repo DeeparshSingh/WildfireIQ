@@ -1,3 +1,8 @@
+import { AxisBottom, AxisLeft } from "@visx/axis";
+import { GridRows } from "@visx/grid";
+import { Group } from "@visx/group";
+import { scaleBand, scaleLinear, scaleSymlog } from "@visx/scale";
+import { Bar, Line } from "@visx/shape";
 /**
  * Section 1 — "Three decades of fire". Annual area burned bars with
  * landmark annotations and a Linear / Log y-axis toggle so small years
@@ -5,11 +10,6 @@
  * everything ≤ 5 k ha invisible on a linear scale).
  */
 import { useState } from "react";
-import { AxisBottom, AxisLeft } from "@visx/axis";
-import { GridRows } from "@visx/grid";
-import { Group } from "@visx/group";
-import { scaleBand, scaleLinear, scaleSymlog } from "@visx/scale";
-import { Bar, Line } from "@visx/shape";
 
 import { useSeasonalMetrics } from "@/lib/api/hooks";
 
@@ -151,6 +151,7 @@ function Chart({ data }: { data: Array<{ year: number; area_burned_ha: number | 
       </div>
 
       <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+        <title>Annual area burned in British Columbia, by year</title>
         <Group left={margin.left} top={margin.top}>
           <GridRows
             scale={yScale}
@@ -193,13 +194,7 @@ function Chart({ data }: { data: Array<{ year: number; area_burned_ha: number | 
                   />
                 )}
                 {/* Invisible hit-target spanning the full column for easy hover. */}
-                <rect
-                  x={bx}
-                  y={0}
-                  width={xScale.bandwidth()}
-                  height={ih}
-                  fill="transparent"
-                />
+                <rect x={bx} y={0} width={xScale.bandwidth()} height={ih} fill="transparent" />
               </g>
             );
           })}
@@ -281,12 +276,31 @@ function Chart({ data }: { data: Array<{ year: number; area_burned_ha: number | 
         </Group>
       </svg>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--font-data)", fontSize: 10, color: "var(--color-text-mid)", marginTop: 6 }}>
-        <span>{data.length} complete seasons · every year shown · hover a column for the exact hectares</span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontFamily: "var(--font-data)",
+          fontSize: 10,
+          color: "var(--color-text-mid)",
+          marginTop: 6,
+        }}
+      >
+        <span>
+          {data.length} complete seasons · every year shown · hover a column for the exact hectares
+        </span>
         <span>baseline (1999–2010 mean): {Math.round(baseline).toLocaleString()} ha</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8, marginTop: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 8,
+          marginTop: 16,
+        }}
+      >
         {Object.entries(ANNOTATIONS).map(([year, note]) => {
           const row = data.find((d) => d.year === Number(year));
           return (

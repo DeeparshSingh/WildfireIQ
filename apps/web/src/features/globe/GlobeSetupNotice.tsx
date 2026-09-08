@@ -9,8 +9,7 @@ export function GlobeSetupNotice() {
         inset: 0,
         display: "grid",
         placeItems: "center",
-        background:
-          "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 70%)",
+        background: "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 70%)",
         padding: 24,
       }}
     >

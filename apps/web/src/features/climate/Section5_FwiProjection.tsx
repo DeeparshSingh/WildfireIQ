@@ -32,7 +32,11 @@ export function Section5_FwiProjection() {
   const ih = height - margin.top - margin.bottom;
 
   const xOuter = scaleBand({ domain: DECADES.map(String), range: [0, iw], padding: 0.2 });
-  const xInner = scaleBand({ domain: SCENARIOS.map((s) => s.id), range: [0, xOuter.bandwidth()], padding: 0.1 });
+  const xInner = scaleBand({
+    domain: SCENARIOS.map((s) => s.id),
+    range: [0, xOuter.bandwidth()],
+    padding: 0.1,
+  });
 
   const allValues: number[] = [];
   if (data?.scenarios) {
@@ -70,6 +74,7 @@ export function Section5_FwiProjection() {
         }}
       >
         <svg width={width} height={height} style={{ minWidth: width, display: "block" }}>
+          <title>Projected days per year of extreme fire weather, by decade</title>
           <Group left={margin.left} top={margin.top}>
             {DECADES.map((dec) => {
               const dx = xOuter(String(dec)) ?? 0;
@@ -120,7 +125,13 @@ export function Section5_FwiProjection() {
             })}
 
             <defs>
-              <pattern id="stripe" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+              <pattern
+                id="stripe"
+                patternUnits="userSpaceOnUse"
+                width="6"
+                height="6"
+                patternTransform="rotate(45)"
+              >
                 <line x1="0" y1="0" x2="0" y2="6" stroke="white" strokeWidth="2" />
               </pattern>
             </defs>
@@ -145,7 +156,12 @@ export function Section5_FwiProjection() {
               tickStroke="hsl(220 15% 32%)"
               numTicks={5}
               label="Days FWI ≥ 19"
-              labelProps={{ fill: "hsl(40 12% 72%)", fontFamily: "var(--font-data)", fontSize: 11, textAnchor: "middle" }}
+              labelProps={{
+                fill: "hsl(40 12% 72%)",
+                fontFamily: "var(--font-data)",
+                fontSize: 11,
+                textAnchor: "middle",
+              }}
               tickLabelProps={() => ({
                 fill: "hsl(40 12% 72%)",
                 fontFamily: "var(--font-data)",
@@ -158,14 +174,34 @@ export function Section5_FwiProjection() {
           </Group>
         </svg>
 
-        <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap", fontFamily: "var(--font-data)", fontSize: 11, color: "var(--color-text-mid)" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            marginTop: 12,
+            flexWrap: "wrap",
+            fontFamily: "var(--font-data)",
+            fontSize: 11,
+            color: "var(--color-text-mid)",
+          }}
+        >
           {SCENARIOS.map((s) => (
             <span key={s.id} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-              <span style={{ width: 12, height: 8, background: s.colour, borderRadius: 2, display: "inline-block" }} />
+              <span
+                style={{
+                  width: 12,
+                  height: 8,
+                  background: s.colour,
+                  borderRadius: 2,
+                  display: "inline-block",
+                }}
+              />
               {s.label}
             </span>
           ))}
-          <span style={{ marginLeft: "auto" }}>solid = observed · striped = projected (heuristic)</span>
+          <span style={{ marginLeft: "auto" }}>
+            solid = observed · striped = projected (heuristic)
+          </span>
         </div>
       </div>
     </SectionShell>
