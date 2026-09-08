@@ -28,7 +28,7 @@ WildFire-IQ/
 │   │   │   ├── ml/                FWI port, feature builder, two trainers, two inference modules, trends
 │   │   │   ├── routers/           one router per domain + _data.py (parquet readers) + _envelope.py
 │   │   │   └── assistant/         agent harness, 25 tools, OpenRouter transport, guard, evals
-│   │   └── tests/                 158 pytest tests
+│   │   └── tests/                 157 pytest tests
 │   └── web/                       React 18 · TypeScript · Vite · Cesium
 │       └── src/
 │           ├── main.tsx, app.tsx  providers, route table (lazy routes)
@@ -93,26 +93,41 @@ Rules that hold everywhere:
 |---|---|---|
 | `/healthz` | GET | ops |
 | `/api/fires/current`, `/hotspots` | GET | globe |
-| `/api/fires/historical` | GET | API only |
+| `/api/fires/historical` | GET | no caller in this repo |
 | `/api/risk/grid` | GET | globe |
-| `/api/risk/today?cell=` | GET | API only |
-| `/api/weather/current`, `/forecast` | GET | API only (the assistant reads the same data in-process) |
+| `/api/weather/current`, `/forecast` | GET | no caller in this repo (the assistant reads the same parquet in-process) |
 | `/api/fwi/today` | GET | globe |
 | `/api/aq/current`, `/forecast`, `/calendar`, `/smoke-forecast`, `/health-guidance` | GET | air quality page, globe |
-| `/api/aq/history` | GET | API only |
+| `/api/aq/history` | GET | no caller in this repo |
 | `/api/evac/active`, `/check?lat=&lon=` | GET | globe, preparedness |
 | `/api/firesmart/checklist`, `/achievements`, `/neighbourhoods`, `/season-context` | GET | preparedness |
-| `/api/firesmart/score` | POST | API only (the page scores locally with the same rules) |
 | `/api/climate/seasonal`, `/trends`, `/ribbon`, `/projections-all`, `/fwi-projection`, `/tru-carbon` | GET | climate page; `seasonal` and `ribbon` accept `?format=csv` |
-| `/api/climate/projection?ssp=&var=` | GET | API only |
+| `/api/climate/projection?ssp=&var=` | GET | no caller in this repo; the only projection route with `?format=csv` |
 | `/api/admin/jobs`, `/runs` | GET | ops |
 | `/api/admin/jobs/{name}/run` | POST | ops |
 | `/api/assistant/chat` | POST | assistant panel (SSE; `?stream=false` for JSON) |
 | `/api/assistant/health`, `/tools`, `/brief` | GET | assistant panel, ops |
 
-"API only" endpoints are part of the public contract, tested in
-`tests/test_routers.py`, and available to external clients, but the web app
-does not call them. The interactive OpenAPI page is at `/docs`.
+Four endpoints are marked "no caller in this repo". That is literal: the web
+app does not fetch them, the assistant reads the same data in-process rather
+than over HTTP, and the platform is not hosted, so there are no external
+clients either. They are kept because each is the only HTTP route to a dataset
+the platform ingests — Kamloops weather, the 96,000-record fire archive,
+per-station AQHI over time, and a CSV export of a single projection scenario —
+and they are covered by `tests/test_routers.py` so they cannot rot silently.
+
+Two others were removed in the September 2026 audit rather than kept on the
+same reasoning, because neither was the only route to anything:
+
+- `GET /api/risk/today?cell=` computed the full 523-cell grid and then returned
+  one cell. `/api/risk/grid`, which the globe already fetches, contains that
+  cell. It was a performance trap for any caller that found it.
+- `POST /api/firesmart/score` was a second implementation of the badge ladder,
+  mirroring rules that the preparedness page evaluates locally. Two copies of a
+  rule set that must be hand-synchronised is the same failure mode that had
+  already rotted the generated-types package.
+
+The interactive OpenAPI page is at `/docs`.
 
 ---
 
@@ -303,8 +318,9 @@ Everything the hub stores stays in the browser:
 
 The only coordinate sent to the server is the neighbourhood centroid, to
 `/api/evac/check`, and it is not logged with any identifier. The badge rules
-run on the client and are mirrored in `/api/firesmart/score` so any future
-surface agrees.
+run on the client. The catalogue of the twelve badges is served by
+`/api/firesmart/achievements` so any future surface shows the same list, but the
+rules that award them live in the client alone.
 
 ### Climate page
 
@@ -357,7 +373,7 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 158 | ingest parsers and schemas (`test_ingest`), data quality bounds, every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity) |
+| Backend | `apps/api/tests/` | 157 | ingest parsers and schemas (`test_ingest`), data quality bounds, every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity) |
 | Frontend | `apps/web/src/lib/__tests__/` | 36 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |

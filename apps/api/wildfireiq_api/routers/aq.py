@@ -43,10 +43,14 @@ async def forecast(hours: int = 48) -> dict[str, Any]:
         data=payload,
         meta=Meta(
             source="aq_forecaster_v1",
-            attribution="LightGBM quantile, trained on Open-Meteo air quality archive "
-            "(92 days hourly) + co-located weather. Per-horizon models for "
+            attribution="LightGBM quantile, trained on the Open-Meteo CAMS hourly "
+            "air-quality archive + co-located weather. Per-horizon models for "
             "+1/+3/+6/+12/+24/+36/+48 h.",
-            note=f"issued at {payload['issued_at_utc'][:16]}; quantile bands are q10–q90",
+            note=(
+                f"issued at {payload['issued_at_utc'][:16]}; the q10–q90 band is a "
+                "likely range, not a calibrated 80% interval (measured coverage "
+                "57-66%; see the model card)"
+            ),
         ),
     ).model_dump(mode="json")
 

@@ -173,13 +173,19 @@ Measured across the 32-case evaluation suite, not estimated.
 | | Prompt tokens | Cost | Latency |
 |---|---:|---:|---:|
 | Answered from the brief alone | ~6,000 | $0.0007-$0.0009 | 2-8 s |
-| One or more tools | 12,000-20,000 | $0.0013-$0.0023 | 4-20 s |
-| **Whole 32-case sweep** | — | **$0.043** ($0.0013/case) | median **6.1 s** |
+| One or more tools | 12,000-20,000 | $0.0002-$0.0023 | 4-25 s |
+| **Whole 32-case sweep** | — | **$0.020-$0.043** ($0.0006-$0.0013/case) | median **6-14 s** |
 
 The per-turn floor is about 6,100 tokens: ~1,400 for the system prompt,
 ~150 for the brief, and ~4,700 for the 25 tool schemas, all re-sent on
 every turn of a run. A third of the suite needs no tool at all, which is
 the brief paying for itself.
+
+The cost and latency columns are ranges because they are ranges: the figures
+come from repeated full sweeps, and the same question costs roughly twice as
+much on one run as another depending on how many turns the model takes and how
+much it writes. Quoting a single number here would be false precision. The
+upper end of each range is the one to budget against.
 
 ### Where the time went
 

@@ -28,7 +28,9 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 class OpenMeteoAQHourlyJob(IngestJob):
     """Hourly cron — pulls last 7 days actual + next 5 days forecast.
-    The historical bootstrap (92 days) is run separately on first install."""
+
+    The deep history comes from `open_meteo_aq_archive`, which runs nightly
+    and keeps the file at a rolling 365 days."""
 
     name = "open_meteo_aq_hourly"
     cadence = "15 * * * *"  # 15 min past each hour, AFTER weather job's :05

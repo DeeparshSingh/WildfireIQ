@@ -168,8 +168,9 @@ export function AirQualityRoute() {
               }}
             >
               Issued {fmtTime(forecast.data.issued_at_utc)} ·
-              LightGBM quantile per horizon · trained on 92 days hourly
-              Open-Meteo CAMS + co-located weather
+              LightGBM quantile per horizon · trained on a rolling year of
+              hourly Open-Meteo CAMS + co-located weather · the shaded band is
+              a likely range, not a calibrated interval
             </div>
           )}
         </Card>

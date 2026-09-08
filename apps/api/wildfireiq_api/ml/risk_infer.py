@@ -203,13 +203,3 @@ def predict_grid() -> dict | None:
         "regions": region_summaries,
         "cells": cells,
     }
-
-
-def predict_today_for_cell(h3_cell: str) -> dict | None:
-    grid = predict_grid()
-    if grid is None:
-        return None
-    for c in grid["cells"]:
-        if c["h3_cell"] == h3_cell:
-            return {**c, "observation_day": grid["observation_day"]}
-    return None

@@ -153,8 +153,12 @@ CASES: tuple[Case, ...] = (
     Case(
         id="weather-current",
         question="What's the weather doing in Kamloops today?",
-        expect_any_tool=("get_weather",),
+        # The brief already carries current Kamloops temperature, humidity and
+        # wind, so answering with no tool call is the design working, not a
+        # miss — the same reason season-context below expects no tool. What
+        # matters is that the figures are there and it does not go fishing.
         must_mention_any=("°C", "C", "wind"),
+        max_tools=1,
     ),
     Case(
         id="fire-weather-index",

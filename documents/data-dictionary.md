@@ -245,7 +245,7 @@ One row per H3 resolution-5 hexagon; the weight that turns a region probability 
 
 Cells per region: Thompson-Okanagan 185, Prince George 166, Lower Mainland 87, Central Okanagan 85.
 
-Writer `derived_risk_features`. Reader `ml.risk_infer` (`/api/risk/grid`, `/api/risk/today`).
+Writer `derived_risk_features`. Reader `ml.risk_infer` (`/api/risk/grid`).
 
 ### `climate_projections.parquet` — 728 rows
 **Synthetic placeholder** shaped like a CMIP6 ensemble, extrapolated from the observed Kamloops archive. The climate page labels it as such. Dropping in a real ClimateData.ca download with these columns needs no code change.

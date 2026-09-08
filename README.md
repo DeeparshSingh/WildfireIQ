@@ -94,7 +94,7 @@ Makefile         Every documented command
 ./start.sh                # run both halves (or: make dev, pnpm dev)
 ./start.sh --bootstrap    # also pull historical datasets first
 
-make test                 # backend tests (158)
+make test                 # backend tests (157)
 cd apps/web && pnpm test  # frontend tests (36)
 make lint                 # ruff check + format check
 make typecheck            # tsc --noEmit
@@ -121,11 +121,11 @@ Interactive documentation at `/docs`.
 | Group | Endpoints |
 |---|---|
 | Fires | `/api/fires/current`, `/api/fires/hotspots`, `/api/fires/historical` |
-| Risk | `/api/risk/grid`, `/api/risk/today?cell=` |
+| Risk | `/api/risk/grid` |
 | Air quality | `/api/aq/current`, `/api/aq/forecast`, `/api/aq/calendar`, `/api/aq/history`, `/api/aq/smoke-forecast`, `/api/aq/health-guidance` |
 | Weather / FWI | `/api/weather/current`, `/api/weather/forecast`, `/api/fwi/today` |
 | Evacuation | `/api/evac/active`, `/api/evac/check?lat=&lon=` |
-| Preparedness | `/api/firesmart/checklist`, `/achievements`, `/neighbourhoods`, `/season-context`, `POST /score` |
+| Preparedness | `/api/firesmart/checklist`, `/achievements`, `/neighbourhoods`, `/season-context` |
 | Climate | `/api/climate/seasonal`, `/trends`, `/ribbon`, `/projection`, `/projections-all`, `/fwi-projection`, `/tru-carbon` (`?format=csv` on `seasonal` and `ribbon`) |
 | Assistant | `POST /api/assistant/chat` (SSE), `/api/assistant/tools`, `/brief`, `/health` |
 | Operations | `/healthz`, `/api/admin/jobs`, `/api/admin/runs`, `POST /api/admin/jobs/{name}/run` |

@@ -111,26 +111,6 @@ def test_firesmart_season_ordering_changes(client: TestClient) -> None:
     assert len({spring_top, summer_top, fall_top}) >= 2
 
 
-def test_firesmart_score_oracle(client: TestClient) -> None:
-    r = client.post(
-        "/api/firesmart/score",
-        json={
-            "completed_ids": ["im_roof_debris"],
-            "dwelling": "house",
-            "season": "summer",
-            "situation": [],
-            "photos": 0,
-            "streak": 1,
-            "flags": {},
-            "today": "2026-05-14",
-        },
-    )
-    assert r.status_code == 200
-    d = r.json()["data"]
-    assert d["points"] >= 1
-    assert any(b["id"] == "first_steps" for b in d["badges"])
-
-
 def test_evac_check_returns_a_status(client: TestClient) -> None:
     r = client.get("/api/evac/check?lat=50.6745&lon=-120.3273")
     assert r.status_code == 200

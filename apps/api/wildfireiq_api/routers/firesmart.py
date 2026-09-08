@@ -9,10 +9,16 @@ Reads two static reference files (no upstream calls):
                                              for the onboarding selector + inset
                                              fly-to.
 
-Every state-mutating concept (progress, photos, streaks) lives on the client.
-This router just composes static reference data with situation / season /
-dwelling filters, then serves a stateless badge-ladder oracle. No PII ever
-touches the backend.
+Every state-mutating concept (progress, photos, streaks) lives on the client,
+which also awards the badges. This router only composes static reference data
+with the user's dwelling, season and situation filters. No PII ever touches
+the backend.
+
+The achievement catalogue is served here so the client and any future surface
+agree on the list; the rules that award them live in the client alone. A second
+server-side implementation of those rules existed and was removed in the
+September 2026 audit: nothing called it, and two copies of a badge ladder is a
+guarantee that one of them eventually drifts.
 """
 
 from __future__ import annotations
@@ -180,55 +186,6 @@ def _filter_actions(
     return out
 
 
-def _badges_for(
-    points: int,
-    completed: int,
-    total: int,
-    photos: int,
-    streak: int,
-    completed_ids: set[str],
-    actions: list[dict[str, Any]],
-    flags: dict[str, bool],
-    today_iso: str | None,
-) -> list[dict[str, str]]:
-    """Centralised badge ladder. Mirrors the frontend exactly."""
-    earned: list[dict[str, str]] = []
-
-    def _has(pred: bool, ach_id: str) -> None:
-        if not pred:
-            return
-        for a in ACHIEVEMENTS:
-            if a["id"] == ach_id:
-                earned.append(
-                    {"id": a["id"], "label": a["label"], "emoji": a["emoji"], "blurb": a["blurb"]}
-                )
-                return
-
-    _has(completed >= 1, "first_steps")
-    _has(completed >= 5, "ember_aware")
-    _has(points >= 25, "defensible_space")
-    _has(total > 0 and completed >= total / 2, "halfway")
-    _has(photos >= 5, "photo_documentarian")
-    _has(flags.get("smoke_aware", False), "smoke_aware")
-    _has(streak >= 7, "streak_7")
-    _has(streak >= 30, "streak_30")
-    _has(flags.get("shared", False), "neighbour")
-    _has(total > 0 and completed == total, "firesmart_home")
-
-    # Zone 1 Hero
-    zone_1_actions = [a for a in actions if a["zone"] == "immediate"]
-    if zone_1_actions and all(a["id"] in completed_ids for a in zone_1_actions):
-        _has(True, "zone_one_hero")
-
-    # Storm Ready — plan_gobag complete before July 1
-    pg_actions = [a for a in actions if a["zone"] == "plan_gobag"]
-    before_july = today_iso is not None and today_iso[5:7] in {"01", "02", "03", "04", "05", "06"}
-    if pg_actions and all(a["id"] in completed_ids for a in pg_actions) and before_july:
-        _has(True, "storm_ready")
-
-    return earned
-
-
 # ─── Endpoints ─────────────────────────────────────────────────────────
 
 
@@ -290,61 +247,5 @@ async def season_context() -> dict[str, Any]:
         meta=Meta(
             source="wildfireiq_derived",
             attribution="Open-Meteo daily wx + BC Wildfire Service historical fires",
-        ),
-    ).model_dump(mode="json")
-
-
-@router.post("/score", summary="Compute points + badges from a completed-items list")
-async def score(payload: dict[str, Any]) -> dict[str, Any]:
-    """Stateless oracle so client + server agree on the badge ladder.
-
-    Body shape:
-      {
-        completed_ids: [...],
-        dwelling, season, situation: [...],
-        photos: int, streak: int,
-        flags: {smoke_aware: bool, shared: bool},
-        today: "YYYY-MM-DD"
-      }
-    """
-    completed_ids = set(payload.get("completed_ids", []) or [])
-    dwelling = (payload.get("dwelling") or "house").lower()
-    season = (payload.get("season") or "summer").lower()
-    situation = [s.lower() for s in (payload.get("situation") or [])]
-    photos = int(payload.get("photos") or 0)
-    streak = int(payload.get("streak") or 0)
-    flags = payload.get("flags") or {}
-    today = payload.get("today")
-
-    actions = _filter_actions(dwelling, season, situation)
-    total = len(actions)
-    completed = sum(1 for a in actions if a["id"] in completed_ids)
-    points = sum(a["points"] for a in actions if a["id"] in completed_ids)
-    max_points = sum(a["points"] for a in actions)
-
-    badges = _badges_for(
-        points=points,
-        completed=completed,
-        total=total,
-        photos=photos,
-        streak=streak,
-        completed_ids=completed_ids,
-        actions=actions,
-        flags=flags,
-        today_iso=today,
-    )
-
-    return Envelope[dict](
-        data={
-            "points": points,
-            "max_points": max_points,
-            "completed": completed,
-            "total": total,
-            "badges": badges,
-            "all_achievements": ACHIEVEMENTS,
-        },
-        meta=Meta(
-            source="firesmart_canada",
-            attribution="FireSmart Canada",
         ),
     ).model_dump(mode="json")

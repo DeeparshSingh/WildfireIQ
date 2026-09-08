@@ -133,7 +133,8 @@ functions the API uses, and a short **situation brief** (today's risk per
 region, fire count, evacuations, air quality, weather) is placed in front of
 the model on every question. The model is **GLM 5.3 Flash** from Z.ai,
 reached through **OpenRouter**; it is the only paid component, at a measured
-$0.0013 per answer, and it is rate- and budget-limited. Details:
+$0.0006-$0.0013 per answer across repeated sweeps, and it is rate- and
+budget-limited. Details:
 [`assistant.md`](./assistant.md).
 
 ---
@@ -270,8 +271,14 @@ and 48 hours from now, and how sure are we?
   shows the median with the 10–90 band as the uncertainty.
 - **Inputs:** recent PM2.5 and its lags, co-located weather (temperature,
   humidity, wind, precipitation, boundary-layer height), time of day.
-- **Validation:** chronological 80/20 split; beats the "tomorrow equals
-  today" baseline at most horizons. Numbers in the model card.
+- **Validation:** chronological 80/20 split over a 469-day corpus. It beats
+  the "tomorrow equals today" baseline at every horizon from six hours out,
+  by 5–21%, and loses below that — at one to three hours, PM2.5 barely
+  changes hour to hour, so repeating the last reading is hard to beat.
+- **Read the band as a likely range, not an 80% interval.** It is drawn from
+  the 10th and 90th percentiles, but measures 57–66% coverage on held-out
+  data, so it is narrower than it looks. The model card gives the numbers and
+  the fix.
 
 ---
 

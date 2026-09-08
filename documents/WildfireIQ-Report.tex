@@ -217,7 +217,7 @@ never to state a number it did not get from a tool, treats emergency wording
 deterministically by placing 911 and EmergencyInfoBC in front of the reply, and
 is rate- and budget-limited because it is the only component that spends money.
 A 32-case live evaluation, covering every data surface and a set of misuse
-attempts, passes in full at a measured \$0.0013 per question.
+attempts, passes in full at a measured \$0.0006 to \$0.0013 per question across repeated sweeps.
 
 \subsection{Key numbers}
 
@@ -237,7 +237,7 @@ FireSmart checklist actions & 30 \\
 Smoke forecast steps & 73 hourly snapshots \\
 Scheduled data jobs & 17 (15 recurring, 2 one-time) \\
 Assistant tools & 25, evaluated on 32 live cases \\
-Automated tests passing & 158 backend, 36 frontend \\
+Automated tests passing & 157 backend, 36 frontend \\
 \bottomrule
 \end{tabular}
 \caption{Selected figures from the final build.}
@@ -378,10 +378,11 @@ for that region is shown beside the estimate for comparison.
 This model predicts fine-particle pollution (the harmful part of smoke) for the
 next 48 hours. It is built from 21 small models working together: for each of
 seven look-ahead times, three of them learn the low, middle, and high end of the
-likely range. Showing all three turns a single guess into an honest band that
-widens when the model is less certain, rather than a confident line that could
-be wrong. Its inputs are recent pollution readings, the weather, and the time of
-day at Kamloops.
+likely range. Showing all three turns a single guess into a band that widens
+when the model is less certain, rather than a confident line that could be
+wrong. Its inputs are recent pollution readings, the weather, and the time of
+day at Kamloops. It is trained on a rolling year of hourly readings, so the
+record it learns from now includes a full summer smoke season.
 
 \begin{table}[h]
 \centering
@@ -390,16 +391,30 @@ day at Kamloops.
 \toprule
 \textbf{Forecast horizon} & \textbf{Model error} & \textbf{Simple baseline} \\
 \midrule
-6 hours  & 2.27 & 2.85 \\
-12 hours & 3.20 & 4.06 \\
-24 hours & 3.82 & 3.63 \\
-48 hours & 3.32 & 3.92 \\
+1 hour   & 4.92 & 2.93 \\
+3 hours  & 7.43 & 6.73 \\
+6 hours  & 10.10 & 11.09 \\
+12 hours & 11.35 & 14.37 \\
+24 hours & 11.71 & 12.30 \\
+36 hours & 13.11 & 16.54 \\
+48 hours & 13.62 & 16.27 \\
 \bottomrule
 \end{tabular}
 \caption{Air quality forecast error in micrograms per cubic metre (lower is
-better). The model beats the ``tomorrow equals today'' baseline at most
-horizons.}
+better), measured on a held-out fifth of a 469-day record. The model beats the
+``tomorrow equals today'' baseline from six hours out, by 5 to 21 per cent. It
+loses at one and three hours, where pollution barely changes from one hour to
+the next and simply repeating the last reading is hard to improve on.}
 \end{table}
+
+One limit of this model is worth stating plainly. The shaded band on the chart
+is drawn from the 10th and 90th percentiles, which should mean it contains four
+readings in five. Measured against held-out data it contains closer to three in
+five, so the band is narrower than its label implies and the chart understates
+how uncertain the forecast is. This is a known behaviour of the method used, and
+the fix is a calibration step that widens the band to match its measured
+coverage. Until that is done the band should be read as a likely range. The
+model card records the measured figures for every horizon.
 
 % ============================ 5. CLIMATE FINDINGS ============================
 \section{What the Climate Record Shows}
@@ -502,7 +517,7 @@ weather, without waiting.
 
 \subsection{Testing and quality}
 
-The platform ships with an automated test suite: 158 checks on the back end and
+The platform ships with an automated test suite: 157 checks on the back end and
 36 on the front end. These confirm that each data source produces the expected
 shape, that values stay within sensible bounds (for example, no negative
 pollution readings and no fires placed outside the province), that the Fire
@@ -547,7 +562,7 @@ the platform calculates something itself, it uses the recognised standard.}
 \section{Status and Summary}
 
 The four proposed features, both models, and the assistant are built, connected
-to live data, and working. The platform passes its full test suite (158 back-end
+to live data, and working. The platform passes its full test suite (157 back-end
 and 36 front-end checks) with a clean build, and the code, documentation, and model cards are
 organised for handoff.
 

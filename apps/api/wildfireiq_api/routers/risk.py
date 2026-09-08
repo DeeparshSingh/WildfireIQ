@@ -4,26 +4,10 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from ..ml.risk_infer import predict_grid, predict_today_for_cell
+from ..ml.risk_infer import predict_grid
 from ._envelope import Envelope, Meta
 
 router = APIRouter()
-
-
-@router.get("/today", summary="Risk for a single H3 r=5 cell on today's date")
-async def today(cell: str | None = None) -> dict[str, Any]:
-    if cell is None:
-        raise HTTPException(400, "?cell=<h3_index> is required")
-    payload = predict_today_for_cell(cell)
-    if payload is None:
-        raise HTTPException(404, "cell not found in grid")
-    return Envelope[dict](
-        data=payload,
-        meta=Meta(
-            source="wildfire_risk_v1",
-            attribution="LightGBM, trained on BC Wildfire Service 1999-2021 + ERA5 weather. Validated against held-out 2022 + 2023 fire seasons.",
-        ),
-    ).model_dump(mode="json")
 
 
 @router.get("/grid", summary="Full multi-region risk grid")
