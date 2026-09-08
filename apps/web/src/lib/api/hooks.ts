@@ -3,7 +3,7 @@
  * these hooks to keep their rendering in sync with the live data.
  */
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, type Envelope } from "./client";
+import { type Envelope, apiGet } from "./client";
 
 // ─── Domain types (mirrored from the backend Parquet schemas) ─────────
 
@@ -24,8 +24,8 @@ export type Fire = {
 /** Sort fires newest-discovered first; undated fires sink to the bottom. */
 export function sortFiresByDateDesc(fires: Fire[]): Fire[] {
   return [...fires].sort((a, b) => {
-    const ta = a.discovery_date_utc ? Date.parse(a.discovery_date_utc) : -Infinity;
-    const tb = b.discovery_date_utc ? Date.parse(b.discovery_date_utc) : -Infinity;
+    const ta = a.discovery_date_utc ? Date.parse(a.discovery_date_utc) : Number.NEGATIVE_INFINITY;
+    const tb = b.discovery_date_utc ? Date.parse(b.discovery_date_utc) : Number.NEGATIVE_INFINITY;
     return tb - ta;
   });
 }
@@ -62,8 +62,8 @@ export function isPastEvac(z: EvacZone): boolean {
 /** Sort newest → oldest by issued date; nulls sink to the bottom. */
 export function sortEvacByDateDesc(zones: EvacZone[]): EvacZone[] {
   return [...zones].sort((a, b) => {
-    const ta = a.issued_utc ? Date.parse(a.issued_utc) : -Infinity;
-    const tb = b.issued_utc ? Date.parse(b.issued_utc) : -Infinity;
+    const ta = a.issued_utc ? Date.parse(a.issued_utc) : Number.NEGATIVE_INFINITY;
+    const tb = b.issued_utc ? Date.parse(b.issued_utc) : Number.NEGATIVE_INFINITY;
     return tb - ta;
   });
 }
@@ -204,11 +204,23 @@ export type AqForecastPoint = {
   aqhi_q50: number;
 };
 export type AqObservation = { time_utc: string; pm2_5: number };
+/** What the q10-q90 band means, reported by the model that produced it.
+ *  `measured_coverage` is the fraction of held-out observations that actually
+ *  landed inside the band, averaged over horizons — so the chart can state a
+ *  measured number instead of a caption nobody re-checks. */
+export type AqBand = {
+  nominal_coverage: number;
+  measured_coverage: number | null;
+  calibrated: boolean;
+  method: string | null;
+};
+
 export type AqForecast = {
   issued_at_utc: string;
   observations: AqObservation[];
   forecasts: AqForecastPoint[];
   metrics: Record<string, Record<string, number>>;
+  band?: AqBand;
 };
 
 export function useAqForecast() {
@@ -327,11 +339,7 @@ export type FireSmartChecklist = {
   version: string;
 };
 
-export function useFireSmartChecklist(
-  dwelling: string,
-  season: string,
-  situation: string[],
-) {
+export function useFireSmartChecklist(dwelling: string, season: string, situation: string[]) {
   const sitParam = situation.join(",");
   return useQuery({
     queryKey: ["firesmart", "checklist", dwelling, season, sitParam],
@@ -357,10 +365,7 @@ export type FireSmartAchievement = {
 export function useFireSmartAchievements() {
   return useQuery({
     queryKey: ["firesmart", "achievements"],
-    queryFn: () =>
-      apiGet<{ achievements: FireSmartAchievement[] }>(
-        "/api/firesmart/achievements",
-      ),
+    queryFn: () => apiGet<{ achievements: FireSmartAchievement[] }>("/api/firesmart/achievements"),
     staleTime: 24 * 60 * 60_000,
     select: (env) => env.data.achievements,
   });
@@ -474,16 +479,19 @@ export type ProjectionRow = {
 
 export type ProjectionsAll = {
   variable: string;
-  scenarios: { observed: ProjectionRow[]; ssp126: ProjectionRow[]; ssp245: ProjectionRow[]; ssp585: ProjectionRow[] };
+  scenarios: {
+    observed: ProjectionRow[];
+    ssp126: ProjectionRow[];
+    ssp245: ProjectionRow[];
+    ssp585: ProjectionRow[];
+  };
 };
 
 export function useProjectionsAll(variable: string) {
   return useQuery({
     queryKey: ["climate", "projections-all", variable],
     queryFn: () =>
-      apiGet<ProjectionsAll>(
-        `/api/climate/projections-all?var=${encodeURIComponent(variable)}`,
-      ),
+      apiGet<ProjectionsAll>(`/api/climate/projections-all?var=${encodeURIComponent(variable)}`),
     staleTime: 24 * 60 * 60_000,
     select: (env: Envelope<ProjectionsAll>) => env.data,
   });
@@ -492,7 +500,10 @@ export function useProjectionsAll(variable: string) {
 export type FwiProjection = {
   method: string;
   fit: { slope_days_per_C: number; intercept: number; n: number };
-  scenarios: Record<string, { decade: number; july_temp_c: number; days_fwi_ge_19: number; observed: boolean }[]>;
+  scenarios: Record<
+    string,
+    { decade: number; july_temp_c: number; days_fwi_ge_19: number; observed: boolean }[]
+  >;
 };
 
 export function useFwiProjection() {
@@ -518,8 +529,7 @@ export function useTruCarbon() {
 export function useSeasonContext() {
   return useQuery({
     queryKey: ["firesmart", "season-context"],
-    queryFn: () =>
-      apiGet<SeasonContext>("/api/firesmart/season-context"),
+    queryFn: () => apiGet<SeasonContext>("/api/firesmart/season-context"),
     refetchInterval: 60 * 60_000,
     select: (env: Envelope<SeasonContext>) => env.data,
   });
@@ -543,10 +553,7 @@ export function useEvacCheck(lat: number | null, lon: number | null) {
   return useQuery({
     queryKey: ["evac", "check", lat, lon],
     enabled,
-    queryFn: () =>
-      apiGet<EvacCheckResult>(
-        `/api/evac/check?lat=${lat}&lon=${lon}`,
-      ),
+    queryFn: () => apiGet<EvacCheckResult>(`/api/evac/check?lat=${lat}&lon=${lon}`),
     refetchInterval: 60_000,
     select: (env: Envelope<EvacCheckResult>) => env.data,
   });

@@ -30,18 +30,15 @@ export function PollutantBars({ pollutants }: { pollutants: AqPollutants }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {rows.map((r) => {
-        const norm =
-          r.value != null
-            ? Math.min(100, (r.value / CAAQS_24H[r.key]) * 100)
-            : 0;
+        const norm = r.value != null ? Math.min(100, (r.value / CAAQS_24H[r.key]) * 100) : 0;
         const color =
           norm < 33
             ? "var(--aq-3)"
             : norm < 66
-            ? "var(--aq-5)"
-            : norm < 100
-            ? "var(--aq-7)"
-            : "var(--aq-9)";
+              ? "var(--aq-5)"
+              : norm < 100
+                ? "var(--aq-7)"
+                : "var(--aq-9)";
         return (
           <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <div

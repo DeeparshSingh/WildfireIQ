@@ -94,7 +94,7 @@ both write the same file, and when CWFIS answers its values are used.
 | AQHI at stations | **ECCC MSC GeoMet**, `aqhi-observations-realtime` | hourly | BC (34 stations reporting) | none |
 | Pollutant breakdown (PM2.5, PM10, O3, NO2, SO2, CO) | **WAQI / AQICN** feed nearest Kamloops | hourly | Kamloops | `WAQI_TOKEN` (free) |
 | Hourly PM2.5 history and forecast inputs | **Open-Meteo** air-quality API (CAMS), last 7 days + 5 days ahead, with co-located weather | hourly | Kamloops | none |
-| 365-day archive behind the smoke calendar | Same Open-Meteo API, one full year | nightly 02:40 UTC | Kamloops | none |
+| Deep archive behind the smoke calendar and the forecaster | Same Open-Meteo API, backfilling the last 365 days | nightly 02:40 UTC | Kamloops | none |
 | 48-hour PM2.5 forecast | The platform's own **air-quality model** (§5.2) | computed on request | Kamloops | none |
 | Health guidance | **Health Canada** AQHI bands, stored in `data/geo/health_guidance.json` | static | — | none |
 
@@ -271,14 +271,18 @@ and 48 hours from now, and how sure are we?
   shows the median with the 10–90 band as the uncertainty.
 - **Inputs:** recent PM2.5 and its lags, co-located weather (temperature,
   humidity, wind, precipitation, boundary-layer height), time of day.
-- **Validation:** chronological 80/20 split over a 469-day corpus. It beats
-  the "tomorrow equals today" baseline at every horizon from six hours out,
-  by 5–21%, and loses below that — at one to three hours, PM2.5 barely
-  changes hour to hour, so repeating the last reading is hard to beat.
-- **Read the band as a likely range, not an 80% interval.** It is drawn from
-  the 10th and 90th percentiles, but measures 57–66% coverage on held-out
-  data, so it is narrower than it looks. The model card gives the numbers and
-  the fix.
+- **Validation:** fitted on the first 70% of a 469-day record, held out on
+  the rest. It beats the "tomorrow equals today" baseline at every horizon
+  from six hours out, by 6–22%, and loses below that — at one to three hours
+  PM2.5 barely changes hour to hour, so repeating the last reading is hard
+  to beat.
+- **The band is calibrated.** Drawn straight from the 10th and 90th
+  percentiles it covered only 59–68% of observations while implying 80%, so
+  it is widened by a per-horizon factor measured on data the fit never saw
+  (conformalized quantile regression). Measured coverage is now 79–81%
+  against a nominal 80%. The factor is recomputed on every retrain, and the
+  model card explains what that guarantees and what it does not across a
+  change of season.
 
 ---
 
@@ -403,9 +407,16 @@ in the local index.
 
 Retrain the risk model when the fire record gains a year
 (`databc_fires_historical`, then `make risk-features`, `make train-risk`).
+
 Retrain the air-quality model any time the archive has grown
-(`make train-aq`). Both run in under a minute and rewrite their metrics
-files; update the model cards when they change.
+(`make train-aq`). Do this at least once a season: the archive keeps
+extending, and the run recomputes the band's calibration factor along with
+the model. The factor is only as good as the range of conditions the record
+covers, so each additional smoke season makes the band more trustworthy.
+
+Both run in under a minute and rewrite their metrics files. Update the model
+cards when the numbers change — the cards carry the corpus span they belong
+to for exactly this reason.
 
 ---
 

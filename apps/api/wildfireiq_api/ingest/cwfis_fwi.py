@@ -138,29 +138,19 @@ class CWFISFWIDailyJob(IngestJob):
         today_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(today_path, compression="zstd", index=False)
 
-        # Append-only history with dedupe on (station_id, observation_date_local)
-        hist_path = PROCESSED_ROOT / "fwi_stations_history.parquet"
-        if hist_path.exists():
-            try:
-                prev = pd.read_parquet(hist_path)
-                combined = pd.concat([prev, df], ignore_index=True)
-            except Exception:
-                combined = df.copy()
-        else:
-            combined = df.copy()
-        if not combined.empty:
-            combined = combined.drop_duplicates(
-                subset=["station_id", "observation_date_local"], keep="last"
-            )
-        combined.to_parquet(hist_path, compression="zstd", index=False)
-
-        ctx.log.info("cwfis.written", rows=len(df), history_rows=len(combined))
+        # An append-only `fwi_stations_history.parquet` was also written here
+        # and never read by anything — no router, no model, no test. Removed in
+        # the September 2026 audit rather than left to grow unbounded for a
+        # reader that never arrived. `derived_fwi_stations` writes the same
+        # today-only schema, and the FWI history the risk model needs is
+        # recomputed from the weather archive by `ml.features`.
+        ctx.log.info("cwfis.written", rows=len(df))
 
         return IngestReport(
             job_name=self.name,
             status="ok",
             rows_in=len(features),
             rows_written=len(df),
-            bytes_written=today_path.stat().st_size + hist_path.stat().st_size,
-            artifacts=[raw_path, today_path, hist_path],
+            bytes_written=today_path.stat().st_size,
+            artifacts=[raw_path, today_path],
         )

@@ -13,12 +13,7 @@
  *   │ [guidance] health-band tabs + references  │
  *   └───────────────────────────────────────────┘
  */
-import {
-  useAqCalendar,
-  useAqCurrent,
-  useAqForecast,
-  useHealthGuidance,
-} from "@/lib/api/hooks";
+import { useAqCalendar, useAqCurrent, useAqForecast, useHealthGuidance } from "@/lib/api/hooks";
 
 import { AqhiDial } from "./AqhiDial";
 import { ForecastChart } from "./ForecastChart";
@@ -49,12 +44,11 @@ export function AirQualityRoute() {
   // Headline AQHI: use the highest-priority Kamloops station from GeoMet
   // (sorted observation_datetime_utc desc, dedupe per station via backend).
   const aqhi =
-    current.data?.stations.find((s) =>
-      s.station_name?.toLowerCase().includes("kamloops"),
-    )?.aqhi ?? current.data?.stations[0]?.aqhi ?? null;
+    current.data?.stations.find((s) => s.station_name?.toLowerCase().includes("kamloops"))?.aqhi ??
+    current.data?.stations[0]?.aqhi ??
+    null;
 
-  const lastUpdated =
-    current.data?.stations[0]?.observation_datetime_utc ?? undefined;
+  const lastUpdated = current.data?.stations[0]?.observation_datetime_utc ?? undefined;
 
   return (
     <div
@@ -129,16 +123,10 @@ export function AirQualityRoute() {
         >
           <Card title="Current AQHI">
             {current.isLoading && <Skeleton h={280} />}
-            {!current.isLoading && (
-              <AqhiDial aqhi={aqhi} lastUpdated={fmtTime(lastUpdated)} />
-            )}
+            {!current.isLoading && <AqhiDial aqhi={aqhi} lastUpdated={fmtTime(lastUpdated)} />}
           </Card>
           <Card title="Stations · nearest to Kamloops">
-            {current.data ? (
-              <StationsMap stations={current.data.stations} />
-            ) : (
-              <Skeleton h={300} />
-            )}
+            {current.data ? <StationsMap stations={current.data.stations} /> : <Skeleton h={300} />}
           </Card>
         </div>
 
@@ -148,11 +136,9 @@ export function AirQualityRoute() {
         </Card>
 
         {/* Forecast chart */}
-        <Card title="48-hour PM2.5 forecast (q10–q90 band)">
+        <Card title="48-hour PM2.5 forecast with a calibrated range">
           {forecast.isLoading && <Skeleton h={280} />}
-          {forecast.error && (
-            <ErrorBox message={String(forecast.error)} />
-          )}
+          {forecast.error && <ErrorBox message={String(forecast.error)} />}
           {forecast.data && <ForecastChart data={forecast.data} />}
           {forecast.data && (
             <div
@@ -167,10 +153,11 @@ export function AirQualityRoute() {
                 color: "var(--color-text-low)",
               }}
             >
-              Issued {fmtTime(forecast.data.issued_at_utc)} ·
-              LightGBM quantile per horizon · trained on a rolling year of
-              hourly Open-Meteo CAMS + co-located weather · the shaded band is
-              a likely range, not a calibrated interval
+              Issued {fmtTime(forecast.data.issued_at_utc)} · LightGBM quantile per horizon ·
+              trained on the full hourly Open-Meteo CAMS archive · the shaded band is conformally
+              calibrated, so about{" "}
+              {Math.round((forecast.data.band?.measured_coverage ?? 0.8) * 100)} of every 100
+              readings fall inside it
             </div>
           )}
         </Card>
@@ -193,11 +180,7 @@ export function AirQualityRoute() {
           </Card>
 
           <Card title="Smoke event calendar · 365 days">
-            {calendar.data ? (
-              <SmokeCalendar data={calendar.data} />
-            ) : (
-              <Skeleton h={120} />
-            )}
+            {calendar.data ? <SmokeCalendar data={calendar.data} /> : <Skeleton h={120} />}
           </Card>
         </div>
 
@@ -222,11 +205,11 @@ export function AirQualityRoute() {
             lineHeight: 1.7,
           }}
         >
-          Data sources: ECCC GeoMet AQHI · WAQI / AQICN pollutants · Open-Meteo CAMS
-          European air-quality archive · Health Canada AQHI bands.
+          Data sources: ECCC GeoMet AQHI · WAQI / AQICN pollutants · Open-Meteo CAMS European
+          air-quality archive · Health Canada AQHI bands.
           <br />
-          Informational only. In a wildfire smoke event, follow guidance from
-          Interior Health and the BC Centre for Disease Control.
+          Informational only. In a wildfire smoke event, follow guidance from Interior Health and
+          the BC Centre for Disease Control.
         </footer>
       </div>
     </div>
@@ -274,7 +257,8 @@ function Skeleton({ h }: { h: number }) {
       style={{
         height: h,
         borderRadius: 8,
-        background: "linear-gradient(110deg, var(--color-bg-2), var(--color-bg-1), var(--color-bg-2))",
+        background:
+          "linear-gradient(110deg, var(--color-bg-2), var(--color-bg-1), var(--color-bg-2))",
         backgroundSize: "200% 100%",
         animation: "shimmer 2s linear infinite",
       }}

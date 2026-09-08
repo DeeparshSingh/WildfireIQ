@@ -4,6 +4,12 @@ Loads per-horizon, per-quantile LightGBM boosters once at startup. Builds
 features from the latest enriched AQ row (Open-Meteo air quality + weather)
 and predicts for each horizon × quantile.
 
+The q10-q90 band is widened by the conformal factor the trainer measured for
+that horizon, which is what makes it a calibrated ~80% interval rather than a
+nominal one. `conformal.json` missing is not an error: the factor defaults to
+zero and the band is served raw, so an artifact set from before calibration
+still loads.
+
 Output rows: { time_utc, horizon_h, q10, q50, q90, aqhi_q50 }
 """
 
@@ -35,6 +41,19 @@ def _load_boosters() -> dict[tuple[int, int], lgb.Booster] | None:
                 return None
             boosters[(h, int(q * 100))] = lgb.Booster(model_file=str(path))
     return boosters
+
+
+@lru_cache(maxsize=1)
+def _load_conformal() -> dict[int, float]:
+    """Per-horizon band-widening factors, keyed by horizon in hours."""
+    path = ART / "conformal.json"
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {int(str(k).lstrip("h")): float(v) for k, v in (payload.get("factors") or {}).items()}
 
 
 def pm25_to_aqhi(pm25: float) -> float:
@@ -69,11 +88,18 @@ def predict_forecast() -> dict | None:
     X = latest[FEATURE_COLS_BASE]
     base_time = latest["time_utc"].iloc[0]
 
+    conformal = _load_conformal()
+
     forecasts: list[dict] = []
     for h in HORIZONS_H:
         q10 = float(boosters[(h, 10)].predict(X)[0])
         q50 = float(boosters[(h, 50)].predict(X)[0])
         q90 = float(boosters[(h, 90)].predict(X)[0])
+        # Conformal widening, as a multiple of the band's own width, so the
+        # correction grows where the model is already unsure. `ml.train_aq`
+        # measures the coverage this produces; keep the two in step.
+        pad = conformal.get(h, 0.0) * max(q90 - q10, 0.0)
+        q10, q90 = q10 - pad, q90 + pad
         # Quantile crossing fix: q10 ≤ q50 ≤ q90.
         q10, q50, q90 = sorted([max(0.0, q10), max(0.0, q50), max(0.0, q90)])
         forecasts.append(
@@ -105,6 +131,24 @@ def predict_forecast() -> dict | None:
         "observations": observations,
         "forecasts": forecasts,
         "metrics": metrics,
+        # So the chart can describe its own band from the model that produced
+        # it, instead of a caption someone has to remember to update.
+        "band": _band_metadata(metrics, conformal),
+    }
+
+
+def _band_metadata(metrics: dict, conformal: dict[int, float]) -> dict:
+    """What the q10-q90 band means, measured rather than asserted."""
+    measured = [
+        m["band_coverage_calibrated"]
+        for m in metrics.values()
+        if isinstance(m, dict) and "band_coverage_calibrated" in m
+    ]
+    return {
+        "nominal_coverage": 0.80,
+        "measured_coverage": round(sum(measured) / len(measured), 4) if measured else None,
+        "calibrated": bool(conformal),
+        "method": "conformalized quantile regression" if conformal else None,
     }
 
 

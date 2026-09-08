@@ -29,8 +29,8 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 class OpenMeteoAQHourlyJob(IngestJob):
     """Hourly cron — pulls last 7 days actual + next 5 days forecast.
 
-    The deep history comes from `open_meteo_aq_archive`, which runs nightly
-    and keeps the file at a rolling 365 days."""
+    The deep history comes from `open_meteo_aq_archive`, which runs nightly.
+    Neither job trims, so the file accumulates — see that class."""
 
     name = "open_meteo_aq_hourly"
     cadence = "15 * * * *"  # 15 min past each hour, AFTER weather job's :05
@@ -52,7 +52,14 @@ class OpenMeteoAQArchiveJob(IngestJob):
     always satisfiable. Weather features for the same window come from the
     ERA5 archive endpoint (which also accepts the date range).
 
-    Runs nightly so the smoke-event calendar always covers a rolling year.
+    Runs nightly, so the record always reaches back at least a year.
+
+    Nothing here trims the far end, so the file **accumulates** past 365 days
+    over a long-running deployment. That is deliberate rather than an
+    oversight: this parquet is the air-quality model's training corpus, and
+    every extra month of history — especially another smoke season — makes
+    both the forecast and the calibration of its uncertainty band better. The
+    cost is roughly 200 KB a year.
     """
 
     name = "open_meteo_aq_archive"

@@ -21,8 +21,7 @@ export function HealthGuidance({
   const [audience, setAudience] = useState<Audience>("general");
 
   const activeBand = guidance.bands.find(
-    (b) =>
-      currentAqhi != null && currentAqhi >= b.aqhi_min && currentAqhi <= b.aqhi_max,
+    (b) => currentAqhi != null && currentAqhi >= b.aqhi_min && currentAqhi <= b.aqhi_max,
   );
 
   return (
@@ -48,8 +47,7 @@ export function HealthGuidance({
               borderRadius: "var(--radius-pill)",
               cursor: "pointer",
               background: audience === a ? "var(--color-bg-3)" : "transparent",
-              color:
-                audience === a ? "var(--color-text-hi)" : "var(--color-text-mid)",
+              color: audience === a ? "var(--color-text-hi)" : "var(--color-text-mid)",
               border: `1px solid ${
                 audience === a ? "var(--color-ember-500)" : "var(--color-stroke)"
               }`,
@@ -94,9 +92,7 @@ export function HealthGuidance({
                 boxShadow: isActive ? `0 0 16px ${color}` : "none",
               }}
             >
-              {band.aqhi_max === 999
-                ? `${band.aqhi_min}+`
-                : `${band.aqhi_min}–${band.aqhi_max}`}
+              {band.aqhi_max === 999 ? `${band.aqhi_min}+` : `${band.aqhi_min}–${band.aqhi_max}`}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -115,9 +111,7 @@ export function HealthGuidance({
                   fontFamily: "var(--font-body)",
                   fontSize: 13,
                   lineHeight: 1.5,
-                  color: isActive
-                    ? "var(--color-text-hi)"
-                    : "var(--color-text-mid)",
+                  color: isActive ? "var(--color-text-hi)" : "var(--color-text-mid)",
                 }}
               >
                 {band[audience]}

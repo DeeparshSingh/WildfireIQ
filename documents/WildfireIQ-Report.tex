@@ -237,7 +237,7 @@ FireSmart checklist actions & 30 \\
 Smoke forecast steps & 73 hourly snapshots \\
 Scheduled data jobs & 17 (15 recurring, 2 one-time) \\
 Assistant tools & 25, evaluated on 32 live cases \\
-Automated tests passing & 157 backend, 36 frontend \\
+Automated tests passing & 167 backend, 36 frontend \\
 \bottomrule
 \end{tabular}
 \caption{Selected figures from the final build.}
@@ -381,8 +381,9 @@ seven look-ahead times, three of them learn the low, middle, and high end of the
 likely range. Showing all three turns a single guess into a band that widens
 when the model is less certain, rather than a confident line that could be
 wrong. Its inputs are recent pollution readings, the weather, and the time of
-day at Kamloops. It is trained on a rolling year of hourly readings, so the
-record it learns from now includes a full summer smoke season.
+day at Kamloops. It is trained on 469 days of hourly readings, so the record it
+learns from now includes a full summer smoke season, and it grows with each
+day that passes.
 
 \begin{table}[h]
 \centering
@@ -391,30 +392,36 @@ record it learns from now includes a full summer smoke season.
 \toprule
 \textbf{Forecast horizon} & \textbf{Model error} & \textbf{Simple baseline} \\
 \midrule
-1 hour   & 4.92 & 2.93 \\
-3 hours  & 7.43 & 6.73 \\
-6 hours  & 10.10 & 11.09 \\
-12 hours & 11.35 & 14.37 \\
-24 hours & 11.71 & 12.30 \\
-36 hours & 13.11 & 16.54 \\
-48 hours & 13.62 & 16.27 \\
+1 hour   & 3.45 & 2.15 \\
+3 hours  & 5.37 & 5.07 \\
+6 hours  & 7.21 & 8.32 \\
+12 hours & 8.33 & 10.68 \\
+24 hours & 8.58 & 9.13 \\
+36 hours & 9.50 & 12.07 \\
+48 hours & 9.99 & 11.81 \\
 \bottomrule
 \end{tabular}
 \caption{Air quality forecast error in micrograms per cubic metre (lower is
-better), measured on a held-out fifth of a 469-day record. The model beats the
-``tomorrow equals today'' baseline from six hours out, by 5 to 21 per cent. It
+better), measured on held-out data from a 469-day record. The model beats the
+``tomorrow equals today'' baseline from six hours out, by 6 to 22 per cent. It
 loses at one and three hours, where pollution barely changes from one hour to
 the next and simply repeating the last reading is hard to improve on.}
 \end{table}
 
-One limit of this model is worth stating plainly. The shaded band on the chart
-is drawn from the 10th and 90th percentiles, which should mean it contains four
-readings in five. Measured against held-out data it contains closer to three in
-five, so the band is narrower than its label implies and the chart understates
-how uncertain the forecast is. This is a known behaviour of the method used, and
-the fix is a calibration step that widens the band to match its measured
-coverage. Until that is done the band should be read as a likely range. The
-model card records the measured figures for every horizon.
+The band on the chart deserves a note, because getting it right took a second
+pass. Drawn straight from the model's 10th and 90th percentiles it should
+contain four readings in five; measured against held-out data it contained
+closer to three in five. The band was narrower than its label implied, which is
+a known behaviour of this kind of model and the opposite of what an honest
+uncertainty display should do.
+
+It is now corrected. A widening factor is measured for each forecast horizon on
+data the model never trained on, and the band is stretched by that factor
+before it is drawn. Measured coverage is four readings in five, matching the
+label. One caveat remains and is recorded in the model card: the correction is
+only as good as the range of conditions in the record, which currently holds a
+single severe smoke season, so the factor is recalculated every time the model
+is retrained and the archive has grown.
 
 % ============================ 5. CLIMATE FINDINGS ============================
 \section{What the Climate Record Shows}
@@ -517,7 +524,7 @@ weather, without waiting.
 
 \subsection{Testing and quality}
 
-The platform ships with an automated test suite: 157 checks on the back end and
+The platform ships with an automated test suite: 167 checks on the back end and
 36 on the front end. These confirm that each data source produces the expected
 shape, that values stay within sensible bounds (for example, no negative
 pollution readings and no fires placed outside the province), that the Fire
@@ -562,7 +569,7 @@ the platform calculates something itself, it uses the recognised standard.}
 \section{Status and Summary}
 
 The four proposed features, both models, and the assistant are built, connected
-to live data, and working. The platform passes its full test suite (157 back-end
+to live data, and working. The platform passes its full test suite (167 back-end
 and 36 front-end checks) with a clean build, and the code, documentation, and model cards are
 organised for handoff.
 

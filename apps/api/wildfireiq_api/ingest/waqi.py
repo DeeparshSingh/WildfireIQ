@@ -84,6 +84,16 @@ class WAQIKamloopsJob(IngestJob):
             merged = new_df
 
         merged = merged.drop_duplicates(subset=["fetched_at_utc"]).reset_index(drop=True)
+
+        # `fetched_at_utc` is unique per run, so dedupe alone never drops a
+        # row and the file grew by 24 rows a day forever while the API only
+        # ever reads the newest one. Keep a week, matching geomet_aqhi, so
+        # there is still history to debug a bad reading against.
+        if "fetched_at_utc" in merged.columns:
+            stamps = pd.to_datetime(merged["fetched_at_utc"], errors="coerce", utc=True)
+            cutoff = ctx.started_at_utc - pd.Timedelta(days=7)
+            merged = merged[stamps.isna() | (stamps >= cutoff)].reset_index(drop=True)
+
         merged.to_parquet(out_path, compression="zstd", index=False)
 
         ctx.log.info("waqi.written", rows=len(merged))

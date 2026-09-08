@@ -42,8 +42,8 @@ function write(s: Settings) {
 
 export function NotifyMe({ currentAqhi }: { currentAqhi: number | null }) {
   const [settings, setSettings] = useState<Settings>(() => read());
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
-    () => (typeof Notification !== "undefined" ? Notification.permission : "unsupported"),
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() =>
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
   );
 
   const apply = useCallback((patch: Partial<Settings>) => {

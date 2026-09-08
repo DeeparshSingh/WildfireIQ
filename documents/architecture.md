@@ -28,7 +28,7 @@ WildFire-IQ/
 │   │   │   ├── ml/                FWI port, feature builder, two trainers, two inference modules, trends
 │   │   │   ├── routers/           one router per domain + _data.py (parquet readers) + _envelope.py
 │   │   │   └── assistant/         agent harness, 25 tools, OpenRouter transport, guard, evals
-│   │   └── tests/                 157 pytest tests
+│   │   └── tests/                 167 pytest tests
 │   └── web/                       React 18 · TypeScript · Vite · Cesium
 │       └── src/
 │           ├── main.tsx, app.tsx  providers, route table (lazy routes)
@@ -238,10 +238,22 @@ and inference cannot disagree about a feature.
 
 Reads the latest rows of `aq_hourly_kamloops.parquet`, builds the feature
 vector (`train_aq._enrich`), and for each horizon in {1, 3, 6, 12, 24, 36, 48}
-predicts q10, q50, q90 with the corresponding booster. `pm25_to_aqhi()`
-applies Health Canada's PM2.5 term. `predict_calendar(days)` is the daily
-max/mean aggregation behind the smoke calendar. Training: `make train-aq`,
-chronological 80/20 split per horizon.
+predicts q10, q50, q90 with the corresponding booster. The band is then
+**conformalised**: q10 and q90 are pushed out by that horizon's factor from
+`conformal.json` times the band's own width, floored at zero and sorted. That
+step is what makes the band a calibrated ~80% interval — raw, it covers 59-68%
+— and a missing `conformal.json` degrades to no widening rather than an error.
+The response carries a `band` object reporting nominal and measured coverage,
+so the chart describes itself from the model that produced it.
+
+`pm25_to_aqhi()` applies Health Canada's PM2.5 term. `predict_calendar(days)`
+is the daily max/mean aggregation behind the smoke calendar.
+
+Training: `make train-aq`. The models are fitted on the first 70% of the record
+chronologically; the remaining 30% is split at random into a calibration third,
+which sets the conformal factor, and a test two-thirds, which is what every
+reported number is measured on. `tests/test_aq_calibration.py` pins the factor's
+arithmetic and asserts the shipped band measures close to nominal.
 
 ### Fire Weather Index — `ml/fwi.py`
 
@@ -373,7 +385,7 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 157 | ingest parsers and schemas (`test_ingest`), data quality bounds, every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity) |
+| Backend | `apps/api/tests/` | 167 | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity) |
 | Frontend | `apps/web/src/lib/__tests__/` | 36 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |

@@ -91,8 +91,22 @@ export function StationsMap({ stations }: { stations: AqCurrentStation[] }) {
           />
         ))}
         {/* Cardinal hairlines */}
-        <line x1={CENTER} y1={4} x2={CENTER} y2={SIZE - 4} stroke="var(--color-stroke)" strokeOpacity={0.25} />
-        <line x1={4} y1={CENTER} x2={SIZE - 4} y2={CENTER} stroke="var(--color-stroke)" strokeOpacity={0.25} />
+        <line
+          x1={CENTER}
+          y1={4}
+          x2={CENTER}
+          y2={SIZE - 4}
+          stroke="var(--color-stroke)"
+          strokeOpacity={0.25}
+        />
+        <line
+          x1={4}
+          y1={CENTER}
+          x2={SIZE - 4}
+          y2={CENTER}
+          stroke="var(--color-stroke)"
+          strokeOpacity={0.25}
+        />
         {/* Range labels */}
         {ringKms.map((km, i) => (
           <text

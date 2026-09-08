@@ -1,13 +1,13 @@
-import { useMemo } from "react";
-import { Group } from "@visx/group";
-import { AreaClosed, LinePath, Line, Circle } from "@visx/shape";
-import { scaleLinear, scaleTime } from "@visx/scale";
 import { AxisBottom, AxisLeft } from "@visx/axis";
-import { GridRows, GridColumns } from "@visx/grid";
 import { curveMonotoneX } from "@visx/curve";
+import { GridColumns, GridRows } from "@visx/grid";
+import { Group } from "@visx/group";
+import { scaleLinear, scaleTime } from "@visx/scale";
+import { AreaClosed, Circle, Line, LinePath } from "@visx/shape";
+import { useMemo } from "react";
 
-import type { AqForecast, AqObservation, AqForecastPoint } from "@/lib/api/hooks";
-import { pm25ToAqhi, aqhiColor } from "./aqColors";
+import type { AqForecast, AqForecastPoint, AqObservation } from "@/lib/api/hooks";
+import { aqhiColor, pm25ToAqhi } from "./aqColors";
 
 const W = 760;
 const H = 280;
@@ -16,6 +16,14 @@ const innerW = W - M.left - M.right;
 const innerH = H - M.top - M.bottom;
 
 type Point = { time: Date; q10?: number; q50: number; q90?: number; observed?: boolean };
+
+/** Label for the shaded band. The band is nominally an 80% interval; whether
+ *  it earns that label is a measured property of the model, so the wording
+ *  follows the number the API reports rather than being fixed here. */
+function bandLabel(band: AqForecast["band"]): string {
+  if (!band?.calibrated || band.measured_coverage == null) return "q10–q90 range";
+  return `${Math.round(band.measured_coverage * 100)}% range (calibrated)`;
+}
 
 export function ForecastChart({ data }: { data: AqForecast }) {
   const points: Point[] = useMemo(() => {
@@ -44,10 +52,7 @@ export function ForecastChart({ data }: { data: AqForecast }) {
     [points],
   );
 
-  const yMaxFromData = Math.max(
-    20,
-    ...points.map((p) => p.q90 ?? p.q50 ?? 0),
-  );
+  const yMaxFromData = Math.max(20, ...points.map((p) => p.q90 ?? p.q50 ?? 0));
   const yScale = useMemo(
     () => scaleLinear<number>({ domain: [0, yMaxFromData], range: [innerH, 0], nice: true }),
     [yMaxFromData],
@@ -58,7 +63,13 @@ export function ForecastChart({ data }: { data: AqForecast }) {
 
   return (
     <div style={{ width: "100%", overflowX: "auto" }}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="48-hour PM2.5 forecast">
+      <svg
+        width={W}
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label="48-hour PM2.5 forecast"
+      >
         <Group left={M.left} top={M.top}>
           <GridRows
             scale={yScale}
@@ -193,10 +204,19 @@ export function ForecastChart({ data }: { data: AqForecast }) {
           color: "var(--color-text-low)",
         }}
       >
-        <span><span style={{ color: "var(--color-text-hi)" }}>━</span> Observed (last 12h)</span>
-        <span><span style={{ color: "var(--color-cyan-glow)" }}>━</span> Median forecast</span>
-        <span><span style={{ color: "var(--color-cyan-glow)", opacity: 0.5 }}>▭</span> q10–q90 band</span>
-        <span><span style={{ color: "var(--color-ember-500)" }}>┊</span> Now</span>
+        <span>
+          <span style={{ color: "var(--color-text-hi)" }}>━</span> Observed (last 12h)
+        </span>
+        <span>
+          <span style={{ color: "var(--color-cyan-glow)" }}>━</span> Median forecast
+        </span>
+        <span>
+          <span style={{ color: "var(--color-cyan-glow)", opacity: 0.5 }}>▭</span>{" "}
+          {bandLabel(data.band)}
+        </span>
+        <span>
+          <span style={{ color: "var(--color-ember-500)" }}>┊</span> Now
+        </span>
       </div>
     </div>
   );

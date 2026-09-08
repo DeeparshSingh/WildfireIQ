@@ -120,7 +120,7 @@ WAQI pollutant readings at the station nearest Kamloops; the API serves the newe
 | `dominant_pollutant` | str | |
 | `observation_time_utc`, `fetched_at_utc` | str | |
 
-Writer `waqi_kamloops` (hourly). Reader `/api/aq/current`.
+Writer `waqi_kamloops` (hourly, keeping the last 7 days). Reader `/api/aq/current`, which serves the newest row.
 
 ### `weather_kamloops_current.parquet` — 1 row
 
@@ -161,7 +161,7 @@ Hourly CAMS air quality with co-located weather at Kamloops; the training set an
 | `temp_c`, `rh_pct`, `wind_kmh`, `wind_dir`, `precip_mm`, `boundary_layer_m` | float | co-located weather |
 | `fetched_at_utc` | str | |
 
-Writers `open_meteo_aq_hourly` (hourly, 7 days back + 5 forward, upsert on `time_utc`) and `open_meteo_aq_archive` (nightly, 365 days). Readers `/api/aq/forecast`, `/api/aq/calendar`, `/api/aq/smoke-forecast`, `ml.train_aq`.
+Writers `open_meteo_aq_hourly` (hourly, 7 days back + 5 forward, upsert on `time_utc`) and `open_meteo_aq_archive` (nightly, backfilling the last 365 days). Neither trims, so the file **accumulates** — it now spans 469 days, past the 365 the archive job backfills. That is deliberate: this file is the air-quality model's training corpus and a longer record makes a better model, at about 200 KB a year. Readers `/api/aq/forecast`, `/api/aq/calendar`, `/api/aq/smoke-forecast`, `ml.train_aq`.
 
 ---
 
@@ -270,7 +270,9 @@ Writer `climatedata_projections` (one-time). Readers `/api/climate/projection`, 
 | `wildfire_risk_v1/features.json` | the 42 feature names, in order |
 | `wildfire_risk_v1/metrics.json` | held-out 2023 metrics, per region and pooled |
 | `aq_forecaster_v1/h{1,3,6,12,24,36,48}/q{10,50,90}.txt` | 21 LightGBM quantile boosters |
-| `aq_forecaster_v1/features.json`, `metrics.json` | feature names; per-horizon pinball loss, MAE and the persistence baseline |
+| `aq_forecaster_v1/features.json` | the feature names, in order |
+| `aq_forecaster_v1/metrics.json` | per-horizon pinball loss, MAE, the persistence baseline, and band coverage before and after calibration |
+| `aq_forecaster_v1/conformal.json` | the per-horizon factor that widens the q10-q90 band into a calibrated ~80% interval. Read by `ml.aq_infer`; a missing file means no widening |
 
 ## Reference data (committed)
 

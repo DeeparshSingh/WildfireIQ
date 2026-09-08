@@ -118,10 +118,7 @@ export function AqhiDial({
           animate={{ pathLength: 1, opacity: 1 }}
           transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            filter:
-              aqhi != null && aqhi >= 7
-                ? "drop-shadow(0 0 12px " + color + ")"
-                : undefined,
+            filter: aqhi != null && aqhi >= 7 ? "drop-shadow(0 0 12px " + color + ")" : undefined,
           }}
         />
       </svg>
@@ -143,8 +140,7 @@ export function AqhiDial({
             fontWeight: 600,
             lineHeight: 1,
             color: color,
-            textShadow:
-              aqhi != null && aqhi >= 7 ? `0 0 24px ${color}` : "none",
+            textShadow: aqhi != null && aqhi >= 7 ? `0 0 24px ${color}` : "none",
           }}
         >
           {aqhi == null ? "—" : Math.round(aqhi)}
