@@ -200,9 +200,10 @@ def get_fire_weather_index(
     if not payload:
         raise RuntimeError("neither modelled nor station fire-weather data is available")
 
+    # Must match ml.risk_infer.cffdrs_class_for, which is what labels the map.
     payload["scale"] = (
-        "CFFDRS fire-danger classes: Low < 5, Moderate 5-11, High 12-20, "
-        "Very High 21-32, Extreme 33+"
+        "CFFDRS fire-danger classes by FWI: Low 0-1, Moderate 2-4, High 5-12, "
+        "Very High 13-20, Extreme 21 and above"
     )
     return ToolResult(
         data=payload,

@@ -1,43 +1,54 @@
 # Contributing
 
-WildfireIQ Kamloops is a research artifact produced under a TRU Sustainability Research Grant. The author isn't actively soliciting external contributions during the grant period, but issues and pull requests are welcome and will be reviewed when bandwidth allows.
+WildfireIQ Kamloops was built under a Thompson Rivers University Sustainability
+Research Grant. Issues and pull requests are welcome and are reviewed as time
+allows.
 
-## Filing an issue
+## Before filing an issue
 
-Before opening one, please check:
-- **Is this an upstream data issue?** Most "wrong fire status" / "AQHI looks off" reports turn out to be the upstream feed. Compare against BC Wildfire Service or ECCC GeoMet first.
-- **Is this a bootstrap issue?** Many parquets are derived. If a chart is empty, try `make bootstrap` then `make seasonal-metrics`.
+- **Is it the upstream feed?** Most "wrong fire status" or "AQHI looks off"
+  reports turn out to be the source. Compare against the BC Wildfire Service
+  or ECCC pages first.
+- **Is the data built?** Empty charts on a fresh clone usually mean the
+  one-time bootstrap has not run: `./start.sh --bootstrap`.
 
-If filing a bug, include:
-- Browser + version (or `curl` invocation for backend issues).
-- The exact URL or endpoint.
-- What you expected vs. what you got.
+Include the browser and version (or the `curl` command for API issues), the
+exact URL or endpoint, and what you expected versus what you saw.
 
-## Filing a PR
+## Pull requests
 
-1. Fork → branch → PR against `main`.
-2. Run `make test` and `cd apps/web && pnpm test` locally — both must pass.
-3. Run `make typecheck` — TypeScript must stay green.
-4. Run `make build` to confirm the production bundle still compiles.
-5. Add or update tests for any code you touched. We don't enforce coverage thresholds, but new untested code won't be merged.
-6. Don't change the visible API contract (`/api/*` endpoint shapes) without a deprecation note in the PR description.
-7. Keep commits small and message them in the existing project style — present tense, no fluff, explain the *why* over the *what*.
+1. Branch from `main`.
+2. Run the full check locally — all four must pass:
+   ```bash
+   make lint && make test && make typecheck && make build
+   cd apps/web && pnpm test
+   ```
+3. Add or update tests for anything you changed. There is no coverage
+   threshold, but untested new code is not merged.
+4. Do not change an `/api/*` response shape without saying so in the PR.
+5. Commit messages: present tense, explain the *why*, no filler.
 
 ## Code style
 
-- **TypeScript** — Biome, default config. Strict TS, no `any` in app code.
-- **Python** — ruff + ruff-format. Type hints required on public functions. Docstrings on every router, ingest job, and ML module.
-- **No comments that describe *what* the next line does.** Comments explain *why* — non-obvious decisions, trade-offs, references to data quirks.
-- **Numbers always with units. Times always with timezones.**
+- **TypeScript** — Biome (`pnpm lint`), strict TypeScript, no `any` in app code.
+- **Python** — `ruff check` and `ruff format`. Type hints on public functions.
+  A docstring on every router, ingest job, and ML module.
+- Comments explain *why*, never what the next line does. Numbers carry units;
+  times carry time zones.
+- Delete dead code. Do not comment it out.
 
-## Areas where help is welcome
+## Where help is most useful
 
-- Replacing the synthetic CMIP6 placeholder with a real ClimateData.ca pull.
-- ONNX bundle for the 21-model AQ forecaster.
-- Additional historical fire sources (Indigenous Fire Management Council, FN-led data partnerships).
-- iPad device-on-glass usability testing.
-- Translations of the FireSmart checklist + AQ health guidance.
+- Replacing the synthetic CMIP6 placeholder with a real ClimateData.ca pull
+  (`ingest/climatedata_projections.py`; the page and endpoints already exist).
+- Adding lightning-strike and vegetation-greenness features to the risk model
+  (the two largest gaps named in its model card).
+- A fire-history source for provinces other than BC, which is what stands
+  between the risk model and coverage outside the province
+  (see `documents/how-it-works.md`, "Extending the platform").
+- On-device tablet testing of the globe.
 
-## Code of conduct
+## Conduct
 
-Standard Contributor Covenant. Be kind. Wildfire and air-quality data is about real people in real danger — keep that energy in conversations.
+Standard Contributor Covenant. Wildfire and air-quality data is about real
+people in real danger; keep that in mind in every conversation.

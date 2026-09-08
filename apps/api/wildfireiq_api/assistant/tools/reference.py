@@ -31,11 +31,10 @@ _DOC_SOURCES: tuple[tuple[str, str], ...] = (
     ("README.md", "Project README"),
     ("documents/model-cards/wildfire_risk_v1.md", "Model card — wildfire risk"),
     ("documents/model-cards/aq_forecaster_v1.md", "Model card — air-quality forecaster"),
-    ("documents/assistant.md", "How this assistant works"),
+    ("documents/how-it-works.md", "How the platform works and how to extend it"),
     ("documents/architecture.md", "Architecture"),
-    ("documents/logic.md", "System logic"),
-    ("documents/data-layer.md", "Data layer"),
     ("documents/data-dictionary.md", "Data dictionary"),
+    ("documents/assistant.md", "How this assistant works"),
 )
 
 _STOPWORDS = frozenset(

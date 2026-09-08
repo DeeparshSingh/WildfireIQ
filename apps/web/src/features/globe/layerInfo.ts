@@ -3,7 +3,7 @@
  * and the LayerDetailModal banner both pull from this single source.
  *
  * Kept concise (~1-2 short paragraphs). For deep detail, the user reads
- * logic.md or the model card. The platform's footer always reminds: "this
+ * documents/how-it-works.md or the model card. The platform's footer always reminds: "this
  * is informational, not a substitute for BC Wildfire Service or BC
  * Emergency Management guidance."
  */

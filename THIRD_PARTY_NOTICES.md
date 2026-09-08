@@ -1,78 +1,81 @@
 # Third-party notices
 
-WildfireIQ Kamloops depends on the following open-source projects. Each is listed with its license. Full text for individual licenses is available from the linked project pages.
+Everything WildfireIQ depends on is listed here with its licence. The lists
+mirror `apps/web/package.json` and `apps/api/pyproject.toml`; if a dependency
+is added or removed there, update this file in the same change.
 
-## Frontend (`apps/web`)
+## Web app (`apps/web`)
 
-| Package | License | Use |
+| Package | Licence | Used for |
 |---|---|---|
-| React | MIT | UI framework |
-| TypeScript | Apache-2.0 | Type system |
-| Vite | MIT | Build + dev server |
+| React, React DOM | MIT | UI |
+| React Router | MIT | Routing |
+| TypeScript | Apache-2.0 | Types |
+| Vite, @vitejs/plugin-react | MIT | Build and dev server |
 | CesiumJS | Apache-2.0 | 3D globe |
 | Resium | MIT | React bindings for Cesium |
-| Tailwind CSS | MIT | Styling |
+| vite-plugin-cesium | MIT | Serves Cesium's static assets |
+| Tailwind CSS, @tailwindcss/vite | MIT | Styling |
 | Zustand | MIT | UI state |
-| TanStack Query | MIT | Server-state caching |
-| Motion (framer-motion) | MIT | Animation |
-| Visx | MIT | Chart primitives |
-| h3-js | Apache-2.0 | H3 hex tiling |
-| React Router | MIT | Routing |
-| vite-plugin-cesium | MIT | Cesium asset wiring for Vite |
-| Vitest | MIT | Frontend tests |
-| @testing-library/react | MIT | Component test helpers |
+| TanStack Query | MIT | Data fetching and caching |
+| Motion | MIT | Animation |
+| Visx (axis, curve, grid, group, scale, shape) | MIT | Charts |
+| h3-js | Apache-2.0 | H3 hexagon boundaries for the risk grid |
+| Biome | MIT OR Apache-2.0 | Lint and format |
+| Vitest, jsdom, @testing-library/react | MIT | Tests |
+| concurrently | MIT | Runs web and API together in `pnpm dev` |
 
 ## Backend (`apps/api`)
 
-| Package | License | Use |
+| Package | Licence | Used for |
 |---|---|---|
 | FastAPI | MIT | API framework |
 | Uvicorn | BSD-3-Clause | ASGI server |
-| Pydantic | MIT | Data validation |
-| Pydantic Settings | MIT | Env-driven config |
-| SQLAlchemy | MIT | DB layer |
-| aiosqlite | MIT | Async SQLite |
-| DuckDB | MIT | Analytics engine |
-| pandas | BSD-3-Clause | Tabular processing |
-| numpy | BSD-3-Clause | Numerics |
-| pyarrow | Apache-2.0 | Parquet I/O |
-| LightGBM | MIT | ML — both models |
-| scikit-learn | BSD-3-Clause | Calibration + utilities |
-| Shapely | BSD-3-Clause | Geometry for evac check |
-| APScheduler | MIT | Cron-style ingest scheduling |
-| structlog | MIT / Apache-2.0 | Logging |
-| tenacity | Apache-2.0 | Retry logic |
-| httpx | BSD-3-Clause | HTTP client |
-| orjson | Apache-2.0 / MIT | Fast JSON |
-| onnxmltools | Apache-2.0 | LightGBM → ONNX export |
-| onnxruntime | MIT | ONNX inference |
-| pytest | MIT | Backend tests |
+| Pydantic, pydantic-settings | MIT | Validation and configuration |
+| SQLAlchemy, aiosqlite | MIT | The `ingest_runs` log in SQLite |
+| httpx | BSD-3-Clause | HTTP client for every ingest job |
+| tenacity | Apache-2.0 | Retries on transient upstream errors |
+| APScheduler | MIT | Cron-style scheduling of ingest jobs |
+| structlog | MIT OR Apache-2.0 | Structured logging |
+| pandas, NumPy | BSD-3-Clause | Data processing |
+| pyarrow | Apache-2.0 | Parquet read and write |
+| Shapely | BSD-3-Clause | Geometry: bounding boxes, point-in-polygon evacuation check |
+| h3 | Apache-2.0 | H3 hexagon indexing |
+| LightGBM | MIT | Both machine-learning models |
+| scikit-learn, joblib | BSD-3-Clause | Isotonic calibration, metrics, model persistence |
+| pytest, pytest-asyncio, ruff | MIT / Apache-2.0 / MIT | Tests and lint (development only) |
 
-## Data sources (every one is free)
+## Fonts (self-hosted in `apps/web/public/fonts`)
 
-| Source | Licence / Terms | Used for |
+| Font | Licence | Author |
 |---|---|---|
-| BC Wildfire Service · DataBC | Open Government Licence — British Columbia | Current + historical fires |
-| NASA FIRMS (USFS NRT) | Free public use, attribution required | Satellite hotspots |
-| Open-Meteo | CC-BY 4.0 | Weather (live, forecast, ERA5 archive, CAMS AQ) |
-| Environment and Climate Change Canada — MSC GeoMet | Open Government Licence — Canada | AQHI, smoke (RAQDPS-FW WMS) |
-| World Air Quality Index (WAQI / AQICN) | Free with API token; attribution required | Pollutant readings |
-| BC Emergency Management Climate Readiness (EMCR) | Open data | Evacuation orders / alerts / rescinds |
-| Natural Resources Canada — CWFIS | Open public access | Fire Weather Index (when reachable) |
-| ClimateData.ca | Open Government Licence — Canada | CMIP6 projections structure |
-| Cesium Ion | Free tier; attribution required | World Terrain + OSM Buildings tiles |
-| H3 cell density · BC fires | Derived in-project | Risk grid |
+| Bricolage Grotesque | SIL OFL 1.1 | Mathieu Triay |
+| Geist | SIL OFL 1.1 | Vercel |
+| JetBrains Mono | SIL OFL 1.1 | JetBrains |
 
-## Fonts
+## Data sources
 
-| Font | License | Source |
+Every source is free to use. Attribution is shown in the app beside the data
+it applies to.
+
+| Source | Terms | Used for |
 |---|---|---|
-| Geist | OFL-1.1 | Vercel |
-| JetBrains Mono | OFL-1.1 | JetBrains |
-| Space Grotesk (display) | OFL-1.1 | Florian Karsten Typefaces |
+| BC Wildfire Service via DataBC | Open Government Licence – British Columbia | Current and historical fires |
+| BC Emergency Management and Climate Readiness (EMCR) | Open data | Evacuation orders, alerts, rescinds |
+| NASA FIRMS | Free public use, attribution required | Satellite thermal hotspots (VIIRS, MODIS) |
+| Environment and Climate Change Canada — MSC GeoMet | Open Government Licence – Canada | AQHI observations, FireWork smoke forecast (WMS) |
+| Natural Resources Canada — CWFIS | Open public access | Fire Weather Index stations, when the service is reachable |
+| Open-Meteo | CC BY 4.0 | Weather forecast, ERA5 reanalysis archive, CAMS air quality |
+| World Air Quality Index (WAQI / AQICN) | Free with token, attribution required | Pollutant breakdown for Kamloops |
+| FireSmart Canada | Public guidance | The 30 checklist actions (curated) |
+| Health Canada | Public guidance | AQHI health bands |
+| Cesium Ion | Free tier, attribution required | World terrain and aerial imagery |
 
-Subset to Latin per the Phase 7 polish pass.
+## Services
 
-## Notes
+| Service | Used for |
+|---|---|
+| OpenRouter, routing to Z.ai GLM 5.3 Flash | The in-app assistant. Optional; the platform runs without it. |
 
-This list is maintained by hand. For an automated dependency report, run `pnpm licenses ls` in `apps/web/` or `uv pip list` in `apps/api/`.
+This file is maintained by hand. For a generated report: `pnpm licenses ls`
+in `apps/web/`, or `uv tree` in `apps/api/`.

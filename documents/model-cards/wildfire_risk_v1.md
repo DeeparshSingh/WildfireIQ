@@ -24,7 +24,7 @@ The region list lives in `wildfireiq_api/constants.py::REGIONS` and is read by t
 - **Fire Weather Index codes** (FFMC, DMC, DC, ISI, BUI, FWI, DSR) are **derived from the weather data** per region using the canonical Van Wagner & Pickett (1985) equations — implemented in `wildfireiq_api/ml/fwi.py`. This eliminates the runtime dependency on NRCan's CWFIS GeoServer (which has been HTTP-502'd throughout the build).
 
 ## Features
-42 input features per region-day (`features_risk_daily.parquet`, 40,368 rows):
+42 input features per region-day (`features_risk_daily.parquet`, 40,436 rows as of 2026-09-04; it grows by four rows a day):
 - Current-day weather: `temp_max_c`, `temp_min_c`, `rh_min_pct`, `wind_max_kmh`, `wind_gust_max_kmh`, `precip_mm`, `vpd_max_kpa`, `et0_mm`
 - FWI codes: `ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr`
 - Lagged + rolled: 1-day lag, 7-day lag, 7-day mean, 30-day mean for each of {temp_max, rh_min, wind_max, precip, vpd_max}

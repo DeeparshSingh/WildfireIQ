@@ -13,8 +13,11 @@ Why quantile rather than just predicting a number: smoke events are bimodal
 (most hours are clean; some are very bad). A point forecast hides that;
 quantile bands surface it.
 
-Data: `data/processed/aq_hourly_kamloops.parquet` (Open-Meteo air quality
-archive + weather, ~2.2k hourly rows over the last 92 days).
+Data: `data/processed/aq_hourly_kamloops.parquet` — the Open-Meteo CAMS
+air-quality archive with co-located weather. The nightly `open_meteo_aq_archive`
+job keeps it at a rolling 365 days; training uses whatever the file holds, so
+`make train-aq` after a longer run trains on more history than the shipped
+artifact did (see the model card for the figures behind the shipped metrics).
 
 Features per row: current PM2.5 + 6h-mean PM2.5, lagged PM2.5 (h-1, h-3,
 h-6, h-12, h-24), co-located weather (temp, RH, wind speed + direction,

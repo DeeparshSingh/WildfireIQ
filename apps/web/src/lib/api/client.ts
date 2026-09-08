@@ -11,7 +11,6 @@ type Meta = {
   cached_at: string;
   source: string;
   attribution: string;
-  phase: string;
   note?: string | null;
 };
 

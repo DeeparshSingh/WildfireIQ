@@ -129,6 +129,17 @@ Phase 7 & Polish, Performance Optimization \& Demo & Jul 08 -- Jul 15 \\
 \bottomrule
 \end{tabularx}
 \vspace{0.5cm}
+\vspace{0.3cm}
+\noindent\textbf{As built (September 2026).} This timeline is the plan as approved
+in May 2026 and is kept unchanged for the record. The delivered platform differs
+in these respects: the risk model covers four regions (Thompson-Okanagan, Central
+Okanagan, Lower Mainland, Prince George) rather than one, with 523 H3 hexagons;
+the ingestion layer settled at 17 jobs and uses Parquet plus SQLite only, without
+DuckDB; the models are served in-process by LightGBM and are not exported to ONNX;
+the 3D globe uses CesiumJS alone, without MapLibre or GSAP; and a fifth module not
+in the plan, a tool-using assistant over the platform's own data (GLM~5.3~Flash via
+OpenRouter), was added after the four planned features were complete.
+\vspace{0.3cm}
 
 \newpage
 \section{Detailed Phase Execution Plan}

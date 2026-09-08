@@ -259,9 +259,10 @@ export function AboutView() {
             color: "var(--color-text-low)",
           }}
         >
-          To cite this work, see CITATION.cff in the repository. Engineering
-          notes, the per-layer data reference, the data dictionary, and both
-          model cards live in the documents folder alongside the code.
+          To cite this work, see CITATION.cff in the repository. The documents
+          folder alongside the code holds a plain-language guide to how the
+          platform works and how to extend it, the engineering architecture,
+          the data dictionary, both model cards, and the assistant's design.
         </footer>
       </div>
     </div>

@@ -1,7 +1,7 @@
 # Model card — `aq_forecaster_v1`
 
 ## Intended use
-Forecast **hourly PM2.5 concentration (µg/m³) at Kamloops Airport** out to 48 hours ahead, with explicit **uncertainty bounds** at the 10th, 50th, and 90th quantiles. The point forecast is the q50 (median); q10 and q90 together form an empirical 80% prediction interval used to render the uncertainty band on the `/air-quality` forecast chart.
+Forecast **hourly PM2.5 concentration (µg/m³) at Kamloops (50.6745 °N, 120.3273 °W)** out to 48 hours ahead, with explicit **uncertainty bounds** at the 10th, 50th, and 90th quantiles. The point forecast is the q50 (median); q10 and q90 together form an empirical 80% prediction interval used to render the uncertainty band on the `/air-quality` forecast chart.
 
 **Use this model**: as an informational layer on the WildfireIQ Kamloops platform, alongside (not in place of) Environment and Climate Change Canada's RAQDPS-FW smoke forecast and Health Canada's Air Quality Health Index guidance.
 

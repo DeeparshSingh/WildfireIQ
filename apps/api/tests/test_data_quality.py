@@ -95,7 +95,7 @@ def test_aq_hourly_pm25_non_negative() -> None:
     assert p.max() < 1000
 
 
-# ─── Seasonal metrics (Phase 6) ────────────────────────────────────────
+# ─── Seasonal metrics ────────────────────────────────────────
 
 
 def test_seasonal_metrics_years_contiguous() -> None:

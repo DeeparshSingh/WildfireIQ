@@ -72,7 +72,7 @@ class IngestJob(ABC):
     #: debugging aid — they let you replay exactly what an upstream returned —
     #: so a couple of dozen is plenty. Without a cap they grow without bound:
     #: bcem_evac alone writes a GeoJSON every 5 minutes. None keeps everything,
-    #: which is right for a bootstrap whose raw files *are* the corpus.
+    #: for a job whose raw files *are* the corpus; no current job needs that.
     raw_retention: int | None = 24
 
     #: Names of jobs whose output this job reads. Cron cadences are staggered

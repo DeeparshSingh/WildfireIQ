@@ -1,14 +1,13 @@
 """Bootstrap one-shot ingests.
 
 Run this once after `uv sync` to pull all historical and static datasets:
-- 25 years of BC historical fires
-- ECCC daily climate at Kamloops A (1995–today)
-- Open-Meteo ERA5 archive (1999–today)
-- ClimateData.ca projections (synthetic placeholder, replaced in Phase 6)
+- BC historical fires, province-wide, 1999 to today
+- Open-Meteo ERA5 daily weather archive for Kamloops, 1999 to today
+- ClimateData.ca projections (a synthetic placeholder; see the ingest job)
 
-Then runs the recurring jobs once each to populate live snapshots:
-- DataBC current fires, FIRMS hotspots, Open-Meteo current, CWFIS FWI,
-  ECCC GeoMet AQHI, WAQI pollutants, FireWork smoke metadata, BC evac.
+Then runs every recurring job once so the live snapshots exist before the
+API's first request. The recurring set is whatever `registry.scheduled_jobs()`
+returns, so this list never has to be kept in step by hand.
 
 Usage:
     uv run python scripts/ingest/bootstrap.py [--skip-bootstrap] [--skip-live] [--only NAME]

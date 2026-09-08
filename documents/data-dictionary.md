@@ -1,312 +1,288 @@
 # Data dictionary
 
-Every processed parquet under `data/processed/` is documented here. Producer = the ingest job that writes it. Consumer = the routers / ML modules that read it.
+Every file under `data/processed/` and `data/models/`, with its columns, the
+job that writes it and the code that reads it. Column lists were taken from
+the files themselves on 2026-09-08; row counts are from that day and move.
 
-> **Convention**: every timestamp column is UTC unless its name ends in `_local`. Every coordinate is WGS-84 decimal degrees. Every area is hectares. Every concentration is µg/m³.
+Conventions: a column ending `_utc` is a UTC timestamp, stored as text in
+ISO-8601 unless noted; `_local` means America/Vancouver. Coordinates are WGS-84
+decimal degrees. Areas are hectares. Concentrations are µg/m³.
 
----
-
-## `fires_current.parquet`
-
-Active and recently-closed BC fires from the DataBC live feed.
-
-| Column | Type | Notes |
-|---|---|---|
-| `fire_id` | str | DataBC `FIRE_NUMBER` |
-| `fire_name` | str \| null | local name when assigned |
-| `status` | str | "Active", "Under Control", "Being Held", "Out" |
-| `stage_of_control` | str \| null | BCWS lifecycle stage |
-| `hectares` | float | mapped area; nullable for point-only incidents |
-| `discovery_date_utc` | timestamp | first report |
-| `latitude` / `longitude` | float | WGS-84 |
-| `geom_wkt` | str \| null | polygon WKT when mapped, else null |
-| `geom_kind` | str | "polygon" or "point" |
-| `fetched_at_utc` | timestamp | when this row was pulled |
-
-**Producer**: `databc_fires_current` (cron `*/15 * * * *`). **Consumer**: `/api/fires/current`.
+"Readers" names the API endpoints and modules that open the file. The
+assistant's tools read through the same `routers/_data.py` functions as the
+endpoints, so they are not listed separately.
 
 ---
 
-## `fires_historical.parquet`
+## Live feeds
 
-Bulk historical BC fire incidents, province-wide, 1999–today (96,356 rows). Downloaded for all of BC because the risk model now covers four regions; downstream consumers each re-filter to their own bounding box.
-
-| Column | Type | Notes |
-|---|---|---|
-| `fire_id` | str | DataBC `FIRE_NUMBER` |
-| `fire_year` | int | calendar year of discovery |
-| `fire_name` | str \| null | local name |
-| `hectares` | float | final mapped or reported area |
-| `discovery_date_utc` | timestamp | |
-| `ignition_cause` | str \| null | "Lightning", "Person", "Unknown", etc. |
-| `latitude` / `longitude` | float | |
-| `geom_wkt` | str \| null | |
-| `geom_kind` | str | |
-| `source_layer` | str | `PROT_HISTORICAL_FIRE_POLYS_SP` or `PROT_HISTORICAL_INCIDENTS_SP` |
-
-**Producer**: `databc_fires_historical` (bootstrap-only). **Consumer**: `/api/fires/historical`, `/api/climate/seasonal`, `ml.train_risk`, `ml.seasonal_metrics`.
-
----
-
-## `fires_unified.parquet`
-
-Concatenation of `fires_historical` + `fires_current` with dedupe (any fire_id appearing in both keeps the live row). 96,039 rows total.
+### `fires_current.parquet` — 1,654 rows
+Current BC Wildfire Service incidents, province-wide.
 
 | Column | Type | Notes |
 |---|---|---|
-| `fire_id`, `fire_year`, `fire_name`, `hectares`, `discovery_date_utc`, `ignition_cause`, `latitude`, `longitude`, `geom_wkt`, `geom_kind` | as above | union of both feeds |
-| `source` | enum | `"historical"` or `"current"` |
-| `status`, `stage_of_control` | str \| null | populated only for current rows |
+| `fire_id` | str | DataBC fire number |
+| `fire_name` | str | may be empty |
+| `status` | str | e.g. Active, Being Held, Under Control, Out |
+| `stage_of_control` | str | BCWS lifecycle stage |
+| `hectares` | float | mapped area; missing for point-only incidents |
+| `discovery_date_utc` | str | |
+| `latitude`, `longitude` | float | |
+| `geom_wkt` | str | polygon WKT when a perimeter is mapped, else empty |
+| `geom_kind` | str | `polygon` or `point` |
+| `fetched_at_utc` | str | |
 
-**Producer**: `derived_fires_unified` (cron `15 2 * * *`). **Consumer**: future climate analytics; serves as the single fire source of truth.
+Writer `databc_fires_current` (every 15 min). Readers `/api/fires/current`, the assistant brief.
 
----
-
-## `firms_hotspots_recent.parquet`
-
-NASA FIRMS thermal anomalies (VIIRS-NOAA20, VIIRS-SNPP, MODIS) for the last 72 hours.
-
-| Column | Type | Notes |
-|---|---|---|
-| `latitude` / `longitude` | float | detection centre |
-| `acq_datetime_utc` | timestamp | acquisition time |
-| `brightness` | float \| null | T4 brightness temp K |
-| `frp` | float \| null | Fire Radiative Power MW |
-| `confidence` | int \| null | 0–100 (or low/nominal/high for VIIRS, mapped to int) |
-| `source` | str | which sensor (e.g. `VIIRS_NOAA20_NRT`) |
-| `daynight` | str | `"D"` or `"N"` |
-| `satellite` | str | sensor metadata |
-| `fetched_at_utc` | timestamp | |
-
-**Producer**: `firms_hotspots` (cron `*/30 * * * *`). **Consumer**: `/api/fires/hotspots`.
-
----
-
-## `weather_kamloops_current.parquet`
-
-One-row table with the latest Open-Meteo current-conditions for Kamloops.
+### `firms_hotspots_recent.parquet` — 27 rows
+NASA FIRMS thermal detections in the last 3 days, province-wide.
 
 | Column | Type | Notes |
 |---|---|---|
-| `time_utc` | timestamp | |
-| `temp_c`, `rh_pct`, `wind_kmh`, `wind_dir`, `precip_mm` | float | current values |
-| `fetched_at_utc` | timestamp | |
+| `latitude`, `longitude` | float | detection centre |
+| `acq_datetime_utc` | str | acquisition time |
+| `brightness` | float | brightness temperature, K |
+| `frp` | float | fire radiative power, MW |
+| `confidence` | float | 0–100; VIIRS low/nominal/high mapped to numbers |
+| `source` | str | `VIIRS_NOAA20_NRT`, `VIIRS_SNPP_NRT`, `MODIS_NRT` |
+| `daynight` | str | `D` or `N` |
+| `satellite` | str | |
+| `fetched_at_utc` | str | |
 
-## `weather_kamloops_hourly.parquet`
+Writer `firms_hotspots` (every 30 min). Reader `/api/fires/hotspots`.
 
-Open-Meteo 10-day hourly forecast for Kamloops (~240 rows).
-
-## `weather_kamloops_daily.parquet`
-
-Open-Meteo daily forecast (~10 rows ahead) plus the trailing observed days.
-
-| Column | Type | Notes |
-|---|---|---|
-| `day_local` | date | America/Vancouver |
-| `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm` | float | |
-| `is_forecast` | bool | true for future days |
-
-## `weather_kamloops_archive_daily.parquet`
-
-Open-Meteo ERA5 reanalysis archive for Kamloops, **1999-01-01 → today**, with a spliced 15-day forecast tail so the risk model always has a value for today. ~10,100 rows.
+### `evac_active.parquet` — 40 rows
+BC EMCR evacuation orders, alerts and rescinds, province-wide.
 
 | Column | Type | Notes |
 |---|---|---|
-| `day_local`, `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm` | as above | |
-| `vpd_max_kpa` | float | derived vapour pressure deficit |
+| `event_id` | str | |
+| `event_name`, `order_alert_name` | str | |
+| `event_type` | str | hazard: Fire, Flood, Landslide … |
+| `status` | str | lifecycle: Order, Alert or Rescind |
+| `issuing_agency` | str | regional district or First Nation |
+| `issued_utc` | str | |
+| `area_hectares` | float | |
+| `geom_wkt` | str | polygon WKT |
+| `fetched_at_utc` | str | |
 
-**Producer**: `open_meteo_kamloops` + bootstrap `open_meteo_archive_kamloops`. **Consumer**: `/api/weather/*`, `ml.train_risk`, `ml.seasonal_metrics`, `ml.fwi.compute_fwi`.
+Writer `bcem_evac` (every 5 min). Readers `/api/evac/active`, `/api/evac/check`, the assistant brief.
 
----
-
-## `weather_{kelowna,vancouver,prince_george}_archive_daily.parquet`
-
-One file per non-Kamloops modelled region, same schema and same date span as
-the Kamloops archive above (~10,100 rows each, 1999-01-01 → today). Sampled at
-each region's anchor city from `constants.REGIONS`, which is the single source
-of truth for the region list. Kamloops keeps its own filename for historical
-reasons; the other three follow this pattern.
-
-| Column | Type | Notes |
-|---|---|---|
-| `day_local`, `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm`, `vpd_max_kpa` | as `weather_kamloops_archive_daily` | identical schema, so one feature builder handles every region |
-
-**Producer**: `derived_region_weather` (cron `25 2 * * *`). **Consumer**: `ml.features.build_features`, `ml.risk_infer.predict_grid`.
-
----
-
-## `aqhi_stations_recent.parquet`
-
-ECCC GeoMet AQHI station readings within ~100 km of Kamloops.
+### `fwi_stations_today.parquet` — 18 rows
+Today's Fire Weather Index codes at 18 BC towns.
 
 | Column | Type | Notes |
 |---|---|---|
-| `station_id` | str | ECCC identifier |
-| `station_name` | str | |
-| `latitude` / `longitude` | float | |
-| `aqhi` | float | 1–10+ (capped at 12 in raw form) |
-| `observation_datetime_utc` | timestamp | |
-| `fetched_at_utc` | timestamp | |
+| `station_id`, `station_name`, `agency` | str | |
+| `latitude`, `longitude` | float | |
+| `observation_date_local` | str | |
+| `temp_c`, `rh_pct`, `wind_kmh`, `precip_mm` | float | the day's inputs |
+| `ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr` | float | the full code set |
+| `fetched_at_utc` | str | |
 
-**Producer**: `geomet_aqhi_realtime` (cron `*/5 * * * *`). **Consumer**: `/api/aq/current`.
+Writers `derived_fwi_stations` (every 30 min, Van Wagner over Open-Meteo) and `cwfis_fwi_daily` (daily; the official feed, currently failing upstream). Same schema, same file. Reader `/api/fwi/today`.
 
-## `aq_pollutants_recent.parquet`
-
-WAQI / AQICN current pollutant readings for Kamloops (PM2.5, PM10, O3, NO2, SO2, CO + dominant pollutant).
-
-## `aq_hourly_kamloops.parquet`
-
-Open-Meteo CAMS hourly air-quality archive co-located with weather features. **The training set for `aq_forecaster_v1`.**
-
-| Column | Type | Notes |
-|---|---|---|
-| `time_utc` | timestamp | hour beginning |
-| `pm2_5`, `pm10`, `co`, `no2`, `so2`, `o3` | float | µg/m³ (or mg/m³ for CO; documented in serving layer) |
-| `european_aqi` | float \| null | CAMS-derived |
-| `temp_c`, `rh_pct`, `wind_kmh`, `wind_dir`, `precip_mm`, `boundary_layer_m` | float | co-located weather |
-| `fetched_at_utc` | timestamp | |
-
-**Producer**: `open_meteo_aq_hourly` (cron `*/60 * * * *`) + bootstrap `open_meteo_aq_archive`. **Consumer**: `/api/aq/forecast`, `ml.train_aq`.
-
----
-
-## `fwi_stations_today.parquet`
-
-Today's Van Wagner FWI codes for ~18 BC stations. Computed by our own Van Wagner port over 30 days of Open-Meteo daily weather per station (CWFIS GeoServer has been HTTP-502 throughout the build; this replaces it).
-
-| Column | Type | Notes |
-|---|---|---|
-| `station_id` | str | synthetic id (`open-meteo:{name}`) |
-| `station_name` | str | human label |
-| `agency` | str \| null | "BCWS / derived" |
-| `latitude` / `longitude` | float | |
-| `observation_date_local` | date | most recent day |
-| `temp_c`, `rh_pct`, `wind_kmh`, `precip_mm` | float | today's inputs |
-| `ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr` | float | full code set |
-| `fetched_at_utc` | timestamp | |
-
-**Producer**: `derived_fwi_stations` (cron `*/30 * * * *`). **Consumer**: `/api/fwi/today`.
-
----
-
-## `smoke_forecast_metadata.parquet`
-
-73 hourly timesteps of the ECCC RAQDPS-FW Wildfire Smoke forecast, joined with the corresponding Open-Meteo CAMS PM2.5 hourly value at Kamloops.
+### `smoke_forecast_metadata.parquet` — 73 rows
+One row per hourly step of the ECCC FireWork smoke forecast.
 
 | Column | Type | Notes |
 |---|---|---|
 | `layer_name` | str | WMS layer id |
-| `valid_time_utc` | timestamp | timestep |
-| `fetch_url` | str | full WMS GetMap URL ready to embed |
-| `pm25_at_kamloops` | float \| null | µg/m³ at the corresponding hour from CAMS |
-| `fetched_at_utc` | timestamp | when the WMS GetCapabilities was last read |
+| `valid_time_utc` | str | forecast hour |
+| `fetch_url` | str | a complete WMS GetMap URL the globe loads directly |
+| `fetched_at_utc` | str | |
 
-**Producer**: `firework_smoke_forecast` (cron `0 */6 * * *`). **Consumer**: `/api/aq/smoke-forecast`, `SmokeLayer`, `LayerDetailModal · SmokeBrowser`.
+Writer `firework_smoke_forecast` (every 6 h). Reader `/api/aq/smoke-forecast`, which joins `pm25_at_kamloops` from `aq_hourly_kamloops` at serve time.
 
----
-
-## `evac_active.parquet`
-
-Active BC Emergency Management evacuation orders, alerts, rescinds.
+### `aqhi_stations_recent.parquet` — 1,169 rows
+Recent AQHI readings at every reporting BC station (several readings each; the API keeps the latest per station).
 
 | Column | Type | Notes |
 |---|---|---|
-| `event_id` | str | BCEM identifier |
-| `event_name` | str \| null | local name |
-| `status` | str | `Order`, `Alert`, `Rescind`, `Advisory` (`ORDER_ALERT_STATUS`) |
-| `event_type` | str | `Fire`, `Flood`, `Landslide` (`EVENT_TYPE`) |
-| `issuing_agency` | str | regional district / agency |
-| `issued_utc` | timestamp | |
-| `area_hectares` | float \| null | polygon area |
-| `geom_wkt` | str | polygon WKT |
-| `fetched_at_utc` | timestamp | |
+| `station_id`, `station_name` | str | |
+| `latitude`, `longitude` | float | |
+| `aqhi` | float | 1–10+ |
+| `observation_datetime_utc` | str | |
+| `fetched_at_utc` | str | |
 
-**Producer**: `bcem_evac` (cron `*/5 * * * *` in fire season). **Consumer**: `/api/evac/active`, `/api/evac/check`, `EvacLayer`.
+Writer `geomet_aqhi_realtime` (hourly). Readers `/api/aq/current`, `/api/aq/history`.
 
----
-
-## `climate_projections.parquet`
-
-CMIP6 ensemble projections — observed + ssp126 / ssp245 / ssp585. **Ships a structurally-correct synthetic placeholder; the real ClimateData.ca pull is a drop-in parquet replace, and the UI says so where it matters.**
+### `aq_pollutants_recent.parquet` — 140 rows
+WAQI pollutant readings at the station nearest Kamloops; the API serves the newest row.
 
 | Column | Type | Notes |
 |---|---|---|
-| `year` | int | |
-| `ssp` | str | `"observed"`, `"ssp126"`, `"ssp245"`, `"ssp585"` |
-| `variable` | str | `"tasmean"`, `"tasmax"`, `"tasmin"`, `"pr"` |
-| `value` | float | central estimate |
-| `q10`, `q50`, `q90` | float | ensemble spread |
+| `station_name` | str | |
+| `station_lat`, `station_lon` | float | |
+| `aqi` | int | WAQI's own index |
+| `pm25`, `o3`, `no2`, `so2` | float | |
+| `pm10`, `co` | str | arrive as text from the upstream and are passed through |
+| `dominant_pollutant` | str | |
+| `observation_time_utc`, `fetched_at_utc` | str | |
 
-**Producer**: `climatedata_projections` (bootstrap). **Consumer**: `/api/climate/projection*`, Section 4 of `/climate`.
+Writer `waqi_kamloops` (hourly). Reader `/api/aq/current`.
 
----
+### `weather_kamloops_current.parquet` — 1 row
 
-## `seasonal_metrics.parquet`
-
-Per-year joined fire + climate metrics for the Thompson-Okanagan, 1999 → today (27 rows). The headline derived dataset behind the climate-trend module. Scoped to the Thompson-Okanagan even though `fires_historical` is province-wide: this job re-filters by the TO bounding box.
-
-| Column | Type | Notes |
-|---|---|---|
-| `year` | int | |
-| `area_burned_ha`, `fire_count`, `largest_fire_ha` | float / int | from historical fires |
-| `season_start_doy`, `season_end_doy`, `season_length_days` | int | DOY of first/last ignition |
-| `mean_jul_temp_c` | float | mean of daily max in July |
-| `julaug_precip_mm` | float | July + August total precip |
-| `mean_julaug_vpd_kpa` | float | mean of daily-max VPD |
-| `max_julaug_fwi` | float | peak FWI from Van Wagner |
-| `days_fwi_ge_19` | int | count of days at the CFFDRS extreme threshold |
-
-**Producer**: `derived_seasonal_metrics` (cron `30 2 * * *`). **Consumer**: `/api/climate/{seasonal,trends,ribbon,fwi-projection}`, sections 1–5 of `/climate`.
-
----
-
-## `features_risk_daily.parquet`
-
-Per-region, per-day feature matrix for the wildfire risk classifier. 40,368 rows
-(4 regions × ~10,100 days) × 47 columns, of which 42 are model features. Built
-by the nightly job and re-used unchanged at serving time, so training and
-inference can never disagree about how a feature is computed.
-
-| Column group | Count | Notes |
-|---|---:|---|
-| `day_local`, `region` | 2 | row key; `region` matches a `constants.REGIONS` key |
-| Raw daily weather (`temp_max_c` … `vpd_max_kpa`) | 8 | from that region's own archive |
-| Van Wagner FWI codes (`ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr`) | 7 | computed per region |
-| Lags and rolling means (`_lag1`, `_lag7`, `_mean7`, `_mean30`) | 20 | over the five headline weather variables |
-| Drought and calendar (`precip_sum7`, `precip_sum30`, `dry_spell_days`, `doy_sin`, `doy_cos`, `month`, `year`) | 7 | |
-| `region_fire_rate` | 1 | that region's long-run fire-day rate, computed from 1999–2021 only so no future information leaks backwards |
-| `n_fires`, `had_fire` | 2 | labels; `had_fire` is the training target |
-
-**Producer**: `derived_risk_features` (cron `35 2 * * *`). **Consumer**: `ml.train_risk`, `ml.risk_infer.predict_grid`.
-
----
-
-## `cell_density.parquet`
-
-Historical fire density per H3 r=5 cell, multiplied against its region's
-probability to produce the per-cell risk grid. 523 rows: Thompson-Okanagan 185,
-Prince George 166, Lower Mainland 87, Central Okanagan 85.
-
-| Column | Type | Notes |
-|---|---|---|
-| `h3_cell` | str | H3 index (r=5, ~250 km² per cell). Unique across the whole file: where two region bounding boxes overlap, the first region in `REGIONS` claims the cell, so no hexagon is ever drawn twice |
-| `region` / `region_label` | str | owning region key and its display name |
-| `hist_fire_count` | int | fire-days recorded in this cell, 1999–today |
-| `weight` | float | `hist_fire_count` square-root-normalised to 0…1 within its region, so a few extreme cells cannot flatten the rest |
-| `region_fire_rate` | float | constant per region; carried here so serving needs only this one file |
-| `centroid_lat` / `centroid_lon` | float | cell centre, used to place the hexagon |
-
-**Producer**: `derived_risk_features` (cron `35 2 * * *`). **Consumer**: `ml.risk_infer.predict_grid`, `/api/risk/grid`.
-
----
-
-## Other reference data (not parquet)
-
-| File | What |
+| Column | Type |
 |---|---|
-| `data/geo/thompson_okanagan.geojson` | Thompson-Okanagan bbox polygon (the climate module's scope) |
-| `data/geo/kamloops_neighbourhoods.geojson` | 14 hand-curated neighbourhood polygons |
-| `data/geo/health_guidance.json` | Health Canada AQHI guidance text |
-| `data/firesmart/firesmart_actions.json` | 30 curated HIZ checklist actions |
-| `data/models/wildfire_risk_v1/{model.txt, calibrator.joblib, metrics.json, features.json}` | risk classifier artifacts |
-| `data/models/aq_forecaster_v1/h{H}/q{Q}.txt`, `features.json`, `metrics.json` | 21 quantile boosters |
+| `temp_c`, `wind_kmh`, `wind_gust_kmh`, `precip_mm`, `vpd_kpa` | float |
+| `rh_pct`, `wind_dir_deg` | int |
+| `observed_at_local`, `fetched_at_utc` | str |
+
+### `weather_kamloops_hourly.parquet` — 288 rows
+Hourly weather, recent past and forecast.
+
+| Column | Type | Notes |
+|---|---|---|
+| `ts_local`, `ts_utc` | str | |
+| `temp_c`, `rh_pct`, `wind_kmh`, `wind_gust_kmh`, `wind_dir_deg`, `precip_mm`, `vpd_kpa`, `et0_mm` | float | |
+| `is_forecast` | bool | |
+
+### `weather_kamloops_daily.parquet` — 12 rows
+Daily summary, recent past and forecast. Trailing forecast days beyond Open-Meteo's horizon are all-null and are dropped by the reader.
+
+| Column | Type | Notes |
+|---|---|---|
+| `day_local` | str | |
+| `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm` | float | |
+| `is_forecast` | bool | |
+
+Writer of the three weather files above: `open_meteo_kamloops` (hourly). Readers `/api/weather/*`, `/api/firesmart/season-context` (daily, for days since rain), the assistant brief.
+
+### `aq_hourly_kamloops.parquet` — 11,256 rows
+Hourly CAMS air quality with co-located weather at Kamloops; the training set and the live input of the air-quality model, and the source of the smoke calendar.
+
+| Column | Type | Notes |
+|---|---|---|
+| `time_utc` | timestamp (UTC) | hour beginning |
+| `pm2_5`, `pm10`, `co`, `no2`, `so2`, `o3` | float | |
+| `european_aqi` | float | CAMS' own index |
+| `temp_c`, `rh_pct`, `wind_kmh`, `wind_dir`, `precip_mm`, `boundary_layer_m` | float | co-located weather |
+| `fetched_at_utc` | str | |
+
+Writers `open_meteo_aq_hourly` (hourly, 7 days back + 5 forward, upsert on `time_utc`) and `open_meteo_aq_archive` (nightly, 365 days). Readers `/api/aq/forecast`, `/api/aq/calendar`, `/api/aq/smoke-forecast`, `ml.train_aq`.
+
+---
+
+## History and derived tables
+
+### `fires_historical.parquet` — 96,356 rows
+Every BC Wildfire Service incident since 1999, province-wide. The spine of the risk model and the climate page.
+
+| Column | Type | Notes |
+|---|---|---|
+| `fire_id` | str | |
+| `fire_year` | int | |
+| `fire_name` | str | |
+| `hectares` | float | |
+| `discovery_date_utc` | str | |
+| `ignition_cause` | str | Lightning, Person, Unknown … |
+| `latitude`, `longitude` | float | |
+| `geom_wkt`, `geom_kind` | str | |
+| `source_layer` | str | which DataBC layer the row came from |
+
+Writer `databc_fires_historical` (one-time; re-run to extend). Readers `/api/fires/historical`, `ml.features`, `ml.seasonal_metrics`, `/api/firesmart/season-context` (season peak).
+
+### `weather_kamloops_archive_daily.parquet` — 10,109 rows
+Daily ERA5 weather at Kamloops, 1999-01-01 to today, the last 15 days spliced from the forecast API.
+
+| Column | Type |
+|---|---|
+| `day_local` | str |
+| `temp_max_c`, `temp_min_c`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm`, `vpd_max_kpa` | float |
+| `rh_min_pct` | int |
+
+Writer `open_meteo_archive_kamloops` (nightly 02:20). Readers `ml.features`, `ml.risk_infer`, `ml.seasonal_metrics`, `ingest.climatedata_projections` (as the observed baseline).
+
+### `weather_{kelowna,vancouver,prince_george}_archive_daily.parquet` — 10,109 rows each
+Identical schema to the Kamloops archive, one file per other modelled region, sampled at the anchor city in `constants.REGIONS`.
+
+Writer `derived_region_weather` (nightly 02:25). Readers `ml.features`, `ml.risk_infer`.
+
+### `seasonal_metrics.parquet` — 27 rows
+One row per complete fire season, 1999 onward, for the Thompson-Okanagan box. The current year is excluded until October.
+
+| Column | Type | Notes |
+|---|---|---|
+| `year` | int | |
+| `area_burned_ha`, `fire_count`, `largest_fire_ha` | float | from the fire archive |
+| `season_start_doy`, `season_end_doy`, `season_length_days` | float | day-of-year of first and last ignition |
+| `mean_jul_temp_c` | float | mean daily maximum |
+| `julaug_precip_mm` | float | July + August total |
+| `mean_julaug_vpd_kpa` | float | mean daily-maximum vapour-pressure deficit |
+| `max_julaug_fwi` | float | from the Van Wagner run over the archive |
+| `days_fwi_ge_19` | int | days at or above the high-danger threshold used on the climate page |
+
+Writer `derived_seasonal_metrics` (nightly 02:30). Readers `/api/climate/seasonal`, `/api/climate/trends`, `/api/climate/ribbon`, `/api/climate/fwi-projection`.
+
+### `features_risk_daily.parquet` — 40,436 rows (grows by 4 a day)
+The risk model's training table: one row per region per day, 47 columns of which 42 are model features.
+
+| Group | Columns |
+|---|---|
+| Key | `day_local` (timestamp), `region` |
+| Raw weather (8) | `temp_max_c`, `temp_min_c`, `rh_min_pct`, `precip_mm`, `wind_max_kmh`, `wind_gust_max_kmh`, `et0_mm`, `vpd_max_kpa` |
+| FWI codes (7) | `ffmc`, `dmc`, `dc`, `isi`, `bui`, `fwi`, `dsr` |
+| Lags and means (20) | `_lag1`, `_lag7`, `_mean7`, `_mean30` for `temp_max_c`, `rh_min_pct`, `wind_max_kmh`, `precip_mm`, `vpd_max_kpa` |
+| Drought and calendar (7) | `precip_sum7`, `precip_sum30`, `dry_spell_days`, `doy_sin`, `doy_cos`, `month`, `year` |
+| Base rate (1) | `region_fire_rate` — that region's fire-day frequency over 1999–2021 only, so nothing from the validation or test years leaks into training |
+| Labels (2) | `n_fires`, `had_fire` (the target) |
+
+Writer `derived_risk_features` (nightly 02:35) via `ml.features.build`. Reader `ml.train_risk`.
+
+### `cell_density.parquet` — 523 rows
+One row per H3 resolution-5 hexagon; the weight that turns a region probability into a per-cell score.
+
+| Column | Type | Notes |
+|---|---|---|
+| `h3_cell` | str | unique across the file; where two region boxes overlap, the first region in `REGIONS` keeps the cell |
+| `region`, `region_label` | str | |
+| `hist_fire_count` | int | fires recorded in the cell since 1999 |
+| `weight` | float | `sqrt(hist_fire_count / max in region)`, 0–1 |
+| `region_fire_rate` | float | copied here so inference needs only this file and the weather |
+| `centroid_lat`, `centroid_lon` | float | |
+
+Cells per region: Thompson-Okanagan 185, Prince George 166, Lower Mainland 87, Central Okanagan 85.
+
+Writer `derived_risk_features`. Reader `ml.risk_infer` (`/api/risk/grid`, `/api/risk/today`).
+
+### `climate_projections.parquet` — 728 rows
+**Synthetic placeholder** shaped like a CMIP6 ensemble, extrapolated from the observed Kamloops archive. The climate page labels it as such. Dropping in a real ClimateData.ca download with these columns needs no code change.
+
+| Column | Type | Notes |
+|---|---|---|
+| `year` | int | |
+| `ssp` | str | `observed`, `ssp126`, `ssp245`, `ssp585` |
+| `variable` | str | `tasmean`, `tasmax`, `tasmin`, `pr` |
+| `value`, `q10`, `q50`, `q90` | float | |
+
+Writer `climatedata_projections` (one-time). Readers `/api/climate/projection`, `/api/climate/projections-all`.
+
+---
+
+## Models (`data/models/`, committed)
+
+| Path | What |
+|---|---|
+| `wildfire_risk_v1/model.txt` | LightGBM booster |
+| `wildfire_risk_v1/calibrator.joblib` | isotonic calibrator fitted on 2022 |
+| `wildfire_risk_v1/features.json` | the 42 feature names, in order |
+| `wildfire_risk_v1/metrics.json` | held-out 2023 metrics, per region and pooled |
+| `aq_forecaster_v1/h{1,3,6,12,24,36,48}/q{10,50,90}.txt` | 21 LightGBM quantile boosters |
+| `aq_forecaster_v1/features.json`, `metrics.json` | feature names; per-horizon pinball loss, MAE and the persistence baseline |
+
+## Reference data (committed)
+
+| Path | What |
+|---|---|
+| `data/geo/kamloops_neighbourhoods.geojson` | 14 neighbourhood polygons with centroids |
+| `data/geo/health_guidance.json` | Health Canada AQHI bands for three audiences |
+| `data/firesmart/firesmart_actions.json` | 30 checklist actions in 5 groups, with season priorities |
+
+## Operational
+
+| Path | What |
+|---|---|
+| `data/wildfireiq.db` | SQLite. One table, `ingest_runs`: one row per job run with status, row counts, duration and any error. Read by `/api/admin/runs`, the startup catch-up, and the assistant's data-freshness tool |
+| `data/raw/<job>/` | the last 24 raw upstream responses per job, for reproducing a parse failure |

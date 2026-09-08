@@ -1,6 +1,6 @@
 """Ingest pipeline integrity: the job graph, its cadences, and its ordering.
 
-Nineteen jobs feed each other through parquet files on disk. Nothing in the
+Seventeen jobs feed each other through parquet files on disk. Nothing in the
 runtime notices if a derived job starts reading an input that has not been
 rebuilt yet, so the ordering rules live here instead: the graph must be
 acyclic, every declared dependency must name a real job, and the nightly
@@ -87,15 +87,15 @@ def test_a_cycle_is_reported_rather_than_silently_reordered() -> None:
     # Real job names, so the failure under test is the cycle itself and not
     # the unknown-dependency check firing first.
     pair = [
-        _FakeJob("derived_fires_unified", ("derived_risk_features",)),
-        _FakeJob("derived_risk_features", ("derived_fires_unified",)),
+        _FakeJob("derived_seasonal_metrics", ("derived_risk_features",)),
+        _FakeJob("derived_risk_features", ("derived_seasonal_metrics",)),
     ]
     with pytest.raises(ValueError, match="cycle"):
         dependency_waves(pair)  # type: ignore[arg-type]
 
 
 def test_unknown_dependency_is_rejected() -> None:
-    bogus = [_FakeJob("derived_fires_unified", ("no_such_job",))]
+    bogus = [_FakeJob("derived_seasonal_metrics", ("no_such_job",))]
     with pytest.raises(ValueError, match="unknown job"):
         dependency_waves(bogus)  # type: ignore[arg-type]
 
@@ -244,8 +244,15 @@ def test_prune_raw_is_a_no_op_when_retention_is_disabled(tmp_path) -> None:
     original = base.RAW_ROOT
     base.RAW_ROOT = tmp_path / "raw"
     try:
-        job = all_jobs()["eccc_climate_kamloops"]
-        assert job.raw_retention is None
+
+        class KeepEverything(base.IngestJob):
+            name = "keep_everything"
+            raw_retention = None
+
+            async def run(self, ctx):  # pragma: no cover — never run here
+                raise NotImplementedError
+
+        job = KeepEverything()
         d = base.RAW_ROOT / job.name
         d.mkdir(parents=True)
         for year in range(1999, 2027):

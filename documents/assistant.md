@@ -269,7 +269,7 @@ process, no Redis. A multi-process deployment would need shared state.
 
 Two layers, and the split is deliberate.
 
-`apps/api/tests/test_assistant.py` — 155 tests, entirely offline. A
+`apps/api/tests/test_assistant.py` — 81 tests, entirely offline. A
 scripted client replays model turns, so the loop, budgets, parallel
 fan-out, tool errors, malformed arguments, event ordering, the safety
 tripwire, the rate limiter and the spend ceiling are all exercised without

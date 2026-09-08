@@ -2,7 +2,7 @@
   "name": "wildfireiq",
   "version": "1.0.0",
   "private": true,
-  "description": "AI-powered wildfire risk, air quality, and community preparedness platform for the Thompson-Okanagan region.",
+  "description": "Wildfire risk, air quality, climate trends and community preparedness for British Columbia, with an in-app assistant over the platform's own data.",
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0",
@@ -15,10 +15,11 @@
     "api:dev": "cd apps/api && uv run uvicorn wildfireiq_api.main:app --reload --host 0.0.0.0 --port 8000",
     "api:install": "cd apps/api && uv sync",
     "build": "pnpm --filter @wildfireiq/web build",
-    "lint": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run lint",
-    "format": "pnpm --filter \"./apps/web\" --filter \"./packages/*\" run format",
-    "test": "pnpm --filter \"./apps/web\" run test",
-    "test:api": "cd apps/api && uv run pytest"
+    "lint": "pnpm --filter @wildfireiq/web run lint",
+    "format": "pnpm --filter @wildfireiq/web run format",
+    "typecheck": "pnpm --filter @wildfireiq/web exec tsc --noEmit",
+    "test": "pnpm --filter @wildfireiq/web run test",
+    "test:api": "cd apps/api && uv run pytest -q"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

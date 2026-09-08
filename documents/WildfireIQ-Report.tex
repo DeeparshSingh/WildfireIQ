@@ -121,7 +121,7 @@ fire and weather records, all served locally at no cloud cost.}
 % ============================ 2. WHAT IT DOES ============================
 \section{What the Platform Does}
 
-The platform has four parts. Each one is described below in plain terms.
+The platform has five parts. Each one is described below in plain terms.
 
 \begin{table}[h]
 \centering
@@ -146,9 +146,13 @@ badges, and a private share link. Nothing leaves your device. \\
 \textbf{Climate Trends} &
 A scrolling story of how the region's fire seasons have changed over 27 years,
 with clear trend lines, and a look ahead under different emission scenarios. \\
+\textbf{Assistant} &
+A question-answering assistant, available on every page, that reads the same
+live data through 25 tools, cites what it used, and can move the map. It is the
+one optional, paid component, at a fraction of a cent per question. \\
 \bottomrule
 \end{tabular}
-\caption{The four modules of WildfireIQ Kamloops.}
+\caption{The five modules of WildfireIQ Kamloops.}
 \end{table}
 
 \subsection{The Wildfire Risk Map}
@@ -198,6 +202,23 @@ of extreme fire-weather days per year could change by decade. Every chart lists
 its data source and method and offers a download of the underlying numbers, and
 the page prints cleanly to a short PDF for use as a reference.
 
+\subsection{The Assistant}
+
+Every page carries an ``Ask'' control. Behind it is a language model
+(GLM~5.3~Flash, reached through OpenRouter) fitted with 25 read-only tools that
+call the same functions the platform's own pages use: today's risk for a place,
+fires near a town, the evacuation status of a point, air quality and health
+guidance, the climate record, the model cards, and the freshness of every data
+feed. Before the model sees a question it is given a short situation brief, so
+the common question is answered in one step without any tool call. Every answer
+lists the sources it consulted, and three tools act on the interface itself,
+flying the globe to a place or switching on a layer. The assistant is instructed
+never to state a number it did not get from a tool, treats emergency wording
+deterministically by placing 911 and EmergencyInfoBC in front of the reply, and
+is rate- and budget-limited because it is the only component that spends money.
+A 32-case live evaluation, covering every data surface and a set of misuse
+attempts, passes in full at a measured \$0.0013 per question.
+
 \subsection{Key numbers}
 
 \begin{table}[h]
@@ -214,7 +235,9 @@ Fire-weather stations & 18 \\
 AI risk map & 523 hexagons across 4 regions \\
 FireSmart checklist actions & 30 \\
 Smoke forecast steps & 73 hourly snapshots \\
-Automated tests passing & 78 backend, 22 frontend \\
+Scheduled data jobs & 17 (15 recurring, 2 one-time) \\
+Assistant tools & 25, evaluated on 32 live cases \\
+Automated tests passing & 158 backend, 36 frontend \\
 \bottomrule
 \end{tabular}
 \caption{Selected figures from the final build.}
@@ -252,7 +275,7 @@ Globe terrain and imagery & Cesium Ion & Global \\
 
 \subsection{How the data stays current}
 
-Nineteen small jobs run on timers inside the application. Active fires refresh
+Seventeen small jobs run on timers inside the application. Active fires refresh
 every 15 minutes, evacuation zones every 5 minutes, weather and air quality
 every hour, and the smoke forecast every six hours. When the app starts, it
 checks each source and refreshes anything older than 30 minutes, so the screen
@@ -471,8 +494,7 @@ server or task queue, which keeps it easy to run and hand off.
 A few choices keep the platform responsive. The three secondary pages load on
 demand rather than up front, so the first screen stays small (about 69 kilobytes
 compressed). Responses that rarely change, such as the climate history, are
-marked so the browser can reuse them. The analytics engine is opened once at
-startup so the first request is quick. Most importantly, when the app starts
+marked so the browser can reuse them. Most importantly, when the app starts
 it refreshes any data source older than 30 minutes, in an order that respects
 which jobs feed which, so a person opening the platform after it has been idle
 still sees current fires, current air quality, and a risk map built on today's
@@ -480,15 +502,18 @@ weather, without waiting.
 
 \subsection{Testing and quality}
 
-The platform ships with an automated test suite: 78 checks on the back end and
-22 on the front end. These confirm that each data source produces the expected
+The platform ships with an automated test suite: 158 checks on the back end and
+36 on the front end. These confirm that each data source produces the expected
 shape, that values stay within sensible bounds (for example, no negative
 pollution readings and no fires placed outside the province), that the Fire
 Weather Index calculation behaves correctly, that the trend statistics recover a
 known answer, and that the risk map's region rules hold, including that no map
 cell is ever claimed by two regions and that a region's headline risk level
-matches the cells drawn beneath it. The front-end checks cover the air quality
-colour scale and the preparedness hub's save-and-share logic. The whole suite
+matches the cells drawn beneath it, and that the assistant's agent loop keeps to
+its budgets, recovers from tool errors, and refuses unsafe requests, all against
+a scripted model so the suite spends nothing. The front-end checks cover the air
+quality colour scale, the preparedness hub's save-and-share logic, and the
+assistant's streaming reader and answer renderer. The whole suite
 runs in a few seconds and passes cleanly.
 
 % ============================ 7. ACCURACY & LIMITS ============================
@@ -521,9 +546,9 @@ the platform calculates something itself, it uses the recognised standard.}
 % ============================ 8. STATUS ============================
 \section{Status and Summary}
 
-The four features and both models are built, connected to live data, and
-working. The platform passes its full test suite (68 back-end and 22 front-end
-checks) with a clean build, and the code, documentation, and model cards are
+The four proposed features, both models, and the assistant are built, connected
+to live data, and working. The platform passes its full test suite (158 back-end
+and 36 front-end checks) with a clean build, and the code, documentation, and model cards are
 organised for handoff.
 
 The table below maps each proposal commitment to its current state.
@@ -543,6 +568,7 @@ Two models validated on held-out 2022 and 2023 & Done \\
 Free and public data only, no personal data stored & Met \\
 Open-source release & Done (MIT) \\
 Final research report & This document \\
+In-app assistant over the platform's data (not in proposal) & Built \\
 Public online hosting & Ready to deploy; not yet hosted \\
 \bottomrule
 \end{tabular}
@@ -568,7 +594,8 @@ researcher or official could cite.
 \vspace{0.4em}
 
 \noindent{\small\color{slate} Project repository and full documentation are
-included with this report. See the README and the \texttt{documents} folder for
-the engineering log, data dictionary, and model cards.}
+included with this report. See the README and the \texttt{documents} folder: a
+plain-language guide to how the platform works and how to extend it, the
+architecture, the data dictionary, and the model cards.}
 
 \end{document}

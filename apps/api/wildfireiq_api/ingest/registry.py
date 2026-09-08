@@ -8,12 +8,10 @@ from .climatedata_projections import ClimateDataProjectionsJob
 from .cwfis_fwi import CWFISFWIDailyJob
 from .databc_fires_current import DataBCFiresCurrentJob
 from .databc_fires_historical import DataBCFiresHistoricalJob
-from .derived_fires_unified import DerivedFiresUnifiedJob
 from .derived_fwi import DerivedFWIStationsJob
 from .derived_region_weather import DerivedRegionWeatherJob
 from .derived_risk_features import DerivedRiskFeaturesJob
 from .derived_seasonal_metrics import DerivedSeasonalMetricsJob
-from .eccc_climate import ECCCClimateBulkJob
 from .firework_smoke import FireWorkSmokeForecastJob
 from .firms_hotspots import FIRMSHotspotsJob
 from .geomet_aqhi import GeoMetAQHIRealtimeJob
@@ -32,7 +30,6 @@ def all_jobs() -> dict[str, IngestJob]:
         OpenMeteoArchiveBootstrapJob(),
         OpenMeteoAQHourlyJob(),
         OpenMeteoAQArchiveJob(),
-        ECCCClimateBulkJob(),
         CWFISFWIDailyJob(),
         DerivedFWIStationsJob(),
         GeoMetAQHIRealtimeJob(),
@@ -40,7 +37,6 @@ def all_jobs() -> dict[str, IngestJob]:
         FireWorkSmokeForecastJob(),
         BCEMEvacuationJob(),
         ClimateDataProjectionsJob(),
-        DerivedFiresUnifiedJob(),
         DerivedRegionWeatherJob(),
         DerivedSeasonalMetricsJob(),
         DerivedRiskFeaturesJob(),

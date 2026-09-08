@@ -145,7 +145,6 @@ def create_app() -> FastAPI:
         return {
             "ok": True,
             "version": __version__,
-            "phase": "1",
             "bbox": [
                 settings.bbox_west,
                 settings.bbox_south,

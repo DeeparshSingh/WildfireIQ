@@ -24,9 +24,6 @@ BC_BBOX_NORTH: Final[float] = 60.0
 KAMLOOPS_LAT: Final[float] = 50.6745
 KAMLOOPS_LON: Final[float] = -120.3273
 
-# ECCC station IDs
-KAMLOOPS_A_STATION_ID: Final[int] = 1163780  # Kamloops A
-
 # ─── Risk-model regions ──────────────────────────────────────────────
 # Each region is modelled with its own local weather point and its own
 # fire history, following the identical methodology. Bounding boxes are

@@ -2,18 +2,16 @@
   "name": "@wildfireiq/design-tokens",
   "version": "0.1.0",
   "private": true,
-  "description": "Locked design system: CSS variables, fonts, motion + Tailwind preset.",
+  "description": "Design tokens shared by the web app: CSS variables, self-hosted fonts, reset.",
   "type": "module",
   "exports": {
     "./tokens.css": "./tokens.css",
     "./fonts.css": "./fonts.css",
-    "./reset.css": "./reset.css",
-    "./tailwind-preset": "./tailwind-preset.ts"
+    "./reset.css": "./reset.css"
   },
   "files": [
     "tokens.css",
     "fonts.css",
-    "reset.css",
-    "tailwind-preset.ts"
+    "reset.css"
   ]
 }

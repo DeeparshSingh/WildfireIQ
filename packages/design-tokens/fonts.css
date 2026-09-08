@@ -1,10 +1,9 @@
 /* ─────────────────────────────────────────────────────────────────────────────
- * WildfireIQ — Self-hosted fonts
- * Locked pairing per frontend-design skill rules:
- *   Display: Bricolage Grotesque (variable, SIL OFL)
- *   Body:    Geist (variable, MIT/Vercel)
- *   Data:    JetBrains Mono (variable, Apache 2.0)
- * NEVER add Inter, Roboto, Arial, or Space Groteske (per skill bans).
+ * WildfireIQ — self-hosted fonts
+ *   Display: Bricolage Grotesque (variable, SIL OFL 1.1)
+ *   Body:    Geist (variable, SIL OFL 1.1)
+ *   Data:    JetBrains Mono (variable, SIL OFL 1.1)
+ * The files live in apps/web/public/fonts/ and are preloaded from index.html.
  * ─────────────────────────────────────────────────────────────────────────── */
 
 /* ── Bricolage Grotesque (display, variable) ─────────────────────────── */

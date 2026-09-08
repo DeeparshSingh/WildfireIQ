@@ -6,8 +6,9 @@ Produces the two tables the risk model needs at serving time:
   cell_density.parquet         per-H3-cell historical fire weights
 
 Depends on `fires_historical.parquet` and every region's daily weather
-archive, so this runs after the fires-unified (02:15), Kamloops archive
-(02:20), and per-region weather (02:25) jobs.
+archive, so this runs after the Kamloops archive (02:20) and per-region
+weather (02:25) jobs; `depends_on` below encodes the same order for the
+startup catch-up, which has no clock to lean on.
 
 Without this job the risk grid has no cell density and `/api/risk/grid`
 returns 503, so it is part of the scheduled pipeline rather than a manual

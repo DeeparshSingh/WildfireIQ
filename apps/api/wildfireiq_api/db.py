@@ -1,4 +1,8 @@
-"""SQLite + DuckDB connection management."""
+"""SQLite connection management and the operational schema.
+
+One table: `ingest_runs`, the log every ingest job appends to. Everything
+else the platform serves lives in Parquet under data/processed/.
+"""
 
 from __future__ import annotations
 
@@ -68,14 +72,6 @@ SCHEMA_DDL = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_ingest_runs_job_name ON ingest_runs (job_name, started_at DESC)",
-    """
-    CREATE TABLE IF NOT EXISTS http_cache (
-        cache_key TEXT PRIMARY KEY,
-        body BLOB NOT NULL,
-        fetched_at TEXT NOT NULL,
-        ttl_seconds INTEGER NOT NULL
-    )
-    """,
 ]
 
 

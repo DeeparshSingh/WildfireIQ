@@ -1,4 +1,4 @@
-"""Parser + schema validation for the ingest pipeline (Phase 1 spec).
+"""Parser + schema validation for the ingest pipeline.
 
 These tests don't hit the network. They validate:
 
@@ -6,8 +6,8 @@ These tests don't hit the network. They validate:
     contract the rest of the codebase relies on (the router accessors,
     the ML trainers, the climate trends).
   • The non-trivial parsers (smoke ISO-8601 expansion, FWI Van Wagner
-    port, fires-unified union, seasonal metrics builder) produce the
-    expected shape on synthetic input.
+    port, seasonal metrics builder) produce the expected shape on
+    synthetic input.
 
 The earlier smoke tests in `test_*_jobs_smoke.py` do hit the network — we
 keep those for an end-to-end check and leave this file for fast,
@@ -136,29 +136,6 @@ def test_fwi_port_runs_on_synthetic_year() -> None:
     # Under sustained hot-dry conditions FWI should grow into the
     # "high" range (≥ 5) within the first month.
     assert out["fwi"].iloc[30] >= 5
-
-
-# ─── fires_unified union ──────────────────────────────────────────────
-
-
-def test_fires_unified_columns() -> None:
-    """If the unified parquet has been built, validate its contract."""
-    p = PROCESSED / "fires_unified.parquet"
-    if not p.exists():
-        pytest.skip("fires_unified.parquet not yet built — run `make fires-unified`")
-    df = pd.read_parquet(p)
-    required = {
-        "fire_id",
-        "fire_year",
-        "hectares",
-        "discovery_date_utc",
-        "latitude",
-        "longitude",
-        "source",
-    }
-    assert required.issubset(df.columns)
-    assert set(df["source"].unique()).issubset({"historical", "current"})
-    assert len(df) >= 10_000  # we should never silently drop most rows
 
 
 # ─── seasonal_metrics builder ──────────────────────────────────────────

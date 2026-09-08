@@ -1,31 +1,35 @@
 cff-version: 1.2.0
 title: "WildfireIQ Kamloops"
 message: "If you use this software or its derived datasets, please cite it as below."
+type: software
 authors:
   - family-names: "Dang"
     given-names: "Deeparsh Singh"
     affiliation: "Thompson Rivers University"
-type: software
 repository-code: "https://github.com/DeeparshSingh/WildfireIQ"
 license: MIT
 version: "1.0.0"
-date-released: "2026-05-14"
+date-released: "2026-09-08"
 abstract: >-
-  An AI-powered wildfire risk, air quality, and community preparedness
-  platform for the Thompson-Okanagan region of British Columbia. Includes
-  two LightGBM models (wildfire risk classifier and a quantile
-  air-quality forecaster), a Van Wagner Fire Weather Index port over
-  Open-Meteo ERA5 reanalysis, a 3D Cesium globe surface, a personalised
-  FireSmart preparedness hub, and a six-section climate-trend
-  scrollytelling page. Built with a Thompson Rivers University
-  Sustainability Research Grant, 2025-2026.
+  An open platform for wildfire risk, air quality, climate trends and
+  community preparedness in British Columbia, built entirely from free
+  public data. It includes a pooled multi-region LightGBM wildfire-risk
+  classifier scored on 523 H3 hexagons across four regions, a 21-model
+  LightGBM quantile forecaster for 48-hour PM2.5 in Kamloops, a Van Wagner
+  Fire Weather Index implementation over 27 years of ERA5 reanalysis, a 3D
+  CesiumJS globe with six live data layers, a private FireSmart preparedness
+  hub, a climate-trend page with Theil-Sen statistics, and a tool-using
+  assistant (GLM 5.3 Flash via OpenRouter) that answers only from the
+  platform's own data. Built with a Thompson Rivers University Sustainability
+  Research Grant, 2025-2026.
 keywords:
   - wildfire
+  - air-quality
   - climate
   - british-columbia
   - kamloops
+  - lightgbm
+  - fire-weather-index
   - cesiumjs
   - fastapi
-  - lightgbm
-  - air-quality
-  - geospatial
+  - llm-agent
