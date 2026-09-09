@@ -1,7 +1,13 @@
-"""Smoke test: instantiate fire ingest jobs and run the current-fires job."""
+"""Smoke test: instantiate fire ingest jobs and run the current-fires job.
+
+These call the real upstream feeds, so they are marked `live` and left out of
+the default run — `make test` must pass on a plane. Run them with
+`make test-live` when you want to know whether the sources are still answering.
+"""
 
 import asyncio
 
+import pytest
 from sqlalchemy import text
 
 from wildfireiq_api.db import get_engine
@@ -36,17 +42,21 @@ async def _init_db() -> None:
         )
 
 
-async def test() -> None:
+@pytest.mark.live
+async def test_current_fires_job_runs_against_databc() -> None:
     await _init_db()
 
     # Instantiate all three (verify imports / class definition).
     _ = FIRMSHotspotsJob()
     _ = DataBCFiresHistoricalJob()
 
-    # Smoke-run the live current fires job.
     rpt = await run_job(DataBCFiresCurrentJob())
     print(rpt)
+    # This used to only print. A failed ingest passed silently, which defeats
+    # the point of a smoke test.
+    assert rpt.status == "ok", f"DataBC current-fires ingest failed: {rpt.error}"
+    assert rpt.rows_written and rpt.rows_written > 0, "DataBC returned no fires"
 
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    asyncio.run(test_current_fires_job_runs_against_databc())

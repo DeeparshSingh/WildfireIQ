@@ -4,17 +4,22 @@
  */
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import { DataNotice, type NoticeQuery } from "@/shell/DataNotice";
+
 export function SectionShell({
   kicker,
   title,
   sub,
   info,
+  queries,
   children,
 }: {
   kicker: string;
   title: string;
   sub?: string;
   info?: ReactNode;
+  /** The section's data sources, so it can say when one did not load. */
+  queries?: NoticeQuery[];
   children: ReactNode;
 }) {
   const ref = useRef<HTMLElement>(null);
@@ -101,6 +106,7 @@ export function SectionShell({
         </div>
         {info}
       </header>
+      {queries && <DataNotice queries={queries} what={title.toLowerCase()} />}
       {children}
     </section>
   );

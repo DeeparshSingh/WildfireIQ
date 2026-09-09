@@ -66,7 +66,11 @@ def _in_bbox(lat: float | None, lon: float | None) -> bool:
 
 class CWFISFWIDailyJob(IngestJob):
     name = "cwfis_fwi_daily"
-    cadence = "0 18 * * *"
+    # 23:00 UTC, not 18:00. The Fire Weather Index is computed from noon
+    # local-standard-time observations, and BC noon is 20:00 UTC — the old
+    # time ran before a single BC station had reported, so the job pulled a
+    # feed of eastern stations and correctly filtered all of them out.
+    cadence = "0 23 * * *"
     label = "NRCan CWFIS · Fire Weather Index daily"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
@@ -153,6 +157,28 @@ class CWFISFWIDailyJob(IngestJob):
         df = pd.DataFrame(rows)
         today_path = PROCESSED_ROOT / OUTPUT_NAME
         today_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Never replace real readings with an empty file. `firewx_stns_current`
+        # holds only the stations that have reported for the current period, so
+        # a run made before western Canada reports returns a perfectly valid
+        # feed with no BC station in it. Writing that out would destroy
+        # yesterday's cross-check for nothing.
+        if df.empty:
+            kept = today_path.exists()
+            ctx.log.info("cwfis.no_bc_stations", features=len(features), kept_previous=kept)
+            return IngestReport(
+                job_name=self.name,
+                status="partial",
+                rows_in=len(features),
+                rows_written=0,
+                note=(
+                    f"{len(features)} stations returned, none inside British Columbia — "
+                    "the feed carries only stations that have already reported today. "
+                    + ("Previous file left in place." if kept else "No previous file to keep.")
+                ),
+                artifacts=[raw_path],
+            )
+
         df.to_parquet(today_path, compression="zstd", index=False)
 
         # This used to write `fwi_stations_today.parquet`, the same file

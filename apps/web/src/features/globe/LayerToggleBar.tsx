@@ -9,6 +9,7 @@ import {
   useRiskGrid,
   useSmokeForecast,
 } from "@/lib/api/hooks";
+import { GlobeDataNotice, type NoticeQuery } from "@/shell/DataNotice";
 import { useFiltersStore } from "@/stores/filters";
 import { type LayerId, useLayersStore } from "@/stores/layers";
 
@@ -21,7 +22,7 @@ type LayerDef = {
   count: number | undefined;
 };
 
-function useLayerCounts(): LayerDef[] {
+function useLayerCounts(): { layers: LayerDef[]; queries: NoticeQuery[] } {
   const fires = useFiresCurrent();
   const firesFilter = useFiltersStore((s) => s.fires);
   const hotspotsFilter = useFiltersStore((s) => s.hotspots);
@@ -68,7 +69,9 @@ function useLayerCounts(): LayerDef[] {
     (c) => c.risk_class === "Extreme" || c.risk_class === "High",
   ).length;
 
-  return [
+  const queries: NoticeQuery[] = [risk, fires, hotspots, evac, fwi, smoke];
+
+  const layers: LayerDef[] = [
     {
       id: "risk",
       label: "AI Risk Grid",
@@ -112,10 +115,12 @@ function useLayerCounts(): LayerDef[] {
       count: smoke.data?.length,
     },
   ];
+
+  return { layers, queries };
 }
 
 export function LayerToggleBar() {
-  const layers = useLayerCounts();
+  const { layers, queries } = useLayerCounts();
   const visible = useLayersStore((s) => s.visible);
   const toggle = useLayersStore((s) => s.toggle);
   const [spotlight, setSpotlight] = useState<LayerId | null>(null);
@@ -136,6 +141,7 @@ export function LayerToggleBar() {
         zIndex: 20,
       }}
     >
+      <GlobeDataNotice queries={queries} />
       <div
         className="glass"
         style={{

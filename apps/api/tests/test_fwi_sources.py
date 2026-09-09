@@ -12,13 +12,17 @@ These tests are offline. The live check lives in test_weather_jobs_smoke.py.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
+from pathlib import Path
+from tempfile import mkdtemp
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from wildfireiq_api.ingest import cwfis_fwi, derived_fwi
-from wildfireiq_api.ingest.cwfis_fwi import _PARAMS, _in_bbox
+from wildfireiq_api.ingest.cwfis_fwi import _PARAMS, CWFISFWIDailyJob, _in_bbox
 from wildfireiq_api.ingest.derived_fwi import DerivedFWIStationsJob
 from wildfireiq_api.ml.fwi import compute_fwi
 
@@ -51,6 +55,65 @@ def test_the_two_fwi_jobs_do_not_write_the_same_file() -> None:
     """They both wrote fwi_stations_today.parquet, so whichever ran last won."""
     assert cwfis_fwi.OUTPUT_NAME != derived_fwi.OUTPUT_NAME
     assert derived_fwi.OUTPUT_NAME == "fwi_stations_today.parquet", "/api/fwi/today reads this name"
+
+
+def test_cwfis_cadence_runs_after_bc_stations_report() -> None:
+    """Noon-LST observations: BC noon is 20:00 UTC.
+
+    The job used to run at 18:00 UTC, which is before any BC station has
+    reported, so it pulled a valid feed of eastern stations and filtered every
+    one of them out.
+    """
+    hour = int(CWFISFWIDailyJob.cadence.split()[1])
+    assert hour >= 21, f"{hour}:00 UTC is too early for BC noon-LST observations"
+
+
+async def test_cwfis_keeps_the_previous_file_when_no_bc_station_reported(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty result must not overwrite real readings.
+
+    `firewx_stns_current` carries only stations that have already reported, so
+    a run made too early legitimately contains no BC row. Writing that out
+    would throw away the cross-check for nothing.
+    """
+    eastern_only = {
+        "features": [
+            {
+                "properties": {"lat": 47.31, "lon": -53.99, "name": "ARGENTIA", "fwi": 0.0},
+                "geometry": None,
+            }
+        ]
+    }
+
+    class _Resp:
+        status_code = 200
+
+        @staticmethod
+        def raise_for_status() -> None:
+            return None
+
+        @staticmethod
+        def json() -> dict:
+            return eastern_only
+
+    class _Client:
+        async def get(self, url: str, params: dict, timeout: float):
+            return _Resp()
+
+    job = CWFISFWIDailyJob()
+    ctx = SimpleNamespace(
+        client=_Client(),
+        log=SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None),
+        started_at_utc=datetime(2026, 9, 9, 18, 0, tzinfo=UTC),
+    )
+    monkeypatch.setattr(job, "raw_path", lambda name: Path(mkdtemp()) / name)
+
+    report = await job.run(ctx)  # type: ignore[arg-type]
+
+    assert report.status == "partial", "an empty BC result is not a success"
+    assert report.rows_written == 0
+    assert report.note and "none inside British Columbia" in report.note
 
 
 # ── derived_fwi_stations ────────────────────────────────────────────────────

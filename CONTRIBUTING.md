@@ -46,7 +46,9 @@ exact URL or endpoint, and what you expected versus what you saw.
 - A fire-history source for provinces other than BC, which is what stands
   between the risk model and coverage outside the province
   (see `documents/how-it-works.md`, "Extending the platform").
-- On-device tablet testing of the globe.
+- Responsive layouts for phone and tablet widths. The app assumes a desktop
+  viewport today (see README, "Screens"); below about 1100px everything except
+  the preparedness page clips rather than reflows.
 
 ## Conduct
 

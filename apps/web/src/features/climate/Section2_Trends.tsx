@@ -56,6 +56,7 @@ export function Section2_Trends() {
 
   return (
     <SectionShell
+      queries={[seasonal, trends]}
       kicker="Section 2"
       title="Hotter, drier air."
       sub="Theil-Sen slopes (robust to outlier years) with 95% bootstrap confidence intervals over the complete seasons since 1999 at Kamloops Airport (ERA5 reanalysis via Open-Meteo). July daily-max temperature is climbing significantly; July–August precipitation has no significant trend, but vapour pressure deficit is rising — the air is getting thirstier even when rainfall holds steady."

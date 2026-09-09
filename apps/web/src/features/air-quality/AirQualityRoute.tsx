@@ -14,6 +14,7 @@
  *   └───────────────────────────────────────────┘
  */
 import { useAqCalendar, useAqCurrent, useAqForecast, useHealthGuidance } from "@/lib/api/hooks";
+import { DataNotice } from "@/shell/DataNotice";
 
 import { AqhiDial } from "./AqhiDial";
 import { ForecastChart } from "./ForecastChart";
@@ -111,6 +112,8 @@ export function AirQualityRoute() {
             updated {fmtTime(lastUpdated)} YKA
           </div>
         </header>
+
+        <DataNotice queries={[current, forecast, calendar, guidance]} what="air-quality data" />
 
         {/* Hero: dial + stations minimap, side-by-side */}
         <div

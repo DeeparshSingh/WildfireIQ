@@ -48,6 +48,7 @@ export function Section1_AreaBurned() {
 
   return (
     <SectionShell
+      queries={[q]}
       kicker="Section 1"
       title="Three decades of fire."
       sub={`Total area burned each year inside the Thompson-Okanagan bounding box, ${firstYear}–${lastYear}. Complete seasons only, so the season under way joins in October. The 1999–2010 baseline mean is the dashed line. Use the Log scale to see smaller seasons next to the catastrophic ones.`}

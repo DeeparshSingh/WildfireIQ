@@ -1,4 +1,12 @@
-"""Smoke test: live-fetch OpenMeteoKamloopsJob and CWFISFWIDailyJob."""
+"""Smoke test: live-fetch OpenMeteoKamloopsJob and CWFISFWIDailyJob.
+
+These call the real upstream feeds, so they are marked `live` and left out of
+the default run — `make test` must pass on a plane. Run them with
+`make test-live` when you want to know whether the sources are still answering.
+
+This file was named `test_*` but its entry point was `_main`, so pytest
+collected nothing from it: it looked covered for the whole build and never ran.
+"""
 
 from __future__ import annotations
 
@@ -6,13 +14,16 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 from wildfireiq_api.ingest.base import run_job
 from wildfireiq_api.ingest.cwfis_fwi import CWFISFWIDailyJob
 from wildfireiq_api.ingest.open_meteo import OpenMeteoKamloopsJob
 from wildfireiq_api.paths import PROCESSED_ROOT
 
 
-async def _main() -> int:
+@pytest.mark.live
+async def test_weather_and_cwfis_jobs_run_against_their_sources() -> None:
     failures: list[str] = []
 
     for job, expected in (
@@ -48,14 +59,13 @@ async def _main() -> int:
             else:
                 print(f"  ok  {p} ({p.stat().st_size} bytes)")
 
-    if failures:
-        print("\nFAILURES:")
-        for f in failures:
-            print(" -", f)
-        return 1
-    print("\nALL OK")
-    return 0
+    assert not failures, "live ingest failures:\n  " + "\n  ".join(failures)
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(_main()))
+    try:
+        asyncio.run(test_weather_and_cwfis_jobs_run_against_their_sources())
+    except AssertionError as exc:
+        print(exc)
+        sys.exit(1)
+    print("\nALL OK")

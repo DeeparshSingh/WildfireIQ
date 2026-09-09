@@ -32,6 +32,7 @@ help:
 	@echo "  make lint              Ruff (backend) + Biome (frontend)"
 	@echo "  make format            Apply Ruff and Biome formatting"
 	@echo "  make test              Both test suites (backend + frontend)"
+	@echo "  make test-live         Ingest smoke tests against the real upstream feeds"
 	@echo "  make typecheck         Run TypeScript typecheck for the frontend"
 	@echo "  make build             Production-build the frontend"
 	@echo ""
@@ -126,6 +127,13 @@ test-api:
 .PHONY: test-web
 test-web:
 	cd apps/web && npx vitest run
+
+# The three ingest smoke tests, which call the real upstream feeds. Excluded
+# from `make test` so the default run works offline and cannot fail because
+# DataBC is having a bad afternoon.
+.PHONY: test-live
+test-live:
+	cd apps/api && uv run pytest -m live -q -s
 
 .PHONY: typecheck
 typecheck:

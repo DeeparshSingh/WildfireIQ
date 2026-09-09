@@ -53,6 +53,7 @@ export function Section3_Ribbon() {
 
   return (
     <SectionShell
+      queries={[q]}
       kicker="Section 3"
       title="The shape of a fire season."
       sub="Each row is one year — bar starts at the day-of-year of the first reported ignition and ends at the last; colour intensity scales with total area burned. Contrary to the global narrative, in the Thompson-Okanagan the data does not show a lengthening season: first-ignition DOY has no significant trend, and end-of-season DOY is actually trending modestly earlier (−1.3 days/yr, CI excludes zero). What has clearly intensified is the burn area within those windows."

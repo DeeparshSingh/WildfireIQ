@@ -19,9 +19,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAqCurrent, useEvacCheck, useFireSmartChecklist } from "@/lib/api/hooks";
 
+import { DataNotice } from "@/shell/DataNotice";
 import { Checklist } from "./Checklist";
 import { Confetti } from "./Confetti";
 import { LiveStatusPanel } from "./LiveStatusPanel";
+
 import { OnboardingWizard } from "./OnboardingWizard";
 import { ProgressPanel } from "./ProgressPanel";
 import {
@@ -237,6 +239,8 @@ export function PreparednessRoute() {
         <Header profile={profile} setProfile={setProfile} />
 
         {shareLink && <ShareBanner url={shareLink} onClose={() => setShareLink(null)} />}
+
+        <DataNotice queries={[checklist, aq, evac]} what="your preparedness data" />
 
         <div
           style={{

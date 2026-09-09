@@ -57,3 +57,10 @@ ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# The default run must not depend on the internet. Three smoke tests do — they
+# call the real upstream feeds — so they are marked `live` and deselected here.
+# Run them deliberately with `make test-live`.
+addopts = "-m 'not live'"
+markers = [
+  "live: hits a real upstream API; excluded from the default run",
+]

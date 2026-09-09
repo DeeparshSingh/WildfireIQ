@@ -385,8 +385,8 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 176 | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), and the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs) |
-| Frontend | `apps/web/src/lib/__tests__/` | 45 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, and the WKT parser behind the globe's fire and evacuation polygons (`wkt`: multipolygon rings, interior holes, malformed input) |
+| Backend | `apps/api/tests/` | 176 (+3 `live`) | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), and the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs) |
+| Frontend | `apps/web/src/lib/__tests__/` | 52 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, the WKT parser behind the globe's fire and evacuation polygons (`wkt`), and the data-unavailable banner (`dataNotice`, including the paused-query case that never reaches `isError`) |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |
 

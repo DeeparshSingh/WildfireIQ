@@ -27,6 +27,7 @@ export function Section6_TruCarbon() {
 
   return (
     <SectionShell
+      queries={[q]}
       kicker="Section 6"
       title="TRU campus carbon."
       sub="Annual reported tonnes of CO₂-equivalent emissions for Thompson Rivers University. The dashed line is the Sustainability Office target."

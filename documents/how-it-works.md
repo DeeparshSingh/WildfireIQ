@@ -83,7 +83,7 @@ single point (`KAMLOOPS_LAT`, `KAMLOOPS_LON` in the same file).
 | AI risk grid | The platform's own **wildfire risk model** (§5.1) | Risk class for 523 hexagons across 4 regions | computed on request from data refreshed nightly | 4 regions | none |
 
 The official Fire Weather Index feed from **NRCan CWFIS** is pulled once a day
-too (`cwfis_fwi_daily`, 18:00 UTC), into its own file. It is a cross-check, not
+too (`cwfis_fwi_daily`, 23:00 UTC), into its own file. It is a cross-check, not
 a substitute: CWFIS lists only 11 stations inside British Columbia and none of
 the 18 towns people search for here, so the in-house calculation is what the app
 serves. Where a CWFIS station sits close enough to one of ours to compare, the
@@ -172,7 +172,7 @@ All times are UTC. Each row is one ingest job (`apps/api/wildfireiq_api/ingest/`
 
 | Nightly, in dependency order | |
 |---|---|
-| `cwfis_fwi_daily` (NRCan's official FWI, as a cross-check) | 18:00 |
+| `cwfis_fwi_daily` (NRCan's official FWI, as a cross-check) | 23:00 |
 | `open_meteo_archive_kamloops` — 27-year ERA5 archive, extended to today | 02:20 |
 | `derived_region_weather` — the same for Kelowna, Vancouver, Prince George | 02:25 |
 | `derived_seasonal_metrics` — the climate page's per-year table | 02:30 |

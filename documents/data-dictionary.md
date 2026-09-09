@@ -89,8 +89,14 @@ app serves: NRCan lists only 11 stations inside British Columbia and none of the
 towns users search for, so `/api/fwi/today` reads the derived file. At stations
 close enough to compare, the two agree on Drought Code to about 1.5%.
 
-Writer `cwfis_fwi_daily` (daily). No reader — kept as an independent validation
-of `ml/fwi.py`.
+Writer `cwfis_fwi_daily` (daily, 23:00 UTC). No reader — kept as an independent
+validation of `ml/fwi.py`.
+
+The feed lists only stations that have already reported for the day, and the
+Fire Weather Index uses noon local-standard-time observations, so before about
+20:00 UTC it contains no British Columbia station at all. A run that finds none
+reports `partial` and leaves the previous file alone rather than replacing real
+readings with an empty one.
 
 ### `smoke_forecast_metadata.parquet` — 73 rows
 One row per hourly step of the ECCC FireWork smoke forecast.

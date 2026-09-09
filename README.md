@@ -88,6 +88,15 @@ start.sh         Launch everything
 Makefile         Every documented command
 ```
 
+### Screens
+
+Built for a desktop or laptop browser, 1280px wide or more — the globe, the
+climate charts and the three-column preparedness layout all assume that room.
+The preparedness page reflows to a single column below 1100px. Phone widths are
+not supported and will clip; making them work is a real piece of work, not a
+missing media query, and it is listed in CONTRIBUTING as somewhere help is
+useful.
+
 ### Commands
 
 ```bash
@@ -98,7 +107,7 @@ make check                # the whole gate: lint, typecheck, both test suites, b
 
 make lint                 # ruff + biome
 make format               # apply ruff + biome formatting
-make test                 # both suites (176 backend, 45 frontend)
+make test                 # both suites (176 backend, 52 frontend; 3 more live smoke tests via make test-live)
 make test-api             # backend only
 make test-web             # frontend only
 make typecheck            # tsc --noEmit
