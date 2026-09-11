@@ -12,8 +12,8 @@ version: "1.0.0"
 date-released: "2026-09-08"
 abstract: >-
   An open platform for wildfire risk, air quality, climate trends and
-  community preparedness in British Columbia, built entirely from free
-  public data. It includes a pooled multi-region LightGBM wildfire-risk
+  community preparedness in British Columbia, built from public
+  data. It includes a pooled multi-region LightGBM wildfire-risk
   classifier scored on 523 H3 hexagons across four regions, a 21-model
   LightGBM quantile forecaster for 48-hour PM2.5 in Kamloops, a Van Wagner
   Fire Weather Index implementation over 27 years of ERA5 reanalysis, a 3D

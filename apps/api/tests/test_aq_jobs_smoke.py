@@ -17,7 +17,7 @@ from wildfireiq_api.ingest.climatedata_projections import ClimateDataProjections
 from wildfireiq_api.ingest.firework_smoke import FireWorkSmokeForecastJob
 from wildfireiq_api.ingest.geomet_aqhi import GeoMetAQHIRealtimeJob
 from wildfireiq_api.ingest.waqi import WAQIKamloopsJob
-from wildfireiq_api.settings import get_settings
+from wildfireiq_api.keys import keystore
 
 
 async def _init_db() -> None:
@@ -60,7 +60,7 @@ async def test_air_quality_and_evac_jobs_run_against_their_sources() -> None:
         if rpt.status != "ok":
             failures.append(f"{job.name}: {rpt.error}")
 
-    if get_settings().waqi_token:
+    if keystore.get("waqi_token"):
         rpt = await run_job(WAQIKamloopsJob())
         print(f"--- waqi_kamloops --- {rpt}")
         if rpt.status != "ok":

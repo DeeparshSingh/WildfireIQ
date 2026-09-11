@@ -17,6 +17,7 @@ from . import __version__
 from .assistant.router import router as assistant_router
 from .db import init_db
 from .routers import admin, aq, climate, evac, fires, firesmart, fwi, risk, weather
+from .routers.settings import router as settings_router
 from .scheduler import refresh_stale_jobs, start_scheduler, stop_scheduler
 from .settings import get_settings
 
@@ -136,7 +137,10 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        # PUT is what the Settings panel uses to store API keys. It was missing
+        # here, so the browser's preflight got a 400 and the panel reported the
+        # API unreachable while GETs from the same page worked.
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -163,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(climate.router, prefix="/api/climate", tags=["climate"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
     app.include_router(assistant_router, prefix="/api/assistant", tags=["assistant"])
+    app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 
     return app
 

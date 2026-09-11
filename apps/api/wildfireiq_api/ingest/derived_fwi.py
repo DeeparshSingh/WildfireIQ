@@ -7,8 +7,8 @@ inside British Columbia and none of them are the places users search for.
 
 How it works:
   1. Pull daily weather from Open-Meteo's archive for each station, from
-     1 April of the current year through today — one call per station, free,
-     no key.
+     1 April of the current year through today — one call per station, no
+     key needed.
   2. Run the Van Wagner FWI port already used by the wildfire risk model over
      each station's chronological series.
   3. Persist the *latest* day's row per station as

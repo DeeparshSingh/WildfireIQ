@@ -21,7 +21,7 @@ const SOURCES: Source[] = [
   {
     name: "NASA FIRMS (VIIRS, MODIS)",
     used: "Satellite heat detections, last 72 hours",
-    terms: "Free public use, attribution required",
+    terms: "Public use, attribution required",
   },
   {
     name: "BC Emergency Management Climate Readiness",
@@ -46,7 +46,7 @@ const SOURCES: Source[] = [
   {
     name: "World Air Quality Index (WAQI)",
     used: "Pollutant breakdown for Kamloops",
-    terms: "Free with API token, attribution required",
+    terms: "Requires an API token, attribution required",
   },
   {
     name: "ClimateData.ca",
@@ -56,7 +56,7 @@ const SOURCES: Source[] = [
   {
     name: "Cesium Ion, OpenStreetMap",
     used: "Globe terrain, imagery, and building tiles",
-    terms: "Free tier, attribution required",
+    terms: "Requires an access token, attribution required",
   },
 ];
 

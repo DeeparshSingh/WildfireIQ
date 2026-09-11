@@ -31,7 +31,10 @@ async def main(question: str) -> int:
         print("Assistant disabled (ASSISTANT_ENABLED=false).", file=sys.stderr)
         return 1
     if not state["configured"]:
-        print("No OPENROUTER_API_KEY in .env — nothing to smoke-test.", file=sys.stderr)
+        print(
+            "No OpenRouter key in the runtime key store — enter one in the app's Settings panel first.",
+            file=sys.stderr,
+        )
         return 1
 
     print(f"{DIM}model {state['model']} · {state['tools']} tools{RESET}")

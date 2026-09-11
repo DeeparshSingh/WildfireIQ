@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { AssistantTrigger } from "@/features/assistant/AssistantTrigger";
+import { useKeysStore } from "@/stores/keys";
 
 function useClock() {
   const [now, setNow] = useState(() => new Date());
@@ -23,6 +24,10 @@ function fmt(d: Date, tz: string) {
 
 export function TopBar() {
   const now = useClock();
+  const openSettings = useKeysStore((s) => s.openPanel);
+  const anyMissing = useKeysStore(
+    (s) => s.status !== null && Object.values(s.status).some((v) => v === false),
+  );
   return (
     <header
       style={{
@@ -60,6 +65,54 @@ export function TopBar() {
         <span style={{ color: "var(--color-text-hi)" }}>{fmt(now, "America/Vancouver")}</span>
       </div>
       <AssistantTrigger />
+      <button
+        type="button"
+        onClick={openSettings}
+        aria-label={anyMissing ? "Settings: some API keys are not set" : "Settings"}
+        title="API keys"
+        style={{
+          position: "relative",
+          display: "grid",
+          placeItems: "center",
+          width: 28,
+          height: 26,
+          borderRadius: "var(--radius-pill)",
+          border: "1px solid var(--color-stroke)",
+          background: "transparent",
+          color: "var(--color-text-mid)",
+          cursor: "pointer",
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="7.5" cy="15.5" r="4.5" />
+          <path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3" />
+        </svg>
+        {anyMissing && (
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: -2,
+              right: -2,
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: "var(--color-ember-500)",
+              boxShadow: "var(--glow-ember)",
+            }}
+          />
+        )}
+      </button>
       <div
         className="tabular"
         style={{

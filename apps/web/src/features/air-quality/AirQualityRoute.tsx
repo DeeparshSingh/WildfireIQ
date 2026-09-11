@@ -15,6 +15,8 @@
  */
 import { useAqCalendar, useAqCurrent, useAqForecast, useHealthGuidance } from "@/lib/api/hooks";
 import { DataNotice } from "@/shell/DataNotice";
+import { KeyNotice } from "@/shell/KeyNotice";
+import { useKeyMissing } from "@/stores/keys";
 
 import { AqhiDial } from "./AqhiDial";
 import { ForecastChart } from "./ForecastChart";
@@ -41,6 +43,7 @@ export function AirQualityRoute() {
   const forecast = useAqForecast();
   const calendar = useAqCalendar(365);
   const guidance = useHealthGuidance();
+  const waqiMissing = useKeyMissing("waqi_token");
 
   // Headline AQHI: use the highest-priority Kamloops station from GeoMet
   // (sorted observation_datetime_utc desc, dedupe per station via backend).
@@ -175,7 +178,9 @@ export function AirQualityRoute() {
           }}
         >
           <Card title="Pollutant breakdown">
-            {current.data?.pollutants ? (
+            {waqiMissing ? (
+              <KeyNotice keyName="waqi_token" what="The pollutant breakdown" />
+            ) : current.data?.pollutants ? (
               <PollutantBars pollutants={current.data.pollutants} />
             ) : (
               <Skeleton h={220} />

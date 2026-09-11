@@ -1,9 +1,10 @@
 import { motion } from "motion/react";
-import { type ReactNode, Suspense, lazy } from "react";
+import { type ReactNode, Suspense, lazy, useEffect } from "react";
 
-import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
+import { useHasCesiumToken, useKeysStore } from "@/stores/keys";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LeftRail } from "./LeftRail";
+import { SettingsPanel } from "./SettingsPanel";
 import { TopBar } from "./TopBar";
 
 // Globe is lazy-loaded so the initial JS bundle stays slim. It mounts once
@@ -19,7 +20,14 @@ const AssistantDock = lazy(() =>
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const showGlobe = hasCesiumIonToken();
+  const showGlobe = useHasCesiumToken();
+
+  // Push this browser's keys to the backend once per load. A restarted
+  // server has forgotten nothing it persisted, but this is what keeps the
+  // two in step if that file was ever cleared.
+  useEffect(() => {
+    void useKeysStore.getState().sync();
+  }, []);
 
   return (
     <div
@@ -80,6 +88,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      <ErrorBoundary label="Settings">
+        <SettingsPanel />
+      </ErrorBoundary>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   useSmokeForecast,
 } from "@/lib/api/hooks";
 import { GlobeDataNotice, type NoticeQuery } from "@/shell/DataNotice";
+import { KeyNotice } from "@/shell/KeyNotice";
 import { useFiltersStore } from "@/stores/filters";
 import { type LayerId, useLayersStore } from "@/stores/layers";
 
@@ -169,6 +170,7 @@ export function LayerToggleBar() {
           onHoverEnd={() => setSpotlight(null)}
         />
       ))}
+      <KeyNotice keyName="firms_map_key" what="Satellite hotspots" compact />
     </motion.div>
   );
 }

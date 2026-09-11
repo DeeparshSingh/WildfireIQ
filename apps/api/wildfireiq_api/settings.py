@@ -1,4 +1,8 @@
-"""Type-safe app configuration loaded from environment / .env file."""
+"""Type-safe app configuration loaded from the environment or a `.env` file.
+
+Configuration only. The third-party API keys are not here: they are entered
+in the app's Settings panel and held by `keys.py`, so a reader never needs
+a file on disk to unlock a feature."""
 
 from __future__ import annotations
 
@@ -34,10 +38,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # ── Upstream API keys (ingest degrades gracefully when unset) ──
-    firms_map_key: str = Field(default="", description="NASA FIRMS API key")
-    waqi_token: str = Field(default="", description="WAQI / AQICN token")
-
     # ── App config ───────────────────────────────────────────────────
     database_url: str = Field(default=f"sqlite+aiosqlite:///{REPO_ROOT / 'data' / 'wildfireiq.db'}")
 
@@ -71,10 +71,10 @@ class Settings(BaseSettings):
     kamloops_lon: float = constants.KAMLOOPS_LON
 
     # ── Assistant (OpenRouter-hosted GLM) ────────────────────────────
-    # With no key the assistant endpoints stay mounted but report
-    # `configured: false`, so the frontend can hide its launcher instead
-    # of failing a request. Nothing else in the app depends on it.
-    openrouter_api_key: str = Field(default="", description="OpenRouter API key")
+    # The OpenRouter key lives in the runtime key store (keys.py), entered
+    # through the Settings panel. Without it the assistant endpoints stay
+    # mounted but report `configured: false`, so the frontend can offer the
+    # Settings panel instead of failing a request.
     assistant_enabled: bool = Field(default=True)
     assistant_model: str = Field(default="z-ai/glm-5.3-flash")
     # Budget caps. A step is one model turn; a turn that asks for tools is

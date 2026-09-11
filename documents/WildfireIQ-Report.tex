@@ -109,7 +109,7 @@ quality, household preparedness, and long-term climate trends. Two machine
 learning models add a forward-looking view: one estimates daily wildfire risk,
 the other forecasts air quality for the next two days.
 
-Everything runs on free and open data sources, stores no personal information,
+Everything runs on public data sources, stores no personal information,
 and is released as open source. The goal was a tool that is genuinely useful to
 a resident, a journalist, or a local official, and that is honest about what it
 can and cannot tell you.
@@ -237,7 +237,7 @@ FireSmart checklist actions & 30 \\
 Smoke forecast steps & 73 hourly snapshots \\
 Scheduled data jobs & 17 (15 recurring, 2 one-time) \\
 Assistant tools & 25, evaluated on 32 live cases \\
-Automated tests passing & 176 backend, 52 frontend \\
+Automated tests passing & 189 backend, 64 frontend \\
 \bottomrule
 \end{tabular}
 \caption{Selected figures from the final build.}
@@ -246,10 +246,11 @@ Automated tests passing & 176 backend, 52 frontend \\
 % ============================ 3. DATA ============================
 \section{Where the Data Comes From}
 
-Every layer is built from a free, public data source. The platform downloads,
-cleans, and stores the data, then serves it to the browser. No source requires
-payment, and only three need a free sign-up key (Cesium for the globe, NASA for
-satellite heat detections, and WAQI for pollutants).
+Every layer is built from a public data source. The platform downloads,
+cleans, and stores the data, then serves it to the browser. Four features need
+a key from their provider (Cesium for the globe, NASA for satellite heat
+detections, WAQI for pollutants, and OpenRouter for the assistant); each is
+entered once in the app's Settings panel rather than placed in a file.
 
 \begin{table}[h]
 \centering
@@ -509,7 +510,7 @@ Back end & Python, FastAPI, APScheduler (timers), LightGBM (models) \\
 Storage & Parquet files (compressed), SQLite (run log) \\
 \bottomrule
 \end{tabular}
-\caption{Technology choices, kept deliberately simple and free to run.}
+\caption{Technology choices, kept deliberately simple.}
 \end{table}
 
 The whole system runs on one machine at no cloud cost, with no separate database
@@ -528,8 +529,8 @@ weather, without waiting.
 
 \subsection{Testing and quality}
 
-The platform ships with an automated test suite: 176 checks on the back end and
-52 on the front end. These confirm that each data source produces the expected
+The platform ships with an automated test suite: 189 checks on the back end and
+64 on the front end. These confirm that each data source produces the expected
 shape, that values stay within sensible bounds (for example, no negative
 pollution readings and no fires placed outside the province), that the Fire
 Weather Index calculation behaves correctly, that the trend statistics recover a
@@ -573,8 +574,8 @@ the platform calculates something itself, it uses the recognised standard.}
 \section{Status and Summary}
 
 The four proposed features, both models, and the assistant are built, connected
-to live data, and working. The platform passes its full test suite (176 back-end
-and 52 front-end checks) with a clean build, and the code, documentation, and model cards are
+to live data, and working. The platform passes its full test suite (189 back-end
+and 64 front-end checks) with a clean build, and the code, documentation, and model cards are
 organised for handoff.
 
 The table below maps each proposal commitment to its current state.
@@ -591,7 +592,7 @@ Air Quality Monitor (live reading, 48-hour forecast, smoke calendar) & Built \\
 Community Preparedness Hub (checklist, evacuation status, points) & Built \\
 Climate Trend module (history + projections, optional TRU carbon) & Built \\
 Two models validated on held-out 2022 and 2023 & Done \\
-Free and public data only, no personal data stored & Met \\
+Public data only, no personal data stored & Met \\
 Open-source release & Done (MIT) \\
 Final research report & This document \\
 In-app assistant over the platform's data (not in proposal) & Built \\
@@ -610,7 +611,7 @@ left for future work: adding satellite vegetation health to the risk model, and
 the economic study of smoke and healthcare demand. Neither blocks use of the
 platform today.
 
-WildfireIQ Kamloops shows that a single person, using only free and open data,
+WildfireIQ Kamloops shows that a single person, using public data,
 can build a clear and honest wildfire information tool for their community. The
 result is a platform a resident can check on a smoky afternoon, and one a
 researcher or official could cite.

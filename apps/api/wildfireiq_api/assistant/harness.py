@@ -24,6 +24,7 @@ from typing import Any
 
 import structlog
 
+from ..keys import keystore
 from ..settings import Settings, get_settings
 from . import tools as toolkit
 from .brief import build_brief
@@ -174,7 +175,7 @@ def availability(settings: Settings | None = None) -> dict[str, Any]:
     settings = settings or get_settings()
     return {
         "enabled": settings.assistant_enabled,
-        "configured": bool(settings.openrouter_api_key),
+        "configured": bool(keystore.get("openrouter_api_key")),
         "model": settings.assistant_model,
         "tools": len(toolkit.REGISTRY),
         "max_steps": settings.assistant_max_steps,
@@ -243,7 +244,7 @@ async def _drive(
         )
 
         client = client or OpenRouterClient(
-            api_key=settings.openrouter_api_key,
+            api_key=keystore.get("openrouter_api_key"),
             model=settings.assistant_model,
             referer=settings.assistant_referer,
             title=settings.assistant_title,
@@ -450,7 +451,7 @@ def _drop_duplicates(calls: list[ToolCall]) -> list[ToolCall]:
     """Collapse calls a turn asked for twice with identical arguments.
 
     Models sometimes emit the same call two or three times in one turn.
-    The result cache makes the repeat cheap but not free — it still spends
+    The result cache makes the repeat cheap, but it still spends
     tool budget, clutters the activity trail the user reads, and pads the
     conversation with duplicate tool messages that are re-sent on every
     subsequent turn. Arguments are compared as sent, so the same tool with

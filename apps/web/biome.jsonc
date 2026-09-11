@@ -24,12 +24,16 @@
       // dialog role plus the focus trap and Esc handler give the same
       // semantics.
       //
+      // SettingsPanel: the same <dialog>/showModal() constraint as the modal;
+      // it is a role="dialog" with its own focus, Escape and backdrop handling.
+      //
       // LocationSearch: a <select> cannot render multi-line result rows, and
       // in the aria-activedescendant combobox pattern the listbox must not be
       // a tab stop — focus stays on the input by design.
       "include": [
         "src/features/globe/LayerDetailModal.tsx",
-        "src/features/globe/LocationSearch.tsx"
+        "src/features/globe/LocationSearch.tsx",
+        "src/shell/SettingsPanel.tsx"
       ],
       "linter": {
         "rules": {

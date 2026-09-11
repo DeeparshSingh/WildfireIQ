@@ -1,7 +1,25 @@
 /**
- * Shown when no Cesium Ion token is configured.
+ * Shown in place of the globe when no Cesium Ion token has been entered.
+ *
+ * The other routes work without the token; this one cannot draw. So the
+ * notice says exactly that, and its one button opens the Settings panel
+ * where the token goes. The page reloads after a save so Cesium starts with
+ * the new token, which the panel says before the reader clicks.
  */
+import { useKeysStore } from "@/stores/keys";
+
+const code: React.CSSProperties = {
+  fontFamily: "var(--font-data)",
+  fontSize: 13,
+  color: "var(--color-text-hi)",
+  background: "var(--color-bg-2)",
+  padding: "2px 6px",
+  borderRadius: 4,
+};
+
 export function GlobeSetupNotice() {
+  const openSettings = useKeysStore((s) => s.openPanel);
+
   return (
     <div
       style={{
@@ -11,6 +29,7 @@ export function GlobeSetupNotice() {
         placeItems: "center",
         background: "radial-gradient(ellipse at center, hsl(220 25% 6%) 0%, hsl(220 30% 2%) 70%)",
         padding: 24,
+        pointerEvents: "auto",
       }}
     >
       <div
@@ -32,7 +51,7 @@ export function GlobeSetupNotice() {
             marginBottom: 12,
           }}
         >
-          Setup required
+          One key to add
         </div>
         <h1
           style={{
@@ -44,7 +63,7 @@ export function GlobeSetupNotice() {
             color: "var(--color-text-hi)",
           }}
         >
-          Add your Cesium Ion token
+          The globe needs a Cesium Ion token
         </h1>
         <p
           style={{
@@ -55,69 +74,52 @@ export function GlobeSetupNotice() {
             marginTop: 16,
           }}
         >
-          The 3D globe needs a free Cesium Ion access token to stream world terrain and 3D
-          buildings. Sign up, copy your default token, and drop it into{" "}
-          <code
-            style={{
-              fontFamily: "var(--font-data)",
-              fontSize: 13,
-              color: "var(--color-text-hi)",
-              background: "var(--color-bg-2)",
-              padding: "2px 6px",
-              borderRadius: 4,
-            }}
-          >
-            .env
-          </code>{" "}
-          as{" "}
-          <code
-            style={{
-              fontFamily: "var(--font-data)",
-              fontSize: 13,
-              color: "var(--color-text-hi)",
-              background: "var(--color-bg-2)",
-              padding: "2px 6px",
-              borderRadius: 4,
-            }}
-          >
-            VITE_CESIUM_ION_TOKEN
-          </code>
-          , then restart{" "}
-          <code
-            style={{
-              fontFamily: "var(--font-data)",
-              fontSize: 13,
-              color: "var(--color-text-hi)",
-              background: "var(--color-bg-2)",
-              padding: "2px 6px",
-              borderRadius: 4,
-            }}
-          >
-            pnpm dev
-          </code>
-          .
+          World terrain and aerial imagery stream from Cesium Ion, and that needs an access token of
+          your own. Sign in at Cesium Ion, copy the default token from{" "}
+          <span style={code}>Access Tokens</span>, and paste it into Settings. Every other page
+          works without it.
         </p>
-        <a
-          href="https://ion.cesium.com/signin/"
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            display: "inline-block",
-            marginTop: 24,
-            padding: "10px 18px",
-            background: "var(--color-ember-500)",
-            color: "white",
-            fontFamily: "var(--font-data)",
-            fontSize: 12,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            textDecoration: "none",
-            borderRadius: "var(--radius-md)",
-            boxShadow: "var(--glow-ember-soft)",
-          }}
-        >
-          Get a free Ion token →
-        </a>
+        <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={openSettings}
+            style={{
+              padding: "10px 18px",
+              background: "var(--color-ember-500)",
+              color: "#0b0e14",
+              border: "none",
+              fontFamily: "var(--font-data)",
+              fontSize: 12,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              fontWeight: 700,
+              borderRadius: "var(--radius-md)",
+              boxShadow: "var(--glow-ember-soft)",
+              cursor: "pointer",
+            }}
+          >
+            Open settings
+          </button>
+          <a
+            href="https://ion.cesium.com/tokens"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-block",
+              padding: "10px 18px",
+              border: "1px solid var(--color-stroke-strong)",
+              color: "var(--color-text-mid)",
+              fontFamily: "var(--font-data)",
+              fontSize: 12,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            Get a token ↗
+          </a>
+        </div>
       </div>
     </div>
   );

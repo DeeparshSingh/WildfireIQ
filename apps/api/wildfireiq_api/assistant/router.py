@@ -71,7 +71,7 @@ def _require_available() -> None:
     if not state["configured"]:
         raise HTTPException(
             503,
-            "The assistant has no OpenRouter API key. Set OPENROUTER_API_KEY in .env.",
+            "The assistant has no OpenRouter API key. Enter one in the app's Settings panel.",
         )
 
 

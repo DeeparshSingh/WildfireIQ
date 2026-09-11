@@ -55,21 +55,20 @@ is added or removed there, update this file in the same change.
 
 ## Data sources
 
-Every source is free to use. Attribution is shown in the app beside the data
-it applies to.
+Attribution is shown in the app beside the data it applies to.
 
 | Source | Terms | Used for |
 |---|---|---|
 | BC Wildfire Service via DataBC | Open Government Licence – British Columbia | Current and historical fires |
 | BC Emergency Management and Climate Readiness (EMCR) | Open data | Evacuation orders, alerts, rescinds |
-| NASA FIRMS | Free public use, attribution required | Satellite thermal hotspots (VIIRS, MODIS) |
+| NASA FIRMS | Public use, attribution required | Satellite thermal hotspots (VIIRS, MODIS) |
 | Environment and Climate Change Canada — MSC GeoMet | Open Government Licence – Canada | AQHI observations, FireWork smoke forecast (WMS) |
 | Natural Resources Canada — CWFIS | Open public access | Fire Weather Index stations, when the service is reachable |
 | Open-Meteo | CC BY 4.0 | Weather forecast, ERA5 reanalysis archive, CAMS air quality |
-| World Air Quality Index (WAQI / AQICN) | Free with token, attribution required | Pollutant breakdown for Kamloops |
+| World Air Quality Index (WAQI / AQICN) | Requires a token, attribution required | Pollutant breakdown for Kamloops |
 | FireSmart Canada | Public guidance | The 30 checklist actions (curated) |
 | Health Canada | Public guidance | AQHI health bands |
-| Cesium Ion | Free tier, attribution required | World terrain and aerial imagery |
+| Cesium Ion | Requires an access token, attribution required | World terrain and aerial imagery |
 
 ## Services
 

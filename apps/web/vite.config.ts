@@ -35,6 +35,11 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // jsdom only provides localStorage for a page with a real origin. Without
+    // this the global is undefined and any test that touches storage fails
+    // with "cannot read properties of undefined", which is easy to misread.
+    environmentOptions: { jsdom: { url: "http://localhost/" } },
+    setupFiles: ["./src/test-setup.ts"],
     globals: true,
   },
 });

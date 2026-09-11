@@ -32,6 +32,7 @@ from wildfireiq_api.assistant.tools.base import (
     ToolResult,
     validate_arguments,
 )
+from wildfireiq_api.keys import keystore
 from wildfireiq_api.main import create_app
 from wildfireiq_api.settings import Settings
 
@@ -49,7 +50,6 @@ def _clean_tool_cache():
 def _settings(**overrides: Any) -> Settings:
     base = {
         "assistant_enabled": True,
-        "openrouter_api_key": "test-key-not-used",
         "assistant_max_steps": 4,
         "assistant_max_tool_calls": 6,
     }
@@ -642,14 +642,14 @@ def test_chat_without_a_key_reports_503_rather_than_failing_upstream(
     from wildfireiq_api import settings as settings_module
 
     settings_module.get_settings.cache_clear()
-    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    keystore.update({"openrouter_api_key": ""})
     try:
         response = client.post(
             "/api/assistant/chat",
             json={"messages": [{"role": "user", "content": "hello"}]},
         )
         assert response.status_code == 503
-        assert "OPENROUTER_API_KEY" in response.json()["detail"]
+        assert "Settings" in response.json()["detail"]
     finally:
         settings_module.get_settings.cache_clear()
 
@@ -671,7 +671,7 @@ def test_the_sse_endpoint_streams_a_real_run(
     ]
     monkeypatch.setattr(harness_module, "OpenRouterClient", lambda **_: FakeClient(script))
     settings_module.get_settings.cache_clear()
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    keystore.update({"openrouter_api_key": "sk-test"})
 
     try:
         with client.stream(
@@ -712,7 +712,7 @@ def test_upstream_failures_are_translated_for_the_person_reading_them() -> None:
     from wildfireiq_api.assistant.openrouter import _describe_failure
 
     unauthorised = _describe_failure(401, '{"error":{"message":"Missing Authentication header"}}')
-    assert "OPENROUTER_API_KEY" in str(unauthorised)
+    assert "Settings" in str(unauthorised)
     assert "{" not in str(unauthorised)
 
     assert "credit" in str(_describe_failure(402, "{}")).lower()
@@ -949,7 +949,7 @@ def test_the_chat_endpoint_returns_429_with_retry_after_when_throttled(
 
     settings_module.get_settings.cache_clear()
     guard_module.reset_guard()
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    keystore.update({"openrouter_api_key": "sk-test"})
     monkeypatch.setenv("ASSISTANT_RATE_PER_MINUTE", "1")
     monkeypatch.setenv("ASSISTANT_RATE_PER_HOUR", "1")
 

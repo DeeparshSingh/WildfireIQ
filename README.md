@@ -1,7 +1,7 @@
 # WildfireIQ Kamloops
 
 Wildfire risk, air quality, climate trends and community preparedness for
-British Columbia, on one open platform built entirely from free public data —
+British Columbia, on one open platform built from public data —
 with an in-app assistant that answers only from the platform's own data.
 
 Built at Thompson Rivers University under a Sustainability Research Grant
@@ -38,24 +38,30 @@ cd WildfireIQ
 ./start.sh
 ```
 
-`start.sh` installs dependencies on first run, creates `.env` from
-`.env.example`, pulls the historical datasets if they are missing (about ten
+`start.sh` installs dependencies on first run, creates `.env` (configuration
+only; no keys live in it) from `.env.example`, pulls the historical datasets if they are missing (about ten
 minutes, once), and starts both halves. Open **http://localhost:5173**. The
 API is at http://localhost:8000 with interactive docs at `/docs`.
 
 ### Keys
 
-Three free sign-ups; the app runs without them but with less on screen.
+Four third-party keys unlock four features. The app runs without any of them,
+with less on screen. They are entered in the app, not in a file: click the key
+icon in the top bar (Settings), paste, save. Keys are kept in your browser and
+sent to your own backend, which needs three of them for the scheduled data
+pulls and the assistant.
 
-| Variable | Needed for | Get one |
+| Key | Unlocks | Get one |
 |---|---|---|
-| `VITE_CESIUM_ION_TOKEN` | Terrain and imagery on the globe (without it, a setup notice is shown) | https://ion.cesium.com |
-| `FIRMS_MAP_KEY` | Satellite hotspots | https://firms.modaps.eosdis.nasa.gov/api/map_key |
-| `WAQI_TOKEN` | Pollutant breakdown | https://aqicn.org/data-platform/token |
-| `OPENROUTER_API_KEY` | The assistant (optional; the launcher hides without it) | https://openrouter.ai/keys |
+| Cesium Ion access token | Terrain and imagery on the globe | https://ion.cesium.com/tokens |
+| NASA FIRMS map key | Satellite hotspots | https://firms.modaps.eosdis.nasa.gov/api/map_key |
+| WAQI token | Pollutant breakdown | https://aqicn.org/data-platform/token |
+| OpenRouter API key | The assistant | https://openrouter.ai/keys |
 
-Put them in `.env` and restart. Every setting is listed with its default in
-[`documents/architecture.md`](documents/architecture.md#6-configuration).
+Where a key is missing, the feature that needs it shows a short notice with an
+"Enter key" button, and the notice clears itself once the key is saved.
+Everything else is configuration rather than credentials, listed with its
+default in [`documents/architecture.md`](documents/architecture.md#6-configuration).
 
 ---
 
@@ -107,7 +113,7 @@ make check                # the whole gate: lint, typecheck, both test suites, b
 
 make lint                 # ruff + biome
 make format               # apply ruff + biome formatting
-make test                 # both suites (176 backend, 52 frontend; 3 more live smoke tests via make test-live)
+make test                 # both suites (189 backend, 64 frontend; 3 more live smoke tests via make test-live)
 make test-api             # backend only
 make test-web             # frontend only
 make typecheck            # tsc --noEmit
@@ -162,7 +168,7 @@ Interactive documentation at `/docs`.
 
 ## Data sources
 
-All free. Attribution is shown in the app beside the data it applies to;
+Attribution is shown in the app beside the data it applies to;
 licences are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 | Source | Data |

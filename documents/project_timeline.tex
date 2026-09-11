@@ -103,7 +103,7 @@ needed; the backend runs on Python 3.12. For what was actually built, read
 \subsection*{Core Non-Negotiables}
 To ensure the project remains accessible, secure, and performant, the development is constrained by the following principles:
 \begin{itemize}
-    \item \textbf{Free/Zero-Cost APIs:} Every external dependency uses a free tier with documented quotas. The platform incurs zero cloud costs.
+    \item \textbf{Documented API quotas:} Every external dependency is used within its provider's documented quota, with the required keys entered in the app rather than committed to the repository.
     \item \textbf{Privacy-First (No PII):} User data (e.g., evacuation profiles, preparedness checklists) is stored entirely in \texttt{localStorage} and IndexedDB. No server-side persistence of personal data.
     \item \textbf{Rigorous Machine Learning:} Predictive models are trained on over 25 years of historical data and validated against held-out seasons (2022--2023). 
     \item \textbf{Open Source:} All code and models will be released under MIT/Apache-2.0 licenses at the end of the grant.

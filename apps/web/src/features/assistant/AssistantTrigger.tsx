@@ -7,12 +7,13 @@
  * action button has nowhere to sit that does not cover something. The top
  * bar is present on every route and has room.
  *
- * Renders nothing when the backend reports the assistant is unconfigured,
- * rather than offering a button that can only produce an error.
+ * When the backend reports the assistant has no key, the button stays but
+ * opens the Settings panel instead — the one action that can fix it.
  */
 import { useEffect } from "react";
 
 import { useAssistantStore } from "@/stores/assistant";
+import { useKeysStore } from "@/stores/keys";
 
 import { useAssistantHealth } from "./useAssistant";
 
@@ -20,6 +21,7 @@ export function AssistantTrigger() {
   const health = useAssistantHealth();
   const open = useAssistantStore((s) => s.open);
   const toggle = useAssistantStore((s) => s.toggle);
+  const openSettings = useKeysStore((s) => s.openPanel);
 
   const available = Boolean(health.data?.enabled && health.data?.configured);
 
@@ -35,7 +37,38 @@ export function AssistantTrigger() {
     return () => window.removeEventListener("keydown", onKey);
   }, [available, toggle]);
 
-  if (!available) return null;
+  if (!available) {
+    // Switched off in config: nothing to offer. No key yet: offer the panel.
+    if (health.data && !health.data.enabled) return null;
+    if (!health.data) return null;
+    return (
+      <button
+        type="button"
+        onClick={openSettings}
+        aria-label="The assistant needs an OpenRouter key. Open settings"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          height: 26,
+          padding: "0 10px",
+          borderRadius: "var(--radius-pill)",
+          border: "1px dashed var(--color-stroke-strong)",
+          background: "transparent",
+          color: "var(--color-text-low)",
+          fontFamily: "var(--font-data)",
+          fontSize: 11,
+          letterSpacing: "0.04em",
+          cursor: "pointer",
+        }}
+      >
+        Ask
+        <span aria-hidden style={{ color: "var(--color-ember-400)" }}>
+          · needs key
+        </span>
+      </button>
+    );
+  }
 
   return (
     <button

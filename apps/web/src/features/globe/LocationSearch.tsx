@@ -44,7 +44,7 @@ export function LocationSearch({ viewer }: { viewer: CesiumViewer | null }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Cesium Ion geocoder — Bing-backed, included with the Ion free tier.
+  // Cesium Ion geocoder — Bing-backed, included with an Ion account.
   const geocoder = useMemo(() => {
     if (!viewer) return null;
     return new IonGeocoderService({ scene: viewer.scene });

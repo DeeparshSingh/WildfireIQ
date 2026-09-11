@@ -5,8 +5,8 @@ from __future__ import annotations
 import pandas as pd
 
 from ..constants import KAMLOOPS_LAT, KAMLOOPS_LON
+from ..keys import keystore
 from ..paths import PROCESSED_ROOT
-from ..settings import get_settings
 from .base import IngestContext, IngestJob, IngestReport, parse_iso
 
 
@@ -24,12 +24,12 @@ class WAQIKamloopsJob(IngestJob):
     label = "WAQI · Kamloops pollutant breakdown"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        token = get_settings().waqi_token
+        token = keystore.get("waqi_token")
         if not token:
             return IngestReport(
                 job_name=self.name,
                 status="fail",
-                error="WAQI_TOKEN not configured",
+                error="No WAQI token. Enter one in the app's Settings panel.",
             )
 
         url = f"https://api.waqi.info/feed/geo:{KAMLOOPS_LAT};{KAMLOOPS_LON}/?token={token}"

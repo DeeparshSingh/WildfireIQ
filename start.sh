@@ -40,10 +40,8 @@ if [ ! -f .env ]; then
   cp .env.example .env
   say "  Created .env from .env.example."
 fi
-if ! grep -qE '^VITE_CESIUM_ION_TOKEN=.+' .env; then
-  say "  ${DIM}VITE_CESIUM_ION_TOKEN is empty: the app runs, but the 3D globe shows a setup"
-  say "  notice instead of terrain. Free token: https://ion.cesium.com${RESET}"
-fi
+say "  ${DIM}API keys (Cesium, FIRMS, WAQI, OpenRouter) are entered in the app: the key"
+say "  icon in the top bar. Nothing goes in .env.${RESET}"
 
 # ── 3. Dependencies (skipped when already present) ──────────────────────
 if [ ! -d node_modules ] || [ ! -d apps/web/node_modules ]; then

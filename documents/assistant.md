@@ -220,16 +220,20 @@ rounding error beside the cost of picking the wrong tool.
 
 ## Configuration
 
+The OpenRouter key is entered in the app's Settings panel (the key icon in
+the top bar) and held by the runtime key store in `keys.py`; it is not an
+environment variable. The rest is configuration:
+
 ```bash
-OPENROUTER_API_KEY=sk-or-...        # required; without it the launcher hides
 ASSISTANT_MODEL=z-ai/glm-5.3-flash  # default
 ASSISTANT_MAX_STEPS=5
 ASSISTANT_MAX_TOOL_CALLS=12
 ```
 
 `GET /api/assistant/health` reports `enabled` and `configured` without ever
-echoing the key. The frontend renders nothing at all when either is false,
-rather than offering a button that can only produce an error.
+echoing the key. When `enabled` is false the frontend renders nothing. When
+only `configured` is false it shows a muted Ask button that opens the Settings
+panel, the one action that can fix it.
 
 ## Abuse and spend limits
 

@@ -26,9 +26,18 @@ WildfireIQ is a web application for British Columbia with five surfaces:
 | **Climate** | 27 years of fire-season history for the Thompson-Okanagan, trend statistics, and scenario projections | `/climate` |
 | **Assistant** | A question-answering assistant that reads the same data through 25 tools and can move the map | ⌘K on every page |
 
-It runs on one machine, uses only free public data, stores no personal
-information on the server, and costs nothing to operate except the optional
-assistant (fractions of a cent per question).
+It runs on one machine, uses public data sources, and stores no personal
+information on the server. The assistant is metered per question (fractions of
+a cent) against the owner's own OpenRouter key.
+
+Four features need a key from their provider: the globe's terrain and imagery
+(Cesium Ion), satellite hotspots (NASA FIRMS), the pollutant breakdown (WAQI)
+and the assistant (OpenRouter). Keys are entered once in the app's Settings
+panel, the key icon in the top bar. The browser keeps them in local storage and
+sends them to the backend, which stores them in `data/runtime/keys.json` (not
+tracked by git) so the scheduled jobs and the assistant can use them with no
+browser open. Where a key is missing, the feature shows a short notice that
+opens Settings; nothing else is affected.
 
 ---
 
@@ -76,7 +85,7 @@ single point (`KAMLOOPS_LAT`, `KAMLOOPS_LON` in the same file).
 | Layer | Source and provider | What is pulled | Refreshed | Coverage | Key |
 |---|---|---|---|---|---|
 | Active fires | **BC Wildfire Service** via DataBC WFS (`PROT_CURRENT_FIRE_POLYS_SP`, `PROT_CURRENT_FIRE_PNTS_SP`) | Every current incident: name, size, stage of control, perimeter or point | every 15 min | BC | none |
-| Satellite hotspots | **NASA FIRMS** near-real-time (VIIRS NOAA-20, VIIRS SNPP, MODIS) | Thermal detections in the last 3 days with radiative power and confidence | every 30 min | BC | `FIRMS_MAP_KEY` (free) |
+| Satellite hotspots | **NASA FIRMS** near-real-time (VIIRS NOAA-20, VIIRS SNPP, MODIS) | Thermal detections in the last 3 days with radiative power and confidence | every 30 min | BC | NASA FIRMS key, entered in Settings |
 | Evacuation zones | **BC Emergency Management and Climate Readiness** ArcGIS FeatureServer | Every order, alert and rescind with its polygon | every 5 min | BC | none |
 | Fire-weather stations | **Open-Meteo** daily weather for 18 BC towns, run through Canada's **Van Wagner FWI equations** (`ml/fwi.py`) | weather since 1 April per town → today's FFMC, DMC, DC, ISI, BUI, FWI, DSR | every 6 h | BC, 18 towns | none |
 | Smoke forecast | **ECCC FireWork** (RAQDPS-FW) via MSC GeoMet WMS | 73 hourly forecast images, each paired with the predicted PM2.5 at Kamloops | every 6 h | BC | none |
@@ -99,7 +108,7 @@ outage. Fixed in the September 2026 audit.
 | Item | Source and provider | Refreshed | Coverage | Key |
 |---|---|---|---|---|
 | AQHI at stations | **ECCC MSC GeoMet**, `aqhi-observations-realtime` | hourly | BC (34 stations reporting) | none |
-| Pollutant breakdown (PM2.5, PM10, O3, NO2, SO2, CO) | **WAQI / AQICN** feed nearest Kamloops | hourly | Kamloops | `WAQI_TOKEN` (free) |
+| Pollutant breakdown (PM2.5, PM10, O3, NO2, SO2, CO) | **WAQI / AQICN** feed nearest Kamloops | hourly | Kamloops | WAQI token, entered in Settings |
 | Hourly PM2.5 history and forecast inputs | **Open-Meteo** air-quality API (CAMS), last 7 days + 5 days ahead, with co-located weather | hourly | Kamloops | none |
 | Deep archive behind the smoke calendar and the forecaster | Same Open-Meteo API, backfilling the last 365 days | nightly 02:40 UTC | Kamloops | none |
 | 48-hour PM2.5 forecast | The platform's own **air-quality model** (§5.2) | computed on request | Kamloops | none |
@@ -391,7 +400,8 @@ a template:
 1. **Ingest job** — a class in `ingest/` with a `name`, a `cadence` (cron),
    an optional `depends_on`, and a `run()` that fetches, normalises, and
    writes one Parquet file. Register it in `ingest/registry.py`. The runner
-   adds retries, logging, raw-snapshot retention and the run log for free.
+   adds retries, logging, raw-snapshot retention and the run log without
+   further code.
 2. **Reader** — a function in `routers/_data.py` that loads the file.
 3. **Endpoint** — a router in `routers/` returning the standard
    `{data, meta}` envelope with source and attribution.

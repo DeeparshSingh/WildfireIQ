@@ -18,8 +18,8 @@ from ..constants import (
 from ..constants import (
     BC_BBOX_WEST as BBOX_WEST,
 )
+from ..keys import keystore
 from ..paths import PROCESSED_ROOT
-from ..settings import get_settings
 from .base import IngestContext, IngestJob, IngestReport
 
 FIRMS_BASE = "https://firms.modaps.eosdis.nasa.gov/usfs/api/area/csv"
@@ -38,12 +38,12 @@ class FIRMSHotspotsJob(IngestJob):
     label = "NASA FIRMS · satellite hotspots"
 
     async def run(self, ctx: IngestContext) -> IngestReport:
-        key = get_settings().firms_map_key
+        key = keystore.get("firms_map_key")
         if not key:
             return IngestReport(
                 job_name=self.name,
                 status="fail",
-                error="FIRMS_MAP_KEY not configured",
+                error="No NASA FIRMS key. Enter one in the app's Settings panel.",
             )
 
         bbox = f"{BBOX_WEST},{BBOX_SOUTH},{BBOX_EAST},{BBOX_NORTH}"

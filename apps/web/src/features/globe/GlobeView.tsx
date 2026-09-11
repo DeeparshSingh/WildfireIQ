@@ -4,8 +4,8 @@
  * globe-specific UI overlays, which read the shared viewer reference from
  * the Zustand store.
  */
-import { hasCesiumIonToken } from "@/lib/cesium-helpers/init";
 import { useGlobeStore } from "@/stores/globe";
+import { useHasCesiumToken } from "@/stores/keys";
 import { CameraPresetBar } from "./CameraPresets";
 import { CoordinateReadout } from "./CoordinateReadout";
 import { FeatureInfoPanel } from "./FeatureInfoPanel";
@@ -17,8 +17,9 @@ import { LocationSearch } from "./LocationSearch";
 export function GlobeView() {
   const viewer = useGlobeStore((s) => s.viewer);
   useLayerKeyboardShortcuts();
+  const hasToken = useHasCesiumToken();
 
-  if (!hasCesiumIonToken()) {
+  if (!hasToken) {
     return <GlobeSetupNotice />;
   }
 

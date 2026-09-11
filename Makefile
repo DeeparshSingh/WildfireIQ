@@ -26,7 +26,7 @@ help:
 	@echo "  make seasonal-metrics  Rebuild data/processed/seasonal_metrics.parquet"
 	@echo "  make region-weather    Rebuild each region's daily weather archive"
 	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
-	@echo "  make assistant-smoke   One live assistant call (needs OPENROUTER_API_KEY)"
+	@echo "  make assistant-smoke   One live assistant call (needs an OpenRouter key in Settings)"
 	@echo "  make assistant-eval    Live eval suite across every data surface (~30 calls)"
 	@echo "  make check             Everything below, in order — run this before pushing"
 	@echo "  make lint              Ruff (backend) + Biome (frontend)"

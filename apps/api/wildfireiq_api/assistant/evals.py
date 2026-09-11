@@ -1,7 +1,7 @@
 """Live evaluation suite for the assistant. `make assistant-eval`.
 
 `tests/test_assistant.py` proves the harness behaves — budgets, fan-out,
-error recovery, SSE framing — against a scripted model, for free. It
+error recovery, SSE framing — against a scripted model, without a model call. It
 cannot tell you whether the real model picks the right tool, honours the
 grounding rules, or refuses what it should refuse. That needs the real
 model, and it costs money, so it lives here rather than in pytest.
@@ -405,7 +405,10 @@ async def main(argv: list[str] | None = None) -> int:
 
     state = availability()
     if not state["enabled"] or not state["configured"]:
-        print("Assistant is not configured — set OPENROUTER_API_KEY in .env.", file=sys.stderr)
+        print(
+            "Assistant is not configured — enter an OpenRouter key in the app's Settings panel.",
+            file=sys.stderr,
+        )
         return 1
 
     cases = [c for c in CASES if args.only in c.id]

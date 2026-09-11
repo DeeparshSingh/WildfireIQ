@@ -27,6 +27,8 @@ data/wildfireiq.db
 .env
 .env.local
 .env.*.local
+# API keys entered in the Settings panel, mirrored here for the scheduler
+data/runtime/
 
 # Editor
 .DS_Store
@@ -34,9 +36,6 @@ data/wildfireiq.db
 .idea/
 *.swp
 *.swo
-
-# Claude Code (local, machine-specific permission preferences)
-.claude/
 
 # Coverage / reports
 coverage/

@@ -8,7 +8,7 @@
  *     visible. If AQHI ≥ threshold and ≥ 60 minutes have passed since the
  *     last notification, fire a Web Notification
  *   • Notifications only fire while a tab is open — acceptable for a
- *     research demo. No service worker, no FCM, no cost.
+ *     research demo. No service worker, no FCM.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 

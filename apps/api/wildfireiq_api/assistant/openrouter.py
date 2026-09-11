@@ -38,7 +38,7 @@ class OpenRouterError(RuntimeError):
 
 #: What each upstream status actually means for whoever is asking.
 _STATUS_MESSAGES: dict[int, str] = {
-    401: "The assistant's API key was rejected. Check OPENROUTER_API_KEY in .env.",
+    401: "The assistant's API key was rejected. Check the OpenRouter key in Settings.",
     402: "The assistant's OpenRouter account is out of credit.",
     403: "OpenRouter refused this request — the key may not have access to this model.",
     408: "The model took too long to respond. Try again.",
@@ -210,7 +210,7 @@ class OpenRouterClient:
         reasoning_effort: str | None = None,
     ) -> None:
         if not api_key:
-            raise OpenRouterError("OPENROUTER_API_KEY is not set")
+            raise OpenRouterError("No OpenRouter key has been entered in Settings")
         self.model = model
         self.reasoning_effort = reasoning_effort
         headers = {

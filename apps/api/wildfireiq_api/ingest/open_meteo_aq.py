@@ -2,7 +2,7 @@
 
 Open-Meteo's `air-quality-api.open-meteo.com` returns hourly pollutant
 concentrations (PM2.5, PM10, O3, NO2, SO2, CO) plus the European AQI for any
-lat/lon. The free tier supports up to 92 days back + 5 days forward.
+lat/lon. The endpoint supports up to 92 days back + 5 days forward.
 
 We also co-locate weather features (temp, RH, wind, precip) from the same
 provider so the AQ forecaster trains on coherent rows without joining

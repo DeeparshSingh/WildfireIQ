@@ -38,7 +38,7 @@ async def hotspots(since: str = "24h") -> dict[str, Any]:
             attribution="NASA FIRMS · VIIRS + MODIS Near-Real-Time fire data",
             note=None
             if rows
-            else "No firms_hotspots_recent.parquet yet — needs FIRMS_MAP_KEY in .env then re-run ingest",
+            else "No hotspot data yet — enter a NASA FIRMS key in the app's Settings panel",
         ),
     ).model_dump(mode="json")
 
