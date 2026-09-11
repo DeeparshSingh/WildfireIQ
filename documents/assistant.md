@@ -220,9 +220,12 @@ rounding error beside the cost of picking the wrong tool.
 
 ## Configuration
 
-The OpenRouter key is entered in the app's Settings panel (the key icon in
-the top bar) and held by the runtime key store in `keys.py`; it is not an
-environment variable. The rest is configuration:
+The OpenRouter key is not an environment variable. A visitor can bring their
+own: it is entered in the Settings panel, stays in their browser, and travels
+with each question as `X-OpenRouter-Key`, used for that request only. The owner
+can also set a default on the server (the panel's server section, guarded by
+`ADMIN_TOKEN`), which the assistant uses for visitors who bring none. The rest
+is configuration:
 
 ```bash
 ASSISTANT_MODEL=z-ai/glm-5.3-flash  # default
@@ -232,8 +235,8 @@ ASSISTANT_MAX_TOOL_CALLS=12
 
 `GET /api/assistant/health` reports `enabled` and `configured` without ever
 echoing the key. When `enabled` is false the frontend renders nothing. When
-only `configured` is false it shows a muted Ask button that opens the Settings
-panel, the one action that can fix it.
+`configured` is false and the visitor has no key of their own, it shows a muted
+Ask button that opens the Settings panel, the one action that can fix it.
 
 ## Abuse and spend limits
 

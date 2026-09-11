@@ -707,6 +707,33 @@ def test_the_sse_endpoint_streams_a_real_run(
         json.loads(tail.removeprefix("data: "))
 
 
+def test_a_visitor_key_in_the_header_is_enough_when_the_server_has_none(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bring-your-own-key: the header alone must get past the availability gate
+    and reach the model client, without anything being stored on the server."""
+    from wildfireiq_api.assistant import harness as harness_module
+
+    seen: dict[str, str] = {}
+
+    class _Client(FakeClient):
+        def __init__(self, **kwargs):
+            seen["api_key"] = kwargs.get("api_key", "")
+            super().__init__([StepResult(text="Hello.", usage=Usage(10, 2, 0.0))])
+
+    monkeypatch.setattr(harness_module, "OpenRouterClient", _Client)
+    keystore.update({"openrouter_api_key": ""})
+
+    res = client.post(
+        "/api/assistant/chat?stream=false",
+        json={"messages": [{"role": "user", "content": "hello"}]},
+        headers={"X-OpenRouter-Key": "sk-visitor"},
+    )
+    assert res.status_code == 200, res.text
+    assert seen["api_key"] == "sk-visitor"
+    assert keystore.get("openrouter_api_key") == "", "the visitor key must not be stored"
+
+
 def test_upstream_failures_are_translated_for_the_person_reading_them() -> None:
     """A 401 in the chat panel should say what to fix, not echo upstream JSON."""
     from wildfireiq_api.assistant.openrouter import _describe_failure

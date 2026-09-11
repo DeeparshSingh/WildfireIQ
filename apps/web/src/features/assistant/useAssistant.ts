@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { loadProfile } from "@/features/preparedness/state";
 import { API_BASE } from "@/lib/api/client";
 import { cinematicFlyTo } from "@/lib/cesium-helpers/cinematicFlyTo";
+import { readKeys } from "@/lib/keys";
 import { useAssistantStore } from "@/stores/assistant";
 import { useGlobeStore } from "@/stores/globe";
 import { type LayerId, useLayersStore } from "@/stores/layers";
@@ -187,9 +188,17 @@ export function useAssistant() {
       abortRef.current = controller;
 
       try {
+        // A visitor's own OpenRouter key rides along with the question and
+        // is used for this request only; the server never stores it.
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        };
+        const visitorKey = readKeys().openrouter_api_key;
+        if (visitorKey) headers["X-OpenRouter-Key"] = visitorKey;
         const response = await fetch(`${API_BASE}/api/assistant/chat`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+          headers,
           body: JSON.stringify({ messages: transcript, context: buildContext() }),
           signal: controller.signal,
         });

@@ -303,5 +303,5 @@ Writer `climatedata_projections` (one-time). Readers `/api/climate/projection`, 
 | Path | What |
 |---|---|
 | `data/wildfireiq.db` | SQLite. One table, `ingest_runs`: one row per job run with status, row counts, duration and any error. Read by `/api/admin/runs`, the startup catch-up, and the assistant's data-freshness tool |
-| `data/runtime/keys.json` | The four API keys entered in the Settings panel, mirrored from the browser so the scheduled jobs and the assistant can use them with no browser open. Ignored by git; never served. Only `configured` flags leave the server, via `/api/settings/keys` |
+| `data/runtime/keys.json` | The owner's three server keys (NASA FIRMS, WAQI, OpenRouter default), saved from the Settings panel's server section so the scheduled jobs and the assistant can use them with no browser open. Visitor keys never land here. Ignored by git; never served. Only `configured` flags leave the server, via `/api/settings/keys` |
 | `data/raw/<job>/` | the last 24 raw upstream responses per job, for reproducing a parse failure |

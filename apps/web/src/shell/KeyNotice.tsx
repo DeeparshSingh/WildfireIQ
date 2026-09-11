@@ -1,12 +1,13 @@
 /**
- * A quiet, one-line notice that a feature is waiting on an API key.
+ * A quiet, one-line notice that a feature is waiting on one of the owner's
+ * server keys.
  *
  * Sits exactly where the feature would be — under the hotspots toggle, in
- * the pollutant card, on the assistant button — and does one thing: names
- * the key and opens the Settings panel. It disappears on its own once the
- * backend reports the key is in place, so no one has to dismiss it.
+ * the pollutant card — names the key and opens the Settings panel, where the
+ * server section explains that these are the owner's to set. It disappears
+ * on its own once the backend reports the key is in place.
  */
-import { KEY_DEFS, type KeyName } from "@/lib/keys";
+import { KEY_DEFS, type ServerKeyName } from "@/lib/keys";
 import { useKeyMissing, useKeysStore } from "@/stores/keys";
 
 export function KeyNotice({
@@ -14,7 +15,7 @@ export function KeyNotice({
   what,
   compact = false,
 }: {
-  keyName: KeyName;
+  keyName: ServerKeyName;
   /** What is missing, in the reader's words, e.g. "Satellite hotspots". */
   what: string;
   compact?: boolean;
@@ -23,8 +24,7 @@ export function KeyNotice({
   const openPanel = useKeysStore((s) => s.openPanel);
   if (!missing) return null;
 
-  const def = KEY_DEFS.find((d) => d.name === keyName);
-  const provider = def?.provider ?? "an API";
+  const provider = KEY_DEFS[keyName].provider;
 
   return (
     <div
@@ -51,7 +51,7 @@ export function KeyNotice({
             color: "var(--color-text-hi)",
           }}
         >
-          {what} needs a {provider} key
+          {what} needs a {provider} key on this server
         </div>
         {!compact && (
           <div
@@ -63,7 +63,7 @@ export function KeyNotice({
               lineHeight: 1.4,
             }}
           >
-            Everything else keeps working. Add the key to switch this on.
+            Everything else keeps working. The server owner can add the key in Settings.
           </div>
         )}
       </div>
@@ -84,7 +84,7 @@ export function KeyNotice({
           whiteSpace: "nowrap",
         }}
       >
-        Enter key
+        Settings
       </button>
     </div>
   );

@@ -64,14 +64,15 @@ class ChatBody(BaseModel):
     context: UserContext | None = None
 
 
-def _require_available() -> None:
+def _require_available(visitor_key: str | None) -> None:
     state = availability()
     if not state["enabled"]:
         raise HTTPException(503, "The assistant is disabled on this deployment.")
-    if not state["configured"]:
+    if not state["configured"] and not visitor_key:
         raise HTTPException(
             503,
-            "The assistant has no OpenRouter API key. Enter one in the app's Settings panel.",
+            "The assistant has no OpenRouter API key. Enter your own in the app's "
+            "Settings panel, or the server owner can add a default there.",
         )
 
 
@@ -98,7 +99,10 @@ async def brief() -> dict[str, Any]:
 
 @router.post("/chat", summary="Ask the assistant a question")
 async def chat(request: Request, body: ChatBody, stream: bool = True) -> Any:
-    _require_available()
+    # A visitor's own OpenRouter key, if they brought one. Used for this
+    # request only and never stored; see keys.py.
+    visitor_key = (request.headers.get("x-openrouter-key") or "").strip() or None
+    _require_available(visitor_key)
     settings = get_settings()
 
     guard = get_guard()
@@ -119,7 +123,7 @@ async def chat(request: Request, body: ChatBody, stream: bool = True) -> Any:
     if not stream:
         guard.enter()
         try:
-            result = await answer(chat_request, settings=settings)
+            result = await answer(chat_request, settings=settings, api_key=visitor_key)
         finally:
             guard.leave()
         guard.record_spend(float((result.get("usage") or {}).get("cost_usd") or 0.0))
@@ -132,7 +136,9 @@ async def chat(request: Request, body: ChatBody, stream: bool = True) -> Any:
         # event, which carries OpenRouter's actual charge.
         guard.enter()
         try:
-            async for event in run_conversation(chat_request, settings=settings):
+            async for event in run_conversation(
+                chat_request, settings=settings, api_key=visitor_key
+            ):
                 if event.name == "usage":
                     guard.record_spend(float(event.data.get("cost_usd") or 0.0))
                 yield event_to_sse(event)

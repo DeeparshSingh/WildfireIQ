@@ -1,31 +1,27 @@
-"""Runtime API keys, entered in the app rather than in a file.
+"""The server's API keys: the owner's, entered once in the app's Settings panel.
 
-The platform needs four third-party credentials: a Cesium Ion token for the
-globe's terrain and imagery, a NASA FIRMS key for satellite hotspots, a WAQI
-token for the pollutant breakdown, and an OpenRouter key for the assistant.
-None of them is required for the platform to run; each one unlocks a feature.
+Two kinds of key exist and they are kept apart on purpose.
 
-They used to live in `.env`. That is fine for one developer on one machine
-and wrong for everything else: a reader who opens the app has no `.env`, a
-deployment on another server needs the file copied by hand, and the browser
-half of the app cannot read a server-side file anyway. So the keys are now
-entered once in the Settings panel, kept in the browser's local storage, and
-pushed to this store so the scheduled jobs and the assistant — which run
-server-side, with no browser attached — can use them too.
+Visitor keys stay in the visitor's browser and never reach this store. The
+Cesium Ion token is only ever used by the browser, so it lives in local
+storage and nowhere else. A visitor's own OpenRouter key travels with each
+chat request as a header and is used for that request alone, so anyone can
+bring their own key to the assistant without the server keeping it.
 
-Persistence is a single JSON file under `data/runtime/`, which is ignored by
-git. The store loads it on first access and rewrites it on every change, so a
-backend restart keeps the keys; the browser also re-pushes its copy on every
-page load, so the two stay in agreement even if the file is deleted.
+Server keys are the owner's, and there is one set for the whole deployment:
+the NASA FIRMS key and WAQI token drive scheduled jobs that run with no
+browser attached, and an OpenRouter key here is the default the assistant
+uses for visitors who have not brought their own. They are entered in the
+Settings panel's server section and stored in `data/runtime/keys.json`,
+which is ignored by git and survives a restart.
+
+Writes are guarded by `ADMIN_TOKEN` (settings.py). With it set, `PUT
+/api/settings/keys` requires the matching `X-Admin-Token` header, so a
+visitor to a public deployment cannot change or clear the owner's keys. With
+it unset — a laptop, one person — writes are open, and the panel says so.
 
 The values never leave this module in a response. `status()` reports only
 whether each key is set.
-
-Trust model: there is no authentication on this API, and this store accepts
-writes from anyone who can reach it. That is the right trade for the two
-places the platform runs — a laptop, and one person's own server bound to
-localhost or a private network. It would be the wrong trade for a public
-host, and the architecture notes say so.
 """
 
 from __future__ import annotations
@@ -37,9 +33,8 @@ from typing import Final
 
 from .paths import DATA_ROOT
 
-#: The four credentials, by the names the Settings panel and the API use.
+#: The owner's server-side credentials, by the names the panel and API use.
 KEY_NAMES: Final[tuple[str, ...]] = (
-    "cesium_ion_token",
     "firms_map_key",
     "waqi_token",
     "openrouter_api_key",
@@ -48,10 +43,9 @@ KEY_NAMES: Final[tuple[str, ...]] = (
 #: Which feature each key unlocks. Reported by /api/settings/keys so the
 #: frontend can word its notices without a second copy of this table.
 KEY_FEATURES: Final[dict[str, str]] = {
-    "cesium_ion_token": "3D globe terrain and imagery",
     "firms_map_key": "satellite hotspots layer",
     "waqi_token": "pollutant breakdown on the air-quality page",
-    "openrouter_api_key": "the assistant",
+    "openrouter_api_key": "the assistant, for visitors who do not bring their own key",
 }
 
 #: The ingest job that turns a newly entered key into data on screen. The

@@ -1,3 +1,4 @@
+import { useVisitorOpenRouterKey } from "@/stores/keys";
 import { AssistantPanel } from "./AssistantPanel";
 /**
  * Mount point for the assistant panel.
@@ -10,6 +11,7 @@ import { useAssistantHealth } from "./useAssistant";
 
 export function AssistantDock() {
   const health = useAssistantHealth();
-  if (!health.data?.enabled || !health.data?.configured) return null;
+  const visitorKey = useVisitorOpenRouterKey();
+  if (!health.data?.enabled || !(health.data?.configured || visitorKey)) return null;
   return <AssistantPanel />;
 }

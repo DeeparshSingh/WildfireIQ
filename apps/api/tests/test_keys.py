@@ -77,14 +77,16 @@ def client() -> TestClient:
 
 
 def test_status_endpoint_reports_configured_flags_only(client: TestClient) -> None:
-    keys_module.keystore.update({"cesium_ion_token": "ey.super.secret"})
+    keys_module.keystore.update({"waqi_token": "tok.super.secret"})
     body = client.get("/api/settings/keys").json()
     data = body["data"]
-    assert data["keys"]["cesium_ion_token"]["configured"] is True
+    assert data["keys"]["waqi_token"]["configured"] is True
     assert data["keys"]["firms_map_key"]["configured"] is False
     assert "unlocks" in data["keys"]["firms_map_key"]
     assert data["all_configured"] is False
-    assert "ey.super.secret" not in client.get("/api/settings/keys").text
+    assert data["write_protected"] is False
+    assert "cesium_ion_token" not in data["keys"], "the browser-only token never reaches the server"
+    assert "tok.super.secret" not in client.get("/api/settings/keys").text
 
 
 def test_put_stores_keys_and_never_echoes_them(client: TestClient, monkeypatch) -> None:
@@ -159,3 +161,47 @@ def test_browser_preflight_for_put_is_accepted(client: TestClient) -> None:
     )
     assert res.status_code == 200, res.text
     assert "PUT" in res.headers.get("access-control-allow-methods", "")
+
+
+# ── owner-only writes ────────────────────────────────────────────────────
+
+
+def test_writes_are_open_when_no_admin_token_is_configured(client: TestClient, monkeypatch) -> None:
+    async def fake_run(newly_set: list[str]) -> None:
+        return None
+
+    monkeypatch.setattr(settings_router, "_run_dependent_jobs", fake_run)
+    assert client.put("/api/settings/keys", json={"firms_map_key": "k"}).status_code == 200
+
+
+def test_writes_need_the_admin_token_when_one_is_configured(
+    client: TestClient, monkeypatch
+) -> None:
+    from wildfireiq_api.settings import Settings
+
+    monkeypatch.setattr(
+        settings_router, "get_settings", lambda: Settings(admin_token="owner-secret")
+    )
+
+    async def fake_run(newly_set: list[str]) -> None:
+        return None
+
+    monkeypatch.setattr(settings_router, "_run_dependent_jobs", fake_run)
+
+    denied = client.put("/api/settings/keys", json={"firms_map_key": "k"})
+    assert denied.status_code == 401
+    assert keys_module.keystore.get("firms_map_key") == ""
+
+    wrong = client.put(
+        "/api/settings/keys", json={"firms_map_key": "k"}, headers={"X-Admin-Token": "guess"}
+    )
+    assert wrong.status_code == 401
+
+    ok = client.put(
+        "/api/settings/keys", json={"firms_map_key": "k"}, headers={"X-Admin-Token": "owner-secret"}
+    )
+    assert ok.status_code == 200
+    assert ok.json()["data"]["write_protected"] is True
+    assert keys_module.keystore.get("firms_map_key") == "k"
+    # Reading status never needs the token.
+    assert client.get("/api/settings/keys").status_code == 200

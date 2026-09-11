@@ -1,12 +1,14 @@
 """Runtime settings: the API keys entered in the app's Settings panel.
 
-Two endpoints. `GET /keys` says which keys are set and what each unlocks, so
-the frontend can show a notice where a feature is missing its key. `PUT /keys`
-stores new values, pushed from the browser's local storage, and immediately
-runs the ingest job behind any key that was just added so the layer fills in
-without waiting for the next scheduled tick.
+Two endpoints. `GET /keys` says which of the owner's server keys are set,
+what each unlocks, and whether writes are protected, so the frontend can show
+a notice where a feature is missing its key. `PUT /keys` stores new values
+from the panel's server section and immediately runs the ingest job behind
+any key that was just added, so the layer fills in without waiting for the
+next scheduled tick. When `ADMIN_TOKEN` is set, `PUT` requires the matching
+`X-Admin-Token` header.
 
-Values are never returned. See `keys.py` for the trust model.
+Values are never returned. See `keys.py` for the two kinds of key.
 """
 
 from __future__ import annotations
@@ -15,12 +17,13 @@ import asyncio
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from ..ingest.base import run_job
 from ..ingest.registry import all_jobs
 from ..keys import KEY_FEATURES, KEY_JOBS, KEY_NAMES, keystore
+from ..settings import get_settings
 from ._envelope import Envelope, Meta
 
 router = APIRouter()
@@ -30,7 +33,6 @@ log = structlog.get_logger("settings")
 class KeysUpdate(BaseModel):
     """A partial update. Omit a key to leave it alone; send null or "" to clear it."""
 
-    cesium_ion_token: str | None = None
     firms_map_key: str | None = None
     waqi_token: str | None = None
     openrouter_api_key: str | None = None
@@ -43,6 +45,7 @@ def _status_payload() -> dict[str, Any]:
             name: {"configured": status[name], "unlocks": KEY_FEATURES[name]} for name in KEY_NAMES
         },
         "all_configured": all(status.values()),
+        "write_protected": bool(get_settings().admin_token),
     }
 
 
@@ -72,8 +75,17 @@ async def _run_dependent_jobs(newly_set: list[str]) -> None:
             log.warning("settings.key_job_failed", key=name, job=job_name, error=str(exc))
 
 
-@router.put("/keys", summary="Store API keys entered in the Settings panel")
-async def keys_update(body: KeysUpdate) -> dict[str, Any]:
+def _require_admin(header_token: str | None) -> None:
+    expected = get_settings().admin_token
+    if expected and (header_token or "") != expected:
+        raise HTTPException(401, "Server keys are owner-only. The admin token did not match.")
+
+
+@router.put("/keys", summary="Store the owner's server keys (admin token when configured)")
+async def keys_update(
+    body: KeysUpdate, x_admin_token: str | None = Header(default=None)
+) -> dict[str, Any]:
+    _require_admin(x_admin_token)
     changes = {k: v for k, v in body.model_dump().items() if k in body.model_fields_set}
     if not changes:
         raise HTTPException(400, "No keys in the request body.")

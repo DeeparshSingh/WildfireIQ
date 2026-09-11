@@ -47,21 +47,41 @@ API is at http://localhost:8000 with interactive docs at `/docs`.
 
 Four third-party keys unlock four features. The app runs without any of them,
 with less on screen. They are entered in the app, not in a file: click the key
-icon in the top bar (Settings), paste, save. Keys are kept in your browser and
-sent to your own backend, which needs three of them for the scheduled data
-pulls and the assistant.
+icon in the top bar (Settings). There are two kinds.
+
+**Your keys** stay in your browser and are never stored on the server.
 
 | Key | Unlocks | Get one |
 |---|---|---|
 | Cesium Ion access token | Terrain and imagery on the globe | https://ion.cesium.com/tokens |
+| OpenRouter API key | The assistant, using your own key; it travels with each question and is used for that request only | https://openrouter.ai/keys |
+
+**Server keys** are the owner's, one set per deployment. They drive scheduled
+data pulls that run with no browser open, and the OpenRouter one is the
+default for visitors who do not bring their own.
+
+| Key | Unlocks | Get one |
+|---|---|---|
 | NASA FIRMS map key | Satellite hotspots | https://firms.modaps.eosdis.nasa.gov/api/map_key |
 | WAQI token | Pollutant breakdown | https://aqicn.org/data-platform/token |
-| OpenRouter API key | The assistant | https://openrouter.ai/keys |
+| OpenRouter API key | The assistant for everyone, as a default | https://openrouter.ai/keys |
 
-Where a key is missing, the feature that needs it shows a short notice with an
-"Enter key" button, and the notice clears itself once the key is saved.
-Everything else is configuration rather than credentials, listed with its
-default in [`documents/architecture.md`](documents/architecture.md#6-configuration).
+Where a server key is missing, the feature shows a short notice that opens
+Settings; it clears itself once the owner saves the key. Everything else is
+configuration rather than credentials, listed with its default in
+[`documents/architecture.md`](documents/architecture.md#6-configuration).
+
+### Deploying for other people
+
+Two settings, both in `.env` on the server:
+
+- `ADMIN_TOKEN` — any long random string. With it set, the Settings panel's
+  server section needs the token to save, so a visitor cannot change or clear
+  your keys. Without it, anyone who can reach the API can. Set it before
+  exposing the API beyond your own machine.
+- `CORS_ORIGINS` — the URL your visitors use, e.g. `["https://wildfire.example.ca"]`,
+  if the web app and API are served from different origins. Serving the built
+  web app and the API from one origin avoids this entirely.
 
 ---
 
@@ -113,7 +133,7 @@ make check                # the whole gate: lint, typecheck, both test suites, b
 
 make lint                 # ruff + biome
 make format               # apply ruff + biome formatting
-make test                 # both suites (189 backend, 64 frontend; 3 more live smoke tests via make test-live)
+make test                 # both suites (192 backend, 67 frontend; 3 more live smoke tests via make test-live)
 make test-api             # backend only
 make test-web             # frontend only
 make typecheck            # tsc --noEmit

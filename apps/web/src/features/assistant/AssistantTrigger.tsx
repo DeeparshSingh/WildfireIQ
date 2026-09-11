@@ -13,7 +13,7 @@
 import { useEffect } from "react";
 
 import { useAssistantStore } from "@/stores/assistant";
-import { useKeysStore } from "@/stores/keys";
+import { useKeysStore, useVisitorOpenRouterKey } from "@/stores/keys";
 
 import { useAssistantHealth } from "./useAssistant";
 
@@ -22,8 +22,10 @@ export function AssistantTrigger() {
   const open = useAssistantStore((s) => s.open);
   const toggle = useAssistantStore((s) => s.toggle);
   const openSettings = useKeysStore((s) => s.openPanel);
+  const visitorKey = useVisitorOpenRouterKey();
 
-  const available = Boolean(health.data?.enabled && health.data?.configured);
+  // Usable with the server's default key or with one the visitor brought.
+  const available = Boolean(health.data?.enabled && (health.data?.configured || visitorKey));
 
   useEffect(() => {
     if (!available) return;

@@ -1,12 +1,17 @@
 /**
- * The four third-party API keys, entered in the app rather than in a file.
+ * API keys, and the line between a visitor's keys and the owner's.
  *
- * Each key unlocks one feature; the platform runs without any of them. The
- * reader types them once into the Settings panel. They are kept in this
- * browser's local storage — so they survive a reload and never travel with
- * a share link — and pushed to the backend, which needs three of them for
- * work that happens with no browser attached: the scheduled hotspot and
- * pollutant pulls, and the assistant.
+ * Visitor keys live in this browser and nowhere else. The Cesium Ion token is
+ * only ever used by the browser. A visitor's own OpenRouter key is sent along
+ * with each chat request as a header and used for that request alone; the
+ * server never keeps it. Anyone can bring their own keys without trusting the
+ * deployment with them.
+ *
+ * Server keys are the owner's, one set per deployment: NASA FIRMS and WAQI
+ * drive scheduled jobs that run with no browser attached, and an OpenRouter
+ * key there is the default for visitors who do not bring their own. They are
+ * saved through the panel's server section, guarded by the owner's admin
+ * token when the deployment has one, and this browser never stores them.
  *
  * Nothing here imports Cesium or React. `getCesiumIonToken` in
  * cesium-helpers/init reads through this module, and that file must stay
@@ -15,75 +20,61 @@
  */
 import { API_BASE } from "@/lib/api/client";
 
-export const KEY_NAMES = [
-  "cesium_ion_token",
-  "firms_map_key",
-  "waqi_token",
-  "openrouter_api_key",
-] as const;
+export const BROWSER_KEY_NAMES = ["cesium_ion_token", "openrouter_api_key"] as const;
+export const SERVER_KEY_NAMES = ["firms_map_key", "waqi_token", "openrouter_api_key"] as const;
 
-export type KeyName = (typeof KEY_NAMES)[number];
-export type Keys = Record<KeyName, string>;
+export type BrowserKeyName = (typeof BROWSER_KEY_NAMES)[number];
+export type ServerKeyName = (typeof SERVER_KEY_NAMES)[number];
+export type KeyName = BrowserKeyName | ServerKeyName;
+
+/** The visitor's keys, kept in local storage. */
+export type Keys = Record<BrowserKeyName, string>;
+/** A partial update to the owner's server keys. Empty string clears. */
+export type ServerKeys = Partial<Record<ServerKeyName, string>>;
 
 export type KeyDef = {
-  name: KeyName;
   label: string;
   provider: string;
-  /** The feature the key switches on, in the reader's words. */
+  /** What the key switches on, in the reader's words. */
   unlocks: string;
   /** Where to obtain one. */
   url: string;
-  /** Whether the browser itself uses the value (as opposed to only the backend). */
-  browserUses: boolean;
 };
 
-export const KEY_DEFS: readonly KeyDef[] = [
-  {
-    name: "cesium_ion_token",
+export const KEY_DEFS: Record<KeyName, KeyDef> = {
+  cesium_ion_token: {
     label: "Cesium Ion access token",
     provider: "Cesium Ion",
     unlocks: "the 3D globe: world terrain and aerial imagery",
     url: "https://ion.cesium.com/tokens",
-    browserUses: true,
   },
-  {
-    name: "firms_map_key",
-    label: "NASA FIRMS map key",
-    provider: "NASA FIRMS",
-    unlocks: "the satellite hotspots layer",
-    url: "https://firms.modaps.eosdis.nasa.gov/api/map_key",
-    browserUses: false,
-  },
-  {
-    name: "waqi_token",
-    label: "WAQI token",
-    provider: "World Air Quality Index",
-    unlocks: "the pollutant breakdown on the air-quality page",
-    url: "https://aqicn.org/data-platform/token",
-    browserUses: false,
-  },
-  {
-    name: "openrouter_api_key",
+  openrouter_api_key: {
     label: "OpenRouter API key",
     provider: "OpenRouter",
     unlocks: "the assistant",
     url: "https://openrouter.ai/keys",
-    browserUses: false,
   },
-];
+  firms_map_key: {
+    label: "NASA FIRMS map key",
+    provider: "NASA FIRMS",
+    unlocks: "the satellite hotspots layer",
+    url: "https://firms.modaps.eosdis.nasa.gov/api/map_key",
+  },
+  waqi_token: {
+    label: "WAQI token",
+    provider: "World Air Quality Index",
+    unlocks: "the pollutant breakdown on the air-quality page",
+    url: "https://aqicn.org/data-platform/token",
+  },
+};
 
 const STORAGE_KEY = "wildfireiq.keys.v1";
 
 export function emptyKeys(): Keys {
-  return {
-    cesium_ion_token: "",
-    firms_map_key: "",
-    waqi_token: "",
-    openrouter_api_key: "",
-  };
+  return { cesium_ion_token: "", openrouter_api_key: "" };
 }
 
-/** Read the keys from local storage. Never throws; storage may be blocked. */
+/** Read the visitor's keys from local storage. Never throws; storage may be blocked. */
 export function readKeys(): Keys {
   const out = emptyKeys();
   try {
@@ -91,7 +82,7 @@ export function readKeys(): Keys {
     if (!raw) return out;
     const parsed: unknown = JSON.parse(raw);
     if (parsed && typeof parsed === "object") {
-      for (const name of KEY_NAMES) {
+      for (const name of BROWSER_KEY_NAMES) {
         const v = (parsed as Record<string, unknown>)[name];
         if (typeof v === "string") out[name] = v.trim();
       }
@@ -103,7 +94,7 @@ export function readKeys(): Keys {
   return out;
 }
 
-/** Write the keys to local storage. Returns false if storage refused. */
+/** Write the visitor's keys to local storage. Returns false if storage refused. */
 export function writeKeys(keys: Keys): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
@@ -113,26 +104,26 @@ export function writeKeys(keys: Keys): boolean {
   }
 }
 
-export function anyKeySet(keys: Keys): boolean {
-  return KEY_NAMES.some((n) => Boolean(keys[n]));
-}
+// ── the owner's server keys ─────────────────────────────────────────────
 
-// ── talking to the backend ──────────────────────────────────────────────
-
-export type KeyStatus = Record<KeyName, boolean>;
-
-type StatusEnvelope = {
-  data: { keys: Record<string, { configured: boolean }>; all_configured: boolean };
+export type ServerStatus = {
+  /** Whether each server key is set. Values are never returned. */
+  keys: Record<ServerKeyName, boolean>;
+  /** Whether the deployment requires the admin token to change them. */
+  writeProtected: boolean;
 };
 
-function toStatus(env: StatusEnvelope): KeyStatus {
-  const s = emptyKeys() as unknown as Record<KeyName, boolean>;
-  for (const name of KEY_NAMES) s[name] = Boolean(env.data.keys[name]?.configured);
-  return s;
+type StatusEnvelope = {
+  data: { keys: Record<string, { configured: boolean }>; write_protected: boolean };
+};
+
+function toStatus(env: StatusEnvelope): ServerStatus {
+  const keys = { firms_map_key: false, waqi_token: false, openrouter_api_key: false };
+  for (const name of SERVER_KEY_NAMES) keys[name] = Boolean(env.data.keys[name]?.configured);
+  return { keys, writeProtected: Boolean(env.data.write_protected) };
 }
 
-/** Which keys the backend currently holds. Values are never returned. */
-export async function fetchKeyStatus(): Promise<KeyStatus> {
+export async function fetchServerStatus(): Promise<ServerStatus> {
   const res = await fetch(`${API_BASE}/api/settings/keys`, {
     headers: { Accept: "application/json" },
   });
@@ -140,16 +131,27 @@ export async function fetchKeyStatus(): Promise<KeyStatus> {
   return toStatus((await res.json()) as StatusEnvelope);
 }
 
-/**
- * Push keys to the backend. Sends every key, including empty ones, so a
- * key cleared in the browser is cleared on the server too.
- */
-export async function pushKeys(keys: Keys): Promise<KeyStatus> {
+/** The deployment has an admin token and the one supplied did not match. */
+export class AdminTokenRejected extends Error {
+  constructor() {
+    super("The admin token did not match.");
+    this.name = "AdminTokenRejected";
+  }
+}
+
+/** Save the owner's server keys. Sends only the keys given. */
+export async function pushServerKeys(keys: ServerKeys, adminToken: string): Promise<ServerStatus> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (adminToken) headers["X-Admin-Token"] = adminToken;
   const res = await fetch(`${API_BASE}/api/settings/keys`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers,
     body: JSON.stringify(keys),
   });
+  if (res.status === 401) throw new AdminTokenRejected();
   if (!res.ok) throw new Error(`settings/keys failed: HTTP ${res.status}`);
   return toStatus((await res.json()) as StatusEnvelope);
 }

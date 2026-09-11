@@ -30,14 +30,17 @@ It runs on one machine, uses public data sources, and stores no personal
 information on the server. The assistant is metered per question (fractions of
 a cent) against the owner's own OpenRouter key.
 
-Four features need a key from their provider: the globe's terrain and imagery
-(Cesium Ion), satellite hotspots (NASA FIRMS), the pollutant breakdown (WAQI)
-and the assistant (OpenRouter). Keys are entered once in the app's Settings
-panel, the key icon in the top bar. The browser keeps them in local storage and
-sends them to the backend, which stores them in `data/runtime/keys.json` (not
-tracked by git) so the scheduled jobs and the assistant can use them with no
-browser open. Where a key is missing, the feature shows a short notice that
-opens Settings; nothing else is affected.
+Four features need a key from their provider, entered in the app's Settings
+panel (the key icon in the top bar). Two are a visitor's own and stay in that
+visitor's browser: the Cesium Ion token the globe needs, and an OpenRouter key
+that travels with each question and is used for that request only. Two are the
+owner's, one set for the whole deployment, because they drive scheduled jobs
+that run with no browser open: the NASA FIRMS key (hotspots) and the WAQI token
+(pollutants); an OpenRouter key here is the default for visitors who bring none.
+Server keys are stored in `data/runtime/keys.json` (not tracked by git) and,
+when `ADMIN_TOKEN` is set, can only be changed with that token. Where a server
+key is missing, the feature shows a short notice that opens Settings; nothing
+else is affected.
 
 ---
 

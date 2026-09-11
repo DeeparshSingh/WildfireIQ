@@ -50,6 +50,12 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
 
+    # Protects PUT /api/settings/keys. When set, the Settings panel's server
+    # section needs this value to save; without it any visitor who can reach
+    # the API could change or clear the owner's keys. Leave empty on a laptop
+    # used by one person; set it before exposing the API to anyone else.
+    admin_token: str = Field(default="")
+
     # Run APScheduler in-process so every cron cadence actually fires.
     # Set SCHEDULER_ENABLED=false in .env to disable (e.g. for CI / tests).
     scheduler_enabled: bool = Field(default=True)

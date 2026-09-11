@@ -28,7 +28,7 @@ WildFire-IQ/
 │   │   │   ├── ml/                FWI port, feature builder, two trainers, two inference modules, trends
 │   │   │   ├── routers/           one router per domain + _data.py (parquet readers) + _envelope.py
 │   │   │   └── assistant/         agent harness, 25 tools, OpenRouter transport, guard, evals
-│   │   └── tests/                 189 pytest tests
+│   │   └── tests/                 192 pytest tests
 │   └── web/                       React 18 · TypeScript · Vite · Cesium
 │       └── src/
 │           ├── main.tsx, app.tsx  providers, route table (lazy routes)
@@ -358,25 +358,32 @@ globe store, the layers store and the router. Its design is in
 
 ### API keys
 
-Credentials are not configuration and do not live in `.env`. The four
-third-party keys are entered in the app's Settings panel (`shell/SettingsPanel.tsx`),
-kept in the browser's local storage (`lib/keys.ts`), and pushed to
-`PUT /api/settings/keys`, which persists them to `data/runtime/keys.json`
-(ignored by git) through `keys.py`. Scheduled jobs and the assistant read that
-store. `GET /api/settings/keys` reports only whether each key is set; values are
-never returned. Saving a key that was empty runs the ingest job behind it at
-once, so the layer fills in without waiting for the next tick.
+Credentials are not configuration and do not live in `.env`. They are entered
+in the Settings panel (`shell/SettingsPanel.tsx`), and there are two kinds.
 
-| Key | Used by | Unlocks |
-|---|---|---|
-| Cesium Ion access token | browser | Terrain and imagery on the globe; without it the globe shows a notice that opens Settings |
-| NASA FIRMS map key | `firms_hotspots` job | Satellite hotspots layer |
-| WAQI token | `waqi_kamloops` job | Pollutant breakdown |
-| OpenRouter API key | assistant | The assistant; without it the Ask button opens Settings |
+**Visitor keys** stay in the visitor's browser (`lib/keys.ts`, local storage)
+and never reach the server store. The Cesium Ion token is used only by the
+browser. A visitor's own OpenRouter key is sent as `X-OpenRouter-Key` with each
+chat request and used for that request alone (`assistant/router.py`); the
+assistant is therefore usable on a deployment whose owner has set no key.
 
-There is no authentication on the API, so anyone who can reach it can set
-keys. That is the right trade for a laptop or one person's own server on a
-private network, and the wrong one for a public host.
+**Server keys** are the owner's, one set per deployment, held by `keys.py` in
+`data/runtime/keys.json` (ignored by git): the NASA FIRMS key and WAQI token
+drive scheduled jobs, and an OpenRouter key is the default for visitors without
+their own. `GET /api/settings/keys` reports whether each is set and whether
+writes are protected; values are never returned. `PUT /api/settings/keys`
+saves them and runs the ingest behind any newly added key at once. When
+`ADMIN_TOKEN` is set, `PUT` requires the matching `X-Admin-Token` header.
+
+| Key | Kind | Used by | Unlocks |
+|---|---|---|---|
+| Cesium Ion access token | visitor | browser | Terrain and imagery; without it the globe shows a notice that opens Settings |
+| OpenRouter API key | visitor or server | assistant, per request or as default | The assistant; with neither, the Ask button opens Settings |
+| NASA FIRMS map key | server | `firms_hotspots` job | Satellite hotspots layer |
+| WAQI token | server | `waqi_kamloops` job | Pollutant breakdown |
+
+`ADMIN_TOKEN` unset means writes are open, which is fine for one person on a
+laptop and the panel says so. Set it before the API is reachable by anyone else.
 
 ### Configuration
 
@@ -388,6 +395,7 @@ build time.
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Where the web app finds the API |
 | `VITE_ENABLE_TRU_CARBON` | `false` | Shows climate section 6 when the CSV exists |
+| `ADMIN_TOKEN` | — | Required by `PUT /api/settings/keys` when set; protects the owner's server keys |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./data/wildfireiq.db` | SQLite location |
 | `CORS_ORIGINS` | the two Vite dev origins | |
 | `SCHEDULER_ENABLED` | `true` | Run the cron jobs in-process |
@@ -405,8 +413,8 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 189 (+3 `live`) | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs), and the runtime key store and Settings API (`test_keys`: persistence, values never echoed, unknown names rejected, the CORS preflight the panel depends on) |
-| Frontend | `apps/web/src/lib/__tests__/` | 64 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, the WKT parser behind the globe's fire and evacuation polygons (`wkt`), the data-unavailable banner (`dataNotice`, including the paused-query case that never reaches `isError`), and the API-key store, Settings panel and key notices (`keys`: storage round-trip, masked fields, save pushes to the API, notices follow the server's report) |
+| Backend | `apps/api/tests/` | 192 (+3 `live`) | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs), and the runtime key store and Settings API (`test_keys`: persistence, values never echoed, unknown names rejected, the admin token, the CORS preflight the panel depends on), and a visitor's per-request assistant key |
+| Frontend | `apps/web/src/lib/__tests__/` | 67 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, the WKT parser behind the globe's fire and evacuation polygons (`wkt`), the data-unavailable banner (`dataNotice`, including the paused-query case that never reaches `isError`), and the API-key store, Settings panel and key notices (`keys`: storage round-trip, masked fields, visitor keys never leave the browser, server saves carry the admin token, notices follow the server's report) |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |
 

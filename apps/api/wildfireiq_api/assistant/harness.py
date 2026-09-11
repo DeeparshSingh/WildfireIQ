@@ -176,6 +176,9 @@ def availability(settings: Settings | None = None) -> dict[str, Any]:
     return {
         "enabled": settings.assistant_enabled,
         "configured": bool(keystore.get("openrouter_api_key")),
+        # A visitor may bring their own key on each request (X-OpenRouter-Key),
+        # so the assistant can be usable even when the server holds none.
+        "accepts_visitor_key": True,
         "model": settings.assistant_model,
         "tools": len(toolkit.REGISTRY),
         "max_steps": settings.assistant_max_steps,
@@ -188,11 +191,12 @@ async def run_conversation(
     *,
     settings: Settings | None = None,
     client: OpenRouterClient | None = None,
+    api_key: str | None = None,
 ) -> AsyncIterator[Event]:
     """Run one question to completion, yielding events as they happen."""
     settings = settings or get_settings()
     queue: asyncio.Queue[Event | None] = asyncio.Queue()
-    task = asyncio.create_task(_drive(queue, request, settings, client))
+    task = asyncio.create_task(_drive(queue, request, settings, client, api_key))
     try:
         while True:
             event = await queue.get()
@@ -212,6 +216,7 @@ async def _drive(
     request: ChatRequest,
     settings: Settings,
     client: OpenRouterClient | None,
+    api_key: str | None = None,
 ) -> None:
     started = time.perf_counter()
     usage = Usage()
@@ -244,7 +249,9 @@ async def _drive(
         )
 
         client = client or OpenRouterClient(
-            api_key=keystore.get("openrouter_api_key"),
+            # The visitor's own key wins for this request; the owner's stored
+            # key is the default for everyone else.
+            api_key=api_key or keystore.get("openrouter_api_key"),
             model=settings.assistant_model,
             referer=settings.assistant_referer,
             title=settings.assistant_title,
@@ -532,6 +539,7 @@ async def answer(
     *,
     settings: Settings | None = None,
     client: OpenRouterClient | None = None,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     """Collect a whole run into one JSON body.
 
@@ -549,7 +557,7 @@ async def answer(
         "safety_notice": None,
         "error": None,
     }
-    async for event in run_conversation(request, settings=settings, client=client):
+    async for event in run_conversation(request, settings=settings, client=client, api_key=api_key):
         match event.name:
             case "done":
                 collected["text"] = event.data.get("text", "")

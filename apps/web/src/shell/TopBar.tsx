@@ -25,9 +25,14 @@ function fmt(d: Date, tz: string) {
 export function TopBar() {
   const now = useClock();
   const openSettings = useKeysStore((s) => s.openPanel);
-  const anyMissing = useKeysStore(
-    (s) => s.status !== null && Object.values(s.status).some((v) => v === false),
-  );
+  // Flags a missing server key; a visitor's own OpenRouter key covers that one.
+  const anyMissing = useKeysStore((s) => {
+    if (s.status === null) return false;
+    const k = s.status.keys;
+    return (
+      !k.firms_map_key || !k.waqi_token || (!k.openrouter_api_key && !s.keys.openrouter_api_key)
+    );
+  });
   return (
     <header
       style={{
