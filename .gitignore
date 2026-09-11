@@ -27,7 +27,8 @@ data/wildfireiq.db
 .env
 .env.local
 .env.*.local
-# API keys entered in the Settings panel, mirrored here for the scheduler
+# The owner's runtime state: server API keys, the generated admin token,
+# and any standing control command. Never committed.
 data/runtime/
 
 # Editor

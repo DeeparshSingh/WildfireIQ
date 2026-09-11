@@ -20,6 +20,14 @@ import {
   type ServerKeyName,
   type ServerStatus,
 } from "@/lib/keys";
+import {
+  AdminTokenRejected,
+  type Ownership,
+  type ServiceState,
+  applySignedCommand,
+  fetchOwnership,
+  setServiceState,
+} from "@/lib/owner";
 import { useKeysStore } from "@/stores/keys";
 
 const mono: React.CSSProperties = {
@@ -160,6 +168,7 @@ function PanelBody() {
 
         <BrowserSection firstInput={firstInput} />
         <ServerSection status={status} offline={offline} />
+        <OwnerSection />
       </div>
     </div>
   );
@@ -528,5 +537,167 @@ function Footer({ note, children }: { note: Note; children: React.ReactNode }) {
       )}
       {children}
     </div>
+  );
+}
+
+// ── the owner's control over the whole deployment ────────────────────────
+
+const STATE_LABEL: Record<ServiceState, string> = {
+  running: "Running",
+  readonly: "Read-only",
+  paused: "Paused",
+};
+
+/**
+ * Stop, restrict or resume the deployment.
+ *
+ * Two routes, both shown, because they fail in different situations. The
+ * buttons use the admin token, which is quick and needs nothing but this
+ * page. The text box takes a command signed with the owner's key, which works
+ * even if the token has been changed on the server and is the route nobody
+ * else can forge. `python scripts/owner.py pause "…"` prints one.
+ */
+function OwnerSection() {
+  const [info, setInfo] = useState<Ownership | null>(null);
+  const [token, setToken] = useState("");
+  const [message, setMessage] = useState("");
+  const [command, setCommand] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<Note>(null);
+
+  const load = () => {
+    fetchOwnership()
+      .then(setInfo)
+      .catch(() => setInfo(null));
+  };
+  useEffect(load, []);
+
+  const apply = async (state: ServiceState) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const next = await setServiceState(state, message, token.trim());
+      setNote({ tone: "ok", text: `Deployment is now ${STATE_LABEL[next].toLowerCase()}.` });
+      load();
+    } catch (err) {
+      setNote({
+        tone: "warn",
+        text:
+          err instanceof AdminTokenRejected
+            ? "The admin token did not match. Nothing changed."
+            : "The API could not be reached. Nothing changed.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const applyCommand = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const next = await applySignedCommand(command.trim());
+      setCommand("");
+      setNote({
+        tone: "ok",
+        text: `Signed command accepted. Deployment is now ${STATE_LABEL[next].toLowerCase()}.`,
+      });
+      load();
+    } catch (err) {
+      setNote({
+        tone: "warn",
+        text: err instanceof Error ? err.message : "That command was refused.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section
+      kicker="Service state · owner only"
+      title="Stop or restrict this deployment"
+      intro="Paused refuses every API request and shows visitors your message. Read-only keeps the pages working but refuses changes. This page and the health check keep answering either way, so a pause can always be lifted."
+    >
+      {info && (
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ ...mono, color: "var(--color-text-mid)" }}>
+            Now: <span style={{ color: "var(--color-text-hi)" }}>{STATE_LABEL[info.state]}</span>
+            {info.commandSource !== "none" && ` · via ${info.commandSource}`}
+          </div>
+          <div style={{ ...mono, fontSize: 9, color: "var(--color-text-low)" }}>
+            Owner {info.owner} · key {info.keyFingerprint}
+          </div>
+          {info.problems.map((p) => (
+            <Hint key={p} tone="warn">
+              {p}
+            </Hint>
+          ))}
+        </div>
+      )}
+
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ ...mono, color: "var(--color-text-mid)" }}>Message for visitors</span>
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Back at 6pm"
+          style={inputStyle}
+        />
+      </label>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ ...mono, color: "var(--color-text-mid)" }}>Admin token</span>
+        <input
+          type="password"
+          autoComplete="off"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="make admin-token, on the server"
+          style={inputStyle}
+        />
+      </label>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {(["paused", "readonly", "running"] as ServiceState[]).map((state) => (
+          <button
+            key={state}
+            type="button"
+            onClick={() => apply(state)}
+            disabled={busy || !token.trim()}
+            style={{
+              ...button(!busy && Boolean(token.trim())),
+              borderColor: state === "running" ? "var(--risk-low)" : "var(--color-ember-500)",
+              background:
+                !busy && token.trim()
+                  ? state === "running"
+                    ? "var(--risk-low)"
+                    : "var(--color-ember-500)"
+                  : "transparent",
+            }}
+          >
+            {STATE_LABEL[state]}
+          </button>
+        ))}
+      </div>
+
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ ...mono, color: "var(--color-text-mid)" }}>Or paste a signed command</span>
+        <input
+          value={command}
+          onChange={(e) => setCommand(e.target.value)}
+          placeholder="from: python scripts/owner.py pause"
+          style={inputStyle}
+        />
+      </label>
+      <Footer note={note}>
+        <button
+          type="button"
+          onClick={applyCommand}
+          disabled={busy || !command.trim()}
+          style={button(!busy && Boolean(command.trim()))}
+        >
+          Apply command
+        </button>
+      </Footer>
+    </Section>
   );
 }

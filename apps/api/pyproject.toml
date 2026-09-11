@@ -27,6 +27,7 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "lightgbm>=4.6.0",
     "joblib>=1.5.3",
+    "cryptography>=50.0.1",
 ]
 
 [dependency-groups]

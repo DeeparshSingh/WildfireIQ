@@ -143,7 +143,11 @@ describe("SettingsPanel", () => {
   });
 
   it("saves the visitor's keys to this browser only", () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch");
+    // The panel also reads /api/ownership on mount, so the property to assert
+    // is not "no request at all" but "the visitor's key was never sent".
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 500 }));
     useKeysStore.setState({ panelOpen: true });
     render(<SettingsPanel />);
     fireEvent.change(document.getElementById("key-openrouter_api_key") as HTMLInputElement, {
@@ -152,7 +156,11 @@ describe("SettingsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /save my keys/i }));
     expect(screen.getByText(/saved in this browser/i)).toBeTruthy();
     expect(readKeys().openrouter_api_key).toBe("sk-mine");
-    expect(fetchMock).not.toHaveBeenCalled();
+
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes("/api/settings/keys"))).toBe(false);
+    const bodies = fetchMock.mock.calls.map((c) => String((c[1] as RequestInit)?.body ?? ""));
+    expect(bodies.some((b) => b.includes("sk-mine"))).toBe(false);
   });
 
   it("asks for the admin token when the deployment is protected", () => {

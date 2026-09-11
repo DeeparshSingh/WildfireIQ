@@ -50,11 +50,24 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
 
-    # Protects PUT /api/settings/keys. When set, the Settings panel's server
-    # section needs this value to save; without it any visitor who can reach
-    # the API could change or clear the owner's keys. Leave empty on a laptop
-    # used by one person; set it before exposing the API to anyone else.
+    # Protects the endpoints that change things: saving the owner's API keys,
+    # and pausing or resuming the deployment from the UI. Nothing needs to be
+    # set: with this empty a random token is generated on first boot and saved
+    # to data/runtime/owner.json, so a deployment is protected by default.
+    # `make admin-token` prints whichever token is in force.
     admin_token: str = Field(default="")
+
+    # A URL the owner controls (a gist's raw address, their own domain) holding
+    # a signed control command. Polled while the app runs, so the owner can
+    # pause or resume a deployment with no shell access at all. The content is
+    # only trusted after its signature is checked, so the URL can be public.
+    owner_control_url: str = Field(default="")
+    owner_control_poll_seconds: int = Field(default=180, ge=15)
+
+    # Serve the built web app from the API, so the browser and the API share
+    # one origin and CORS never applies. Defaults to apps/web/dist when that
+    # directory exists, which `./start.sh --serve` creates.
+    serve_web: bool = Field(default=True)
 
     # Run APScheduler in-process so every cron cadence actually fires.
     # Set SCHEDULER_ENABLED=false in .env to disable (e.g. for CI / tests).

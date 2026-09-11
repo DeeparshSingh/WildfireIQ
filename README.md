@@ -4,8 +4,7 @@ Wildfire risk, air quality, climate trends and community preparedness for
 British Columbia, on one open platform built from public data —
 with an in-app assistant that answers only from the platform's own data.
 
-Built at Thompson Rivers University under a Sustainability Research Grant
-(2025–2026). MIT licensed.
+A personal project by Deeparsh Singh Dang. MIT licensed.
 
 ---
 
@@ -71,17 +70,63 @@ Settings; it clears itself once the owner saves the key. Everything else is
 configuration rather than credentials, listed with its default in
 [`documents/architecture.md`](documents/architecture.md#6-configuration).
 
-### Deploying for other people
+---
 
-Two settings, both in `.env` on the server:
+## Deploying it
 
-- `ADMIN_TOKEN` — any long random string. With it set, the Settings panel's
-  server section needs the token to save, so a visitor cannot change or clear
-  your keys. Without it, anyone who can reach the API can. Set it before
-  exposing the API beyond your own machine.
-- `CORS_ORIGINS` — the URL your visitors use, e.g. `["https://wildfire.example.ca"]`,
-  if the web app and API are served from different origins. Serving the built
-  web app and the API from one origin avoids this entirely.
+```bash
+./start.sh --serve
+```
+
+That builds the web app and serves it from the API, so the whole thing is one
+process on one port. Point your domain or reverse proxy at it. There is nothing
+to configure: no `.env` file is needed anywhere, on the server or in git.
+
+Two things happen by themselves on first boot:
+
+- **An admin token is generated** and saved to `data/runtime/owner.json`, so
+  changing server keys or pausing the deployment is protected from the start.
+  Read it with `make admin-token` on the server. (If you would rather choose
+  it, set `ADMIN_TOKEN` in the environment and that wins.)
+- **The web app and the API share one origin,** so there is no CORS to set up.
+
+### Keeping control of a deployment
+
+You hold an Ed25519 signing key at `~/.wildfireiq/owner_ed25519`. Commands
+signed with it cannot be forged, altered, or replayed, and a deployment obeys
+them from any of several routes.
+
+What this does not do: stop somebody with the source and root on the machine
+from deleting the check. Nothing in software does. What it gives you is that
+nobody can forge, alter or replay your instructions, and that a deployment
+which stops answering to your key is visibly no longer yours.
+
+```bash
+make owner                       # your key fingerprint
+make pause MSG="Back at 6pm"     # print a signed pause command
+make resume                      # print a signed resume command
+```
+
+A command reaches a deployment by whichever route suits:
+
+| Route | Use it when | How |
+|---|---|---|
+| Settings panel | You have a browser | Paste the command into Settings, or use the admin token buttons |
+| A URL you control | You have neither shell nor token | Put the command in a gist; set `OWNER_CONTROL_URL` to its raw address; it is polled |
+| A file on the box | You have SSH | `make pause --write control.json`, then copy it to `data/runtime/control.json` |
+| Environment | The filesystem is read-only | `WILDFIREIQ_CONTROL='<command>'` before starting |
+
+While paused, every `/api/*` route answers 503 with your message, and the app
+shows visitors that wording. `/healthz` and `/api/ownership` keep answering, so
+a pause can always be seen and always be lifted.
+
+Check a deployment is still yours:
+
+```bash
+curl https://your.domain/api/ownership
+```
+
+The fingerprint it reports should match `make owner`.
 
 ---
 
@@ -133,7 +178,7 @@ make check                # the whole gate: lint, typecheck, both test suites, b
 
 make lint                 # ruff + biome
 make format               # apply ruff + biome formatting
-make test                 # both suites (192 backend, 67 frontend; 3 more live smoke tests via make test-live)
+make test                 # both suites (220 backend, 67 frontend; 3 more live smoke tests via make test-live)
 make test-api             # backend only
 make test-web             # frontend only
 make typecheck            # tsc --noEmit
@@ -230,5 +275,4 @@ Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). To cite
 the software, see [`CITATION.cff`](CITATION.cff). Code is MIT licensed
 ([`LICENSE`](LICENSE)); written content is CC BY 4.0.
 
-Created by Deeparsh Singh Dang at Thompson Rivers University with support from
-the TRU Sustainability Office.
+A personal project by Deeparsh Singh Dang.

@@ -84,40 +84,46 @@ def test_status_endpoint_reports_configured_flags_only(client: TestClient) -> No
     assert data["keys"]["firms_map_key"]["configured"] is False
     assert "unlocks" in data["keys"]["firms_map_key"]
     assert data["all_configured"] is False
-    assert data["write_protected"] is False
+    assert data["write_protected"] is True, "a token is generated when none is configured"
     assert "cesium_ion_token" not in data["keys"], "the browser-only token never reaches the server"
     assert "tok.super.secret" not in client.get("/api/settings/keys").text
 
 
-def test_put_stores_keys_and_never_echoes_them(client: TestClient, monkeypatch) -> None:
+def test_put_stores_keys_and_never_echoes_them(
+    client: TestClient, monkeypatch, admin_headers
+) -> None:
     ran: list[str] = []
 
     async def fake_run(newly_set: list[str]) -> None:
         ran.extend(newly_set)
 
     monkeypatch.setattr(settings_router, "_run_dependent_jobs", fake_run)
-    res = client.put("/api/settings/keys", json={"waqi_token": "tok-999"})
+    res = client.put("/api/settings/keys", json={"waqi_token": "tok-999"}, headers=admin_headers)
     assert res.status_code == 200
     assert "tok-999" not in res.text
     assert res.json()["data"]["newly_set"] == ["waqi_token"]
     assert keys_module.keystore.get("waqi_token") == "tok-999"
 
 
-def test_put_rejects_an_empty_body_and_ignores_unknown_fields(client: TestClient) -> None:
-    assert client.put("/api/settings/keys", json={}).status_code == 400
+def test_put_rejects_an_empty_body_and_ignores_unknown_fields(
+    client: TestClient, admin_headers
+) -> None:
+    assert client.put("/api/settings/keys", json={}, headers=admin_headers).status_code == 400
     # Unknown fields are dropped by the model rather than stored.
-    res = client.put("/api/settings/keys", json={"aws_secret": "x", "waqi_token": "t"})
+    res = client.put(
+        "/api/settings/keys", json={"aws_secret": "x", "waqi_token": "t"}, headers=admin_headers
+    )
     assert res.status_code == 200
     assert not any(k == "aws_secret" for k in keys_module.keystore.status())
 
 
-def test_put_can_clear_a_key(client: TestClient, monkeypatch) -> None:
+def test_put_can_clear_a_key(client: TestClient, monkeypatch, admin_headers) -> None:
     async def fake_run(newly_set: list[str]) -> None:
         return None
 
     monkeypatch.setattr(settings_router, "_run_dependent_jobs", fake_run)
     keys_module.keystore.update({"firms_map_key": "abc"})
-    res = client.put("/api/settings/keys", json={"firms_map_key": None})
+    res = client.put("/api/settings/keys", json={"firms_map_key": None}, headers=admin_headers)
     assert res.json()["data"]["keys"]["firms_map_key"]["configured"] is False
 
 
@@ -166,12 +172,21 @@ def test_browser_preflight_for_put_is_accepted(client: TestClient) -> None:
 # ── owner-only writes ────────────────────────────────────────────────────
 
 
-def test_writes_are_open_when_no_admin_token_is_configured(client: TestClient, monkeypatch) -> None:
+def test_writes_are_protected_even_with_nothing_configured(
+    client: TestClient, monkeypatch, admin_headers
+) -> None:
+    """Protected by default: a token is generated when none is set, so an
+    unauthenticated write is refused without anyone having to configure it."""
+
     async def fake_run(newly_set: list[str]) -> None:
         return None
 
     monkeypatch.setattr(settings_router, "_run_dependent_jobs", fake_run)
-    assert client.put("/api/settings/keys", json={"firms_map_key": "k"}).status_code == 200
+    assert client.put("/api/settings/keys", json={"firms_map_key": "k"}).status_code == 401
+    assert keys_module.keystore.get("firms_map_key") == ""
+    ok = client.put("/api/settings/keys", json={"firms_map_key": "k"}, headers=admin_headers)
+    assert ok.status_code == 200
+    assert ok.json()["data"]["write_protected"] is True
 
 
 def test_writes_need_the_admin_token_when_one_is_configured(

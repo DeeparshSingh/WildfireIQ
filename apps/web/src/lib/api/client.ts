@@ -38,6 +38,40 @@ export class ApiResponseError extends Error {
   }
 }
 
+/**
+ * Thrown when the owner has paused or restricted the deployment.
+ *
+ * Worth its own type: a 503 here is not a fault, it is a decision, and it
+ * carries the owner's own wording for why. Telling a reader "something went
+ * wrong" when the answer is "the owner took it down for an hour" is the kind
+ * of error message that wastes everybody's time.
+ */
+export class ServicePausedError extends Error {
+  readonly state: string;
+  constructor(message: string, state: string) {
+    super(message);
+    this.name = "ServicePausedError";
+    this.state = state;
+  }
+}
+
+async function pausedFrom(res: Response): Promise<ServicePausedError | null> {
+  if (res.status !== 503) return null;
+  try {
+    const body = await res.clone().json();
+    if (body && typeof body.state === "string" && body.state !== "running") {
+      return new ServicePausedError(
+        String(body.detail || "This deployment is paused."),
+        body.state,
+      );
+    }
+  } catch {
+    // A 503 from something other than the owner control middleware, e.g. a
+    // reverse proxy with no body. Falls through to the generic error.
+  }
+  return null;
+}
+
 export async function apiGet<T>(path: string): Promise<Envelope<T>> {
   let res: Response;
   try {
@@ -51,6 +85,8 @@ export async function apiGet<T>(path: string): Promise<Envelope<T>> {
     throw new ApiUnreachableError(path, cause);
   }
   if (!res.ok) {
+    const paused = await pausedFrom(res);
+    if (paused) throw paused;
     throw new ApiResponseError(path, res.status);
   }
   return (await res.json()) as Envelope<T>;

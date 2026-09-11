@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from ..ingest.base import run_job
 from ..ingest.registry import all_jobs
 from ..keys import KEY_FEATURES, KEY_JOBS, KEY_NAMES, keystore
+from ..owner import admin_token
 from ..settings import get_settings
 from ._envelope import Envelope, Meta
 
@@ -45,7 +46,8 @@ def _status_payload() -> dict[str, Any]:
             name: {"configured": status[name], "unlocks": KEY_FEATURES[name]} for name in KEY_NAMES
         },
         "all_configured": all(status.values()),
-        "write_protected": bool(get_settings().admin_token),
+        # Always true in practice: a token is generated when none is set.
+        "write_protected": bool(admin_token(get_settings().admin_token)),
     }
 
 
@@ -76,7 +78,7 @@ async def _run_dependent_jobs(newly_set: list[str]) -> None:
 
 
 def _require_admin(header_token: str | None) -> None:
-    expected = get_settings().admin_token
+    expected = admin_token(get_settings().admin_token)
     if expected and (header_token or "") != expected:
         raise HTTPException(401, "Server keys are owner-only. The admin token did not match.")
 

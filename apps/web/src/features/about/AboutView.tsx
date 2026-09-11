@@ -106,9 +106,7 @@ export function AboutView() {
             }}
           >
             Wildfire risk, air quality, and community preparedness for the Thompson-Okanagan region
-            of British Columbia, built from public data. Created by Deeparsh Singh Dang at Thompson
-            Rivers University with support from the TRU Sustainability Research Grant for Students,
-            2025-2026.
+            of British Columbia, built from public data. A personal project by Deeparsh Singh Dang.
           </p>
           <div
             style={{

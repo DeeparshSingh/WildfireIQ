@@ -28,6 +28,11 @@ help:
 	@echo "  make risk-features     Rebuild risk features + per-cell density (all regions)"
 	@echo "  make assistant-smoke   One live assistant call (needs an OpenRouter key in Settings)"
 	@echo "  make assistant-eval    Live eval suite across every data surface (~30 calls)"
+	@echo "  make serve             Build the web app and serve everything on one port"
+	@echo "  make admin-token       Print this deployment's admin token"
+	@echo "  make pause             Print a signed pause command (needs your signing key)"
+	@echo "  make resume            Print a signed resume command"
+	@echo "  make owner             Show your signing key fingerprint"
 	@echo "  make check             Everything below, in order — run this before pushing"
 	@echo "  make lint              Ruff (backend) + Biome (frontend)"
 	@echo "  make format            Apply Ruff and Biome formatting"
@@ -44,6 +49,31 @@ help:
 .PHONY: dev
 dev:
 	./start.sh
+
+.PHONY: serve
+serve:
+	./start.sh --serve
+
+# ── Owner control ───────────────────────────────────────────────────────
+# `admin-token` reads whatever token this deployment is using: the configured
+# one, or the one generated on first boot. The rest sign commands with the key
+# in ~/.wildfireiq, so they only work on the owner's own machine.
+
+.PHONY: admin-token
+admin-token:
+	@$(UV) python -c "from wildfireiq_api.owner import admin_token; from wildfireiq_api.settings import get_settings; print(admin_token(get_settings().admin_token))"
+
+.PHONY: owner
+owner:
+	@$(UV) python scripts/owner.py whoami
+
+.PHONY: pause
+pause:
+	@$(UV) python scripts/owner.py pause "$(MSG)"
+
+.PHONY: resume
+resume:
+	@$(UV) python scripts/owner.py resume
 
 # ────────────────────────────────────────────────────────────────────────
 # Data

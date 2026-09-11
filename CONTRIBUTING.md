@@ -1,8 +1,7 @@
 # Contributing
 
-WildfireIQ Kamloops was built under a Thompson Rivers University Sustainability
-Research Grant. Issues and pull requests are welcome and are reviewed as time
-allows.
+WildfireIQ Kamloops is a personal project by Deeparsh Singh Dang. Issues and
+pull requests are welcome and are reviewed as time allows.
 
 ## Before filing an issue
 

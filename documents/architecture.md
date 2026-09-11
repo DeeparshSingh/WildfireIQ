@@ -28,7 +28,7 @@ WildFire-IQ/
 │   │   │   ├── ml/                FWI port, feature builder, two trainers, two inference modules, trends
 │   │   │   ├── routers/           one router per domain + _data.py (parquet readers) + _envelope.py
 │   │   │   └── assistant/         agent harness, 25 tools, OpenRouter transport, guard, evals
-│   │   └── tests/                 192 pytest tests
+│   │   └── tests/                 220 pytest tests
 │   └── web/                       React 18 · TypeScript · Vite · Cesium
 │       └── src/
 │           ├── main.tsx, app.tsx  providers, route table (lazy routes)
@@ -385,17 +385,57 @@ saves them and runs the ingest behind any newly added key at once. When
 `ADMIN_TOKEN` unset means writes are open, which is fine for one person on a
 laptop and the panel says so. Set it before the API is reachable by anyone else.
 
+### Owner control
+
+`owner.py` decides whether a request may proceed, and `OwnerControlMiddleware`
+in `main.py` enforces it ahead of every other middleware.
+
+The owner holds an Ed25519 private key on their own machine
+(`~/.wildfireiq/owner_ed25519`); the public half is in `owner.py`.
+`scripts/owner.py` signs a small
+JSON payload naming a state (`running`, `readonly`, `paused`), a message and a
+timestamp. The deployment reads a standing command from a file
+(`data/runtime/control.json`), an environment variable (`WILDFIREIQ_CONTROL`),
+or a URL the owner controls (`OWNER_CONTROL_URL`, polled), and obeys the newest
+valid one. `/api/ownership` reports the state and the key fingerprint, which
+the owner compares against `scripts/owner.py whoami`.
+
+Three properties are deliberate:
+
+- **Fail-open.** A missing, unreadable, forged or unreachable command leaves
+  the deployment running and logs the problem. A control plane that fails
+  closed eventually locks out its owner.
+- **No rollback.** The highest accepted `issued_at` is kept in
+  `data/runtime/control_seen.json`; an older command is refused and the
+  standing one is retained, so a captured `running` cannot undo a later
+  `paused`.
+- **Never self-locking.** `/healthz` and everything under `/api/ownership`
+  answer even while paused, so the route that lifts a pause is never blocked
+  by the pause.
+
+`POST /api/ownership/state` is a weaker, everyday alternative authorised by the
+admin token rather than a signature. Whichever instruction is most recent wins,
+so neither channel can strand the other.
+
+What this does not do: stop somebody with the source and root on the machine
+from deleting the check. Nothing in software does. What it does is make that
+change visible — a deployment that no longer reports the owner's fingerprint is
+visibly not the owner's.
+
 ### Configuration
 
 All backend settings are fields on `settings.Settings` and read from the
-repository-root `.env`. All frontend settings are `VITE_*` variables read at
+repository-root `.env`, which is optional: every setting has a working default. All frontend settings are `VITE_*` variables read at
 build time.
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Where the web app finds the API |
 | `VITE_ENABLE_TRU_CARBON` | `false` | Shows climate section 6 when the CSV exists |
-| `ADMIN_TOKEN` | — | Required by `PUT /api/settings/keys` when set; protects the owner's server keys |
+| `ADMIN_TOKEN` | generated | Protects server keys and the pause control. Generated into `data/runtime/owner.json` on first boot when unset; `make admin-token` prints it |
+| `OWNER_CONTROL_URL` | — | A URL holding a signed control command, polled while running |
+| `OWNER_CONTROL_POLL_SECONDS` | `180` | How often that URL is re-read |
+| `SERVE_WEB` | `true` | Serve `apps/web/dist` from the API, so browser and API share one origin |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./data/wildfireiq.db` | SQLite location |
 | `CORS_ORIGINS` | the two Vite dev origins | |
 | `SCHEDULER_ENABLED` | `true` | Run the cron jobs in-process |
@@ -413,7 +453,7 @@ build time.
 
 | Suite | Where | Count | Covers |
 |---|---|---|---|
-| Backend | `apps/api/tests/` | 192 (+3 `live`) | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs), and the runtime key store and Settings API (`test_keys`: persistence, values never echoed, unknown names rejected, the admin token, the CORS preflight the panel depends on), and a visitor's per-request assistant key |
+| Backend | `apps/api/tests/` | 220 (+3 `live`) | ingest parsers and schemas (`test_ingest`), data quality bounds, the air-quality band's conformal calibration (`test_aq_calibration`), every router, risk-region rules (no cell in two regions; badge matches cells), pipeline graph and cron agreement, raw retention, and the assistant (81: loop, budgets, fan-out, tool errors, SSE framing, guard, evals integrity), the two Fire Weather Index sources (`test_fwi_sources`: the renamed CWFIS layer, client-side bbox filtering, and the season-start spin-up the Drought Code needs), and the runtime key store and Settings API (`test_keys`: persistence, values never echoed, unknown names rejected, the admin token, the CORS preflight the panel depends on), a visitor's per-request assistant key, and owner control (`test_owner`: only the owner's key signs a command, a tampered or replayed one is refused, every failure leaves the deployment running, and a pause never blocks the route that lifts it) |
 | Frontend | `apps/web/src/lib/__tests__/` | 67 | AQ colour scale, evacuation sorting, preparedness state and share encoding, the assistant's SSE reader and markdown renderer, the WKT parser behind the globe's fire and evacuation polygons (`wkt`), the data-unavailable banner (`dataNotice`, including the paused-query case that never reaches `isError`), and the API-key store, Settings panel and key notices (`keys`: storage round-trip, masked fields, visitor keys never leave the browser, server saves carry the admin token, notices follow the server's report) |
 | Lint | | | `ruff check` + `ruff format --check`; Biome for TypeScript; `tsc --noEmit` |
 | Live | | 32 cases | `make assistant-eval` runs the assistant against the real model; the only check that spends money (~$0.04 a sweep) |

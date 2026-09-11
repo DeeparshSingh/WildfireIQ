@@ -303,5 +303,9 @@ Writer `climatedata_projections` (one-time). Readers `/api/climate/projection`, 
 | Path | What |
 |---|---|
 | `data/wildfireiq.db` | SQLite. One table, `ingest_runs`: one row per job run with status, row counts, duration and any error. Read by `/api/admin/runs`, the startup catch-up, and the assistant's data-freshness tool |
+| `data/runtime/owner.json` | The generated admin token, created on first boot when `ADMIN_TOKEN` is unset. Mode 0600, ignored by git. `make admin-token` prints it |
+| `data/runtime/control.json` | A standing control command signed by the owner, if one has been placed here. Ignored by git |
+| `data/runtime/control_seen.json` | The newest command timestamp ever accepted, so an older one cannot be replayed |
+| `data/runtime/control_local.json` | The service state last set with the admin token, so a pause survives a restart |
 | `data/runtime/keys.json` | The owner's three server keys (NASA FIRMS, WAQI, OpenRouter default), saved from the Settings panel's server section so the scheduled jobs and the assistant can use them with no browser open. Visitor keys never land here. Ignored by git; never served. Only `configured` flags leave the server, via `/api/settings/keys` |
 | `data/raw/<job>/` | the last 24 raw upstream responses per job, for reproducing a parse failure |

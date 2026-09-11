@@ -14,7 +14,7 @@
  */
 import { type QueryClient, onlineManager, useQueryClient } from "@tanstack/react-query";
 
-import { ApiUnreachableError } from "@/lib/api/client";
+import { ApiUnreachableError, ServicePausedError } from "@/lib/api/client";
 
 /** The slice of a TanStack query this component needs. */
 export type NoticeQuery = {
@@ -46,6 +46,14 @@ function isUnreachable(queries: NoticeQuery[]): boolean {
 
 function isPaused(queries: NoticeQuery[]): boolean {
   return queries.some((q) => q.fetchStatus === "paused");
+}
+
+/** The owner's own words, when they have paused the deployment. */
+function ownerPause(queries: NoticeQuery[]): ServicePausedError | null {
+  for (const q of queries) {
+    if (q.error instanceof ServicePausedError) return q.error;
+  }
+  return null;
 }
 
 /**
@@ -86,17 +94,24 @@ export function DataNotice({
   const retrying = failed.some((q) => q.isFetching);
   const paused = isPaused(failed);
   const unreachable = isUnreachable(failed);
+  const byOwner = ownerPause(failed);
 
-  const headline = paused
-    ? "Waiting for a connection"
-    : unreachable
-      ? "Cannot reach the WildfireIQ API"
-      : `Could not load ${what}`;
-  const detail = paused
-    ? "Your browser reports no network, so retries are on hold. This page will fill in by itself once the connection returns."
-    : unreachable
-      ? "The backend is not responding. If you are running this locally, start it with ./start.sh — the page will fill in once it answers."
-      : `${failed.length} of this page's data sources returned an error. Anything already shown is from the last successful load.`;
+  const headline = byOwner
+    ? byOwner.state === "readonly"
+      ? "Read-only, by the owner"
+      : "Paused by the owner"
+    : paused
+      ? "Waiting for a connection"
+      : unreachable
+        ? "Cannot reach the WildfireIQ API"
+        : `Could not load ${what}`;
+  const detail = byOwner
+    ? byOwner.message
+    : paused
+      ? "Your browser reports no network, so retries are on hold. This page will fill in by itself once the connection returns."
+      : unreachable
+        ? "The backend is not responding. If you are running this locally, start it with ./start.sh — the page will fill in once it answers."
+        : `${failed.length} of this page's data sources returned an error. Anything already shown is from the last successful load.`;
 
   return (
     <output

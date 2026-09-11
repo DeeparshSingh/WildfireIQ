@@ -20,8 +20,7 @@ abstract: >-
   CesiumJS globe with six live data layers, a private FireSmart preparedness
   hub, a climate-trend page with Theil-Sen statistics, and a tool-using
   assistant (GLM 5.3 Flash via OpenRouter) that answers only from the
-  platform's own data. Built with a Thompson Rivers University Sustainability
-  Research Grant, 2025-2026.
+  platform's own data. A personal project.
 keywords:
   - wildfire
   - air-quality
